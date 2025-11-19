@@ -2,6 +2,7 @@ import dotenv
 import time
 import re
 import traceback
+from openai import OpenAI
 
 # ------------------------------- Configuration -------------------------------
 MODEL_NAME = "openai/gpt-oss-20b"
@@ -14,7 +15,6 @@ TRIGGER_CHUNK_INDEX = None  # e.g., 2 to use SYSTEM_PROMPT_ALT only for chunk 2;
 PARAGRAPHS_PER_CHUNK = 20  # each chunk will contain 4 paragraphs (except the final chunk)
 ENFORCE_TOKEN_LIMIT_ON_GROUP = False  # if True, fall back to token-based split when a paragraph-group is too large
 API_KEY = dotenv.get_key(".env", "GROQ_API_KEY")
-from openai import OpenAI
 groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=API_KEY)
 # ------------------------------- System prompt -------------------------------
 SYSTEM_PROMPT = ("""You are a Flashcard generator for educational use. For each input text chunk, produce a set of flashcards that together cover the chunk's main ideas, important facts, and key implications.
@@ -253,7 +253,7 @@ def chunk_by_paragraph_groups(text: str, paragraphs_per_chunk: PARAGRAPHS_PER_CH
 
 
 # ------------------------------- Main processing (modified) -------------------------------
-def main():
+def generate_flip_cards(LONG_TEXT : str):
     if not LONG_TEXT.strip():
         raise RuntimeError("LONG_TEXT is empty. Paste your text into the LONG_TEXT variable in the script.")
 
@@ -314,8 +314,7 @@ def main():
     # Combine all outputs into one large response
     combined_sections = []
     for p in all_parts:
-        flag = " (ALT_PROMPT)" if p["used_alt_prompt"] else ""
-        combined_sections.append(f"--- PART {p['chunk_index']}{flag} (words: {p['response_word_count']}) ---\n{p['response_text']}\n")
+        combined_sections.append(p["response_text"])
     combined_text = "\n".join(combined_sections)
     return combined_text
 
