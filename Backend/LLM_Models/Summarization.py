@@ -17,23 +17,44 @@ groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=API_KEY)
 
 # ------------------------------- System prompt -------------------------------
 SYSTEM_PROMPT = (
-    "You are a professional summarizer. Given the input text, produce an abstractive summary that:"
-"- Is concise."
-"- Preserves factual correctness; do not hallucinate new facts."
-"- Uses neutral tone unless asked otherwise."
-"- Omits trivial details and examples unless they illustrate the main point."
-"- Maintain key numeric/temporal facts if present."
-"- has bullet points format end of response"
+    "You are a professional summarizer. Given the input text, produce an abstractive summary in clean HTML format that : "
+    "- Is concise."
+    "- Preserves factual correctness; do not hallucinate new facts."
+    "- Uses neutral tone unless asked otherwise."
+    "- Omits trivial details and examples unless they illustrate the main point."
+    "Follow ALL rules strictly:"
+    "1. The response MUST be valid HTML."
+    "2. Wrap the entire output in <div> ... </div>."
+    "3. Use <p> for short descriptions or intro sentences."
+    "4. Use <ul><li>...</li></ul> for bullet points."
+    "5. NEVER include newline characters (no \\n). Use HTML tags ONLY for structure."
+    "6. Do NOT include <html>, <body>, <head>, or CSS."
+    "7. Maintain numeric/temporal facts."
+    "8. Avoid hallucinations or trivial details."
+    "9. ALWAYS end with a bullet-point summary inside <ul>."
+    "10. Show titles in bold and make them larger using <h2> tags."
 )
+
+
 SYSTEM_PROMPT_ALT = (
-    "You are a professional summarizer. Given the input text, produce an abstractive summary that:"
-"- Is concise."
-"- Preserves factual correctness; do not hallucinate new facts."
-"- Uses neutral tone unless asked otherwise."
-"- Omits trivial details and examples unless they illustrate the main point."
-"- Maintain key numeric/temporal facts if present."
-"- has bullet points format end of response"
+    "You are a professional summarizer. Given the input text, produce an abstractive summary in clean HTML format that : "
+    "- Is concise."
+    "- Preserves factual correctness; do not hallucinate new facts."
+    "- Uses neutral tone unless asked otherwise."
+    "- Omits trivial details and examples unless they illustrate the main point."
+    "Follow ALL rules strictly:"
+    "1. The response MUST be valid HTML."
+    "2. Wrap the entire output in <div> ... </div>."
+    "3. Use <p> for short descriptions or intro sentences."
+    "4. Use <ul><li>...</li></ul> for bullet points."
+    "5. NEVER include newline characters (no \\n). Use HTML tags ONLY for structure."
+    "6. Do NOT include <html>, <body>, <head>, or CSS."
+    "7. Maintain numeric/temporal facts."
+    "8. Avoid hallucinations or trivial details."
+    "9. ALWAYS end with a bullet-point summary inside <ul>."
+    "10. Show titles in bold and make them larger using <h2> tags."
 )
+
 # ------------------------------- Main processing -------------------------------
 TRIGGER_CHUNK_COUNT = None  # <-- example: if the chunker produced exactly 4 chunks, use SYSTEM_PROMPT_ALT globally
                           # set to None to disable the global-chunk-count trigger
@@ -209,9 +230,7 @@ def Summarization(LONG_TEXT: str):
        
     all_parts = []
     per_chunk_word_counts = []
-    total_api_time = 0.0
 
-    start_all = time.time()
     for idx, chunk in enumerate(chunks, start=1):
         est_tokens = estimate_tokens(chunk)
         # Choose system prompt for this chunk
@@ -259,7 +278,7 @@ def Summarization(LONG_TEXT: str):
     # Combine all outputs into one large response
     combined_sections = []
     for p in all_parts:
-        flag = " (ALT_PROMPT)" if p["used_alt_prompt"] else ""
-        combined_sections.append(f"--- PART {p['chunk_index']}{flag} (words: {p['response_word_count']}) ---\n{p['response_text']}\n")
+        combined_sections.append(p["response_text"])
     combined_text = "\n".join(combined_sections)
+    combined_text = combined_text.replace("\n", "")
     return combined_text
