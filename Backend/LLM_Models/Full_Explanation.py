@@ -192,14 +192,6 @@ def chunk_by_paragraph_groups(text: str, paragraphs_per_chunk: PARAGRAPHS_PER_CH
                 groups.extend(sub_chunks)
                 continue
         groups.append(group_text)
-
-    # debug print for developer convenience
-    print(f"Paragraph grouping: total_paragraphs={total_paras}, paragraphs_per_chunk={paragraphs_per_chunk}, resulting_chunks={len(groups)}", flush=True)
-    # Optionally print how many paragraphs each chunk contains
-    for idx, grp in enumerate(groups, start=1):
-        para_count = len([p for p in re.split(r'\n{2,}', grp) if p.strip()])
-        print(f"  Chunk {idx}: paragraphs={para_count}, est_tokens={estimate_tokens(grp)}", flush=True)
-
     return groups
 
 # ------------------------------- Main processing (modified) -------------------------------
@@ -273,7 +265,6 @@ def full_explanation(LONG_TEXT: str):
     # Combine all outputs into one large response
     combined_sections = []
     for p in all_parts:
-        flag = " (ALT_PROMPT)" if p["used_alt_prompt"] else ""
-        combined_sections.append(f"--- PART {p['chunk_index']}{flag} (words: {p['response_word_count']}) ---\n{p['response_text']}\n")
+        combined_sections.append(p["response_text"])
     combined_text = "\n".join(combined_sections)
     return combined_text
