@@ -1,0 +1,37 @@
+model:
+  name: "Qwen/Qwen3-VL-2B-Instruct"
+  trust_remote_code: true
+
+runtime:
+  device_preference: "auto"     # auto|cuda|cpu
+  use_cache: true
+  enable_sdpa: true
+  enable_mps_fallback: true
+
+pdf:
+  dpi: 250
+  long_side: 512
+  poppler_path: null            # Windows only (e.g. "C:/poppler/Library/bin")
+
+generation:
+  max_new_tokens: 300
+  batch_size: 1
+  do_sample: false
+  num_beams: 1
+
+quality_presets:
+  fast:
+    dpi: 200
+    long_side: 448
+    max_new_tokens: 220
+    batch_size: 8
+  baseline:
+    dpi: 230
+    long_side: 512
+    max_new_tokens: 260
+    batch_size: 8
+  accurate:
+    dpi: 250
+    long_side: 512
+    max_new_tokens: 300
+    batch_size: 8
