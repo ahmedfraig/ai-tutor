@@ -1,10 +1,25 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Button, Container } from "react-bootstrap";
 import { FaClock } from "react-icons/fa";
 import "./ExamSection.css";
 import { IoDocumentTextOutline } from "react-icons/io5";
 import { PiMedalDuotone } from "react-icons/pi";
+import axios from "axios";
 const ExamSection = () => {
+  const[exam,setexam]=useState({});
+  const[show,setshow]=useState(false);
+  const[question,setquestion]=useState(1);
+  useEffect(()=>{
+    const fetchdata=async()=>{
+      try{
+        const res = await axios.post("http://127.0.0.1:8000/questions",{});
+        setexam(res.data)
+      }catch(error){
+        console.error(error);
+      }
+    }
+    fetchdata()
+  },[]);
   return (
     <Container className="py-5 px-0 exam-section-container">
       <Card className="shadow-sm border-0 text-center exam-card">
@@ -32,11 +47,33 @@ const ExamSection = () => {
             </span>
           </div>
 
-          <Button className="w-100 fw-bold py-1 exam-start-btn">
+          <Button
+            className="w-100 fw-bold py-1 exam-start-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("clicked");
+              setshow(s => !s);
+            }}
+          >
             Start Exam
           </Button>
+          {show && (
+            <>
+              <div>exam started</div>
+              <div>
+                {JSON.stringify(exam)}
+              </div>
+
+              <div>
+                q.{number}: {JSON.stringify(exam.question)}
+              </div>
+            </>
+
+          )}
         </Card.Body>
       </Card>
+
+     
     </Container>
   );
 };

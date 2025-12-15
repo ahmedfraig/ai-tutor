@@ -11,14 +11,19 @@ import DomPurify from 'dompurify'
 function LessonContent({ mode, selectedName }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [summarize, setsummarize] = useState("");
+  const[loading,setloading]=useState(true);
+
 
   useEffect(() => {
     const fetchdata = async () => {
       try {
         const res = await axios.post("http://127.0.0.1:8000/summarize", {});
         setsummarize(res.data.summary || "");
+      
       } catch (error) {
         console.error("Failed to fetch summary:", error);
+      } finally {
+        setloading(false);
       }
     };
 
@@ -58,8 +63,15 @@ function LessonContent({ mode, selectedName }) {
         <Tab.Pane eventKey="overview">
 
           <strong>Lesson Summary:</strong>
-          {summarize && (
-            <div dangerouslySetInnerHTML={{ __html: DomPurify.sanitize(summarize) }} />)}
+         
+
+          {loading ? (
+            <div>Loading summarize</div>
+          ) : summarize ? (
+            <div dangerouslySetInnerHTML={{ __html: DomPurify.sanitize(summarize) }} />
+          ) : (
+            <div>No summary available</div>
+          )}
 
 
         </Tab.Pane>
