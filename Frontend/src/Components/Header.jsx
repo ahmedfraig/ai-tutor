@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "../App.css";
 import "./Header.css";
 import { useNavigate } from "react-router-dom";
+import toast from 'react-hot-toast';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -20,8 +21,28 @@ const Header = () => {
     }
   };
 
-  const handlelogout = () => {
+  const openLogoutMenu = () => {
     setlogoutdiv(!logoutdiv);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("loggedUser");
+    toast.success("Logged out successfully!");
+    navigate("/login");
+  };
+
+  const loggedUser = JSON.parse(localStorage.getItem("loggedUser")) || {};
+  const username = loggedUser.fullname || "";
+
+  const getInitials = (name) => {
+    if (!name) return "";
+    const parts = name.trim().split(" ");
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
   return (
@@ -41,9 +62,9 @@ const Header = () => {
               {darkmode ? "🌙" : "☀️"}
             </button>
             <div>
-              <button className="headernameanddiv" onClick={handlelogout}>
-                <div className="me-1 headernameab">DA</div>
-                <p className="mb-0 headername ">danny</p>
+              <button className="headernameanddiv" onClick={openLogoutMenu}>
+                <div className="me-1 headernameab">{getInitials(username)}</div>
+                <p className="mb-0 headername ">{username}</p>
               </button>
 
               {logoutdiv && (
@@ -51,10 +72,11 @@ const Header = () => {
                   <div className="ldiv fluid-container">
                     <i class="bi bi-person iconh"></i>Profile
                   </div>
-                 
+
                   <hr className="line" />
-                  <div className="ldiv">
-                    <i class="bi bi-box-arrow-right iconh"></i>Signout
+                  <div className="ldiv" onClick={handleLogout}>
+                    <i className="bi bi-box-arrow-right iconh"></i>
+                    <span>Signout</span>
                   </div>
                 </div>
               )}

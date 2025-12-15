@@ -1,26 +1,60 @@
-import './App.css'
+import "./App.css";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
-import Home from './Components/Home'
-import Mylearning from './Components/Mylearning'
-import Reminder from './Components/Reminder'
-import Lesson from './Components/Lesson'
-import { Route,Routes,Link } from 'react-router-dom'
-import Login from './Components/Authentication/Login'
+import Home from "./Components/Home";
+import Mylearning from "./Components/Mylearning";
+import Reminder from "./Components/Reminder";
+import Lesson from "./Components/Lesson";
+import Login from "./Components/Authentication/Login";
+import Register from "./Components/Authentication/Register";
+import ProtectedRoute from "./Components/Authentication/ProtectedRoute";
+
 function App() {
-  
-
   return (
-    <><Routes>
+    <>
+      <Toaster position="top-center" reverseOrder={false} />
 
-  <Route path='/' element={<Home/>}/>
-   <Route path='/mylearning' element={<Mylearning/>}/>
-   <Route path='/reminder' element={<Reminder/>}/>
-   <Route path="/lesson" element={<Lesson/>}/>   
-</Routes>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mylearning"
+          element={
+            <ProtectedRoute>
+              <Mylearning />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reminder"
+          element={
+            <ProtectedRoute>
+              <Reminder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lesson"
+          element={
+            <ProtectedRoute>
+              <Lesson />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
