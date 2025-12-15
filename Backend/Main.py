@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import json
+import tempfile
 
-# ===== Import your functions =====
-#from LLM_Models.Full_Explanation import full_explanation
+from OCR import load_settings, load_model_and_processor, process_file
 from Text_Generation import full_explanation, generate_questions, generate_summary, generate_flip_cards
 
 
@@ -18,7 +18,7 @@ origins = [
 ]
 
 
-app = FastAPI(title="AI Tutor Backend")
+app = FastAPI(title="AI Tutor")
 
 app.add_middleware(
     CORSMiddleware, 
@@ -52,9 +52,45 @@ class TextRequest(BaseModel):
 
 @app.get("/")
 def root():
-    
-    return {"message": "AI Tutor Backend is running 🚀"}
+    settings = load_settings()   # reads config.yaml
+    cfg = settings.cfg
+    model, processor, device, eos_id, pad_id = load_model_and_processor(
+        model_name=settings.model_name,
+        trust_remote_code=settings.trust_remote_code,
+        device_preference=cfg["runtime"].get("device_preference", "auto"),
+    )
+    app.state.cfg = cfg
+    app.state.model = model
+    app.state.processor = processor
+    app.state.device = device
+    app.state.eos_id = eos_id
+    app.state.pad_id = pad_id
+    return {"message": "AI Tutor Started Running"}
 
+# ==========================
+#     OCR ENDPOINT
+# ==========================
+
+@app.post("/ocr")
+async def ocr_endpoint(
+    quality: str = Query(default="fast"),
+    file: UploadFile = File(...),
+):
+    suffix = "." + file.filename.split(".")[-1]
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    return process_file(
+        tmp_path,
+        cfg=app.state.cfg,
+        model=app.state.model,
+        processor=app.state.processor,
+        device=app.state.device,
+        eos_id=app.state.eos_id,
+        pad_id=app.state.pad_id,
+        quality=quality,
+    )
 
 # ==========================
 #     FULL EXPLANATION

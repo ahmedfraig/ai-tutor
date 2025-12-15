@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import List, Tuple
 from PIL import Image
 
-from prompts import system_prompt, user_prompt
-from postprocess import clean_qwen_echo
+from .prompts import system_prompt, user_prompt
+from .postprocess import clean_qwen_echo
 
 def build_messages(images: List[Image.Image], page_numbers: List[int]):
     msgs = []

@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
 import time
 
-from image_utils import pdf_to_images, load_image
-from generation import run_batched_generation
-from quality import resolve_params
+from .image_utils import pdf_to_images, load_image
+from .generation import run_batched_generation
+from .quality import resolve_params
 
 def process_file(
     path: str,
@@ -52,13 +52,13 @@ def process_file(
     total_time = time.perf_counter() - start_total
 
     return {
-        "pages": md_pages,
+        #"pages": md_pages,
         "markdown": "\n\n".join(md_pages),
-        "stats": {
-            "num_pages": len(md_pages),
-            "avg_time_per_page_sec": round(sum(per_page_times) / max(1, len(per_page_times)), 2),
-            "total_runtime_sec": round(total_time, 2),
-            "quality": quality,
-            "params": params.__dict__,
-        }
+        # "stats": {
+        #     "num_pages": len(md_pages),
+        #     "avg_time_per_page_sec": round(sum(per_page_times) / max(1, len(per_page_times)), 2),
+        #     "total_runtime_sec": round(total_time, 2),
+        #     "quality": quality,
+        #     "params": params.__dict__,
+        # }
     }
