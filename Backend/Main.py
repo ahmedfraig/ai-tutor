@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import os
 import json
 
 # ===== Import your functions =====
@@ -92,31 +91,6 @@ async def summarize_api(req: TextRequest):
         print(f"[ERROR] summarize_text: {e}")
         raise HTTPException(status_code=500, detail="Failed to summarize.")
 
-
-# ==========================
-#        FLIP CARDS
-# ==========================
-@app.post("/flip-cards")   #skip for test
-async def flip_cards_api(req: TextRequest):
-    text_to_use = req.text.strip() if req.text and req.text.strip() else DEFAULT_TEXT
-
-    if not text_to_use.strip():
-        raise HTTPException(status_code=400, detail="No text provided and default text is empty.")
-
-    try:
-        cards = generate_flip_cards(text_to_use)
-        return cards
-    except Exception as e:
-        print(f"[ERROR] flip_cards: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate flip cards.")
-
-
-# ==========================
-#        QUESTIONS
-# ==========================
-import json
-import json
-
 def sanitize_model_output(raw: str) -> str:
     s = raw.strip()
 
@@ -156,6 +130,28 @@ def parse_concatenated_json_arrays(raw: str):
     if not all_items:
         raise ValueError("No JSON values found in model output.")
     return all_items
+# ==========================
+#        FLIP CARDS
+# ==========================
+@app.post("/flip-cards")   #skip for test
+async def flip_cards_api(req: TextRequest):
+    text_to_use = req.text.strip() if req.text and req.text.strip() else DEFAULT_TEXT
+
+    if not text_to_use.strip():
+        raise HTTPException(status_code=400, detail="No text provided and default text is empty.")
+
+    try:
+        raw_cards = generate_flip_cards(text_to_use)
+        cards = parse_concatenated_json_arrays(raw_cards)
+        return cards
+    except Exception as e:
+        print(f"[ERROR] flip_cards: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate flip cards.")
+
+
+# ==========================
+#        QUESTIONS
+# ==========================
 
 @app.post("/questions")
 async def questions_api(req: TextRequest):
@@ -164,7 +160,6 @@ async def questions_api(req: TextRequest):
         raise HTTPException(status_code=400, detail="No text provided and default text is empty.")
     try:
         raw = generate_questions(text_to_use)  # LLM output as one big string
-        print("[RAW QUESTIONS OUTPUT]", repr(raw))  # keep for debugging
         questions = parse_concatenated_json_arrays(raw)
         return questions
 
@@ -177,3 +172,6 @@ async def questions_api(req: TextRequest):
     except Exception as e:
         print("[ERROR] generate_questions:", e)
         raise HTTPException(status_code=500, detail="Failed to generate questions.")
+
+
+# to run uvicorn main:app --reload --host 127.0.0.1 --port 8000
