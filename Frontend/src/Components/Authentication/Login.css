@@ -97,6 +97,13 @@ body{
     color: grey;
 }
 
+.error {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+
 
 @media (max-width:769px) {
    
