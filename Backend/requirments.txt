@@ -11,5 +11,6 @@ pillow
 pdf2image
 safetensors
 sentencepiece
-pyyaml
+
 python-multipart
+PyYAML

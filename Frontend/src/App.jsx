@@ -10,6 +10,7 @@ import Login from "./Components/Authentication/Login";
 import Register from "./Components/Authentication/Register";
 import ProtectedRoute from "./Components/Authentication/ProtectedRoute";
 import ExamStart from "./Components/mylearningComponents/ExamStart";
+import QuizFlashcards from './Components/mylearningComponents/QuizFlashcards'
 
 function App() {
   return (
@@ -61,6 +62,17 @@ function App() {
       <ExamStart />
     </ProtectedRoute>
   }
+  
+/>
+
+ <Route
+  path="/flashcardquiz"
+  element={
+    <ProtectedRoute>
+      <QuizFlashcards/>
+    </ProtectedRoute>
+  }
+  
 />
       </Routes>
     </>
