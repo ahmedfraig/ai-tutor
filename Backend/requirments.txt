@@ -13,3 +13,4 @@ safetensors
 sentencepiece
 pyyaml
 python-multipart
+chromadb

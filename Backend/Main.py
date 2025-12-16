@@ -3,10 +3,9 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import tempfile
-
 from OCR import load_settings, load_model_and_processor, process_file
 from Text_Generation import full_explanation, generate_questions, generate_summary, generate_flip_cards
-
+from Database import LessonVectorDB
 
 
 origins = [
@@ -19,7 +18,6 @@ origins = [
 
 
 app = FastAPI(title="AI Tutor")
-
 app.add_middleware(
     CORSMiddleware, 
     allow_origins=origins,      # in dev you can use ["*"]
@@ -27,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+lesson_vector_db = LessonVectorDB()
+
 
 # ===== Helper to load default text =====
 def load_default_text(filename: str) -> str:
@@ -71,17 +71,23 @@ def root():
 #     OCR ENDPOINT
 # ==========================
 
+# "summary": "", 
+# "flipcards": "", 
+# "questions": "", 
+# "ocr": ""
+
 @app.post("/ocr")
 async def ocr_endpoint(
     quality: str = Query(default="fast"),
     file: UploadFile = File(...),
+    userID: str = "",
+    lid: str = "",
 ):
     suffix = "." + file.filename.split(".")[-1]
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(await file.read())
         tmp_path = tmp.name
-
-    return process_file(
+    ocr_text = process_file(
         tmp_path,
         cfg=app.state.cfg,
         model=app.state.model,
@@ -91,6 +97,12 @@ async def ocr_endpoint(
         pad_id=app.state.pad_id,
         quality=quality,
     )
+    lesson_vector_db.db.update_lesson_component(
+        user_id=userID, 
+        lesson_id=lid, 
+        ocr=ocr_text
+    )
+    return True
 
 # ==========================
 #     FULL EXPLANATION
@@ -114,14 +126,20 @@ def full_explanation_api(req: TextRequest):
 #        SUMMARIZATION
 # ==========================
 @app.post("/summarize")
-async def summarize_api(req: TextRequest):
+async def summarize_api(req: TextRequest,userID: str = "", lid: str = ""):
+    #req = lesson_vector_db.get_ocr(userID,lid)
     text_to_use = req.text.strip() if req.text and req.text.strip() else DEFAULT_TEXT
 
     if not text_to_use.strip():
         raise HTTPException(status_code=400, detail="No text provided and default text is empty.")
 
     try:
-        summary = generate_summary(text_to_use)   # FIXED
+        summary = ""
+        if(lesson_vector_db.get_summary(userID,lid) == ""):
+            summary = generate_summary(text_to_use)
+            lesson_vector_db.update_lesson_component(userID,lid,summary = summary)
+        else:
+            summary = lesson_vector_db.get_summary(userID,lid)
         return {"summary": summary}
     except Exception as e:
         print(f"[ERROR] summarize_text: {e}")
@@ -170,15 +188,20 @@ def parse_concatenated_json_arrays(raw: str):
 #        FLIP CARDS
 # ==========================
 @app.post("/flip-cards")   #skip for test
-async def flip_cards_api(req: TextRequest):
+async def flip_cards_api(req: TextRequest,userID: str = "", lid: str = ""):
+    #req = lesson_vector_db.get_ocr(userID,lid)
     text_to_use = req.text.strip() if req.text and req.text.strip() else DEFAULT_TEXT
-
     if not text_to_use.strip():
         raise HTTPException(status_code=400, detail="No text provided and default text is empty.")
 
     try:
-        raw_cards = generate_flip_cards(text_to_use)
-        cards = parse_concatenated_json_arrays(raw_cards)
+        cards = ""
+        if(lesson_vector_db.get_flipcards(userID,lid) == ""):
+            raw_cards = generate_flip_cards(text_to_use)
+            cards = parse_concatenated_json_arrays(raw_cards)
+            lesson_vector_db.update_lesson_component(userID,lid, flipcards = cards)
+        else:
+            cards = lesson_vector_db.get_flipcards(userID,lid)
         return cards
     except Exception as e:
         print(f"[ERROR] flip_cards: {e}")
@@ -190,13 +213,19 @@ async def flip_cards_api(req: TextRequest):
 # ==========================
 
 @app.post("/questions")
-async def questions_api(req: TextRequest):
+async def questions_api(req: TextRequest,userID: str = "", lid: str = ""):
+    #req = lesson_vector_db.get_ocr(userID,lid)    
     text_to_use = req.text.strip() if req.text and req.text.strip() else DEFAULT_TEXT
     if not text_to_use.strip():
         raise HTTPException(status_code=400, detail="No text provided and default text is empty.")
     try:
-        raw = generate_questions(text_to_use)  # LLM output as one big string
-        questions = parse_concatenated_json_arrays(raw)
+        questions = ""
+        if(lesson_vector_db.get_questions(userID,lid)==""):
+            raw = generate_questions(text_to_use)  # LLM output as one big string
+            questions = parse_concatenated_json_arrays(raw)
+            lesson_vector_db.update_lesson_component(userID, lid, questions = questions)
+        else:
+            questions = lesson_vector_db.get_questions(userID,lid)
         return questions
 
     except json.JSONDecodeError as e:
@@ -210,4 +239,4 @@ async def questions_api(req: TextRequest):
         raise HTTPException(status_code=500, detail="Failed to generate questions.")
 
 
-# to run uvicorn main:app --reload --host 127.0.0.1 --port 8000
+# to run uvicorn Main:app --reload --host 127.0.0.1 --port 8000
