@@ -17,7 +17,7 @@ useEffect(() => {
         setquiz(res.data || "");
       
       } catch (error) {
-        console.error("Failed to fetch summary:", error);
+        console.error("Failed to fetch quiz:", error);
       } 
     };
 
