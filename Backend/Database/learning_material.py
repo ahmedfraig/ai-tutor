@@ -76,4 +76,3 @@ class LessonVectorDB:
 
     def get_ocr(self, user_id, lesson_id):
         return self.get_component(user_id, lesson_id, "ocr")
-

@@ -70,12 +70,6 @@ def root():
 # ==========================
 #     OCR ENDPOINT
 # ==========================
-
-# "summary": "", 
-# "flipcards": "", 
-# "questions": "", 
-# "ocr": ""
-
 @app.post("/ocr")
 async def ocr_endpoint(
     quality: str = Query(default="fast"),

@@ -11,5 +11,5 @@ pillow
 pdf2image
 safetensors
 sentencepiece
-
 python-multipart
+chromadb
