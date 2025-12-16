@@ -11,39 +11,25 @@ const ExamStart = () => {
     const navigate=useNavigate();
     const [correctanswers,setcorrectanswers]=useState(0);
    const [show, setShow] = useState(false);
+  const [exam, setexam] = useState([]);
+  const [answersChosen, setAnswersChosen] = useState([]);
+  const [locked, setLocked] = useState([]);
+  const [result, setResult] = useState([]);
+
  const examfinished = () => {
-  return answersChosen.every(answer => answer !== null);
+   return locked.length > 0 && locked.every(l => l === true);
 };
 const showtoast=()=>{
     if(examfinished()){
-        setShow(true);
-      
-       
+        setShow(true);  
     }
     else{
       alert("Complete Your Exam");
-
-    }
-
-    
+    }   
 }
 
 
-    const [answersChosen, setAnswersChosen] = useState(
-  Array(exam.length).fill(null)
-);
-
-const [locked, setLocked] = useState(
-  Array(exam.length).fill(false)
-);
-
-const [result, setResult] = useState(
-  Array(exam.length).fill(null)
-);
-      
-
    
- const[exam,setexam]=useState([]);
   
 const chooseAnswer = (index, option) => {
   if (locked[index]) return;
@@ -55,7 +41,10 @@ const chooseAnswer = (index, option) => {
 };
 
  const reviewAnswer = (index) => {
-  const correct = answersChosen[index] === exam[index].solution;
+   if (locked[index]) return; 
+   const correct =
+     answersChosen[index]?.toString().trim().toLowerCase() ===
+     exam[index].solution?.toString().trim().toLowerCase();
   if(correct===true){
 setcorrectanswers(prev=>prev+1);
   }
@@ -82,12 +71,25 @@ useEffect(()=>{
     
 },[]);
 
+  useEffect(() => {
+    if (exam.length > 0) {
+      setAnswersChosen(Array(exam.length).fill(null));
+      setLocked(Array(exam.length).fill(false));
+      setResult(Array(exam.length).fill(null));
+      setcorrectanswers(0);
+    }
+  }, [exam]);
+
 
   return (
   
 <>
 
-
+{(!exam&&exam.length===0)&&(
+  <div>
+    Loading exam...
+  </div>
+)}
 <Container className="py-5">
       <h2 className="mb-4">Exam Started</h2>
 
@@ -149,6 +151,7 @@ useEffect(()=>{
 
     
 }
+
 <Button variant="primary" onClick={showtoast}>Show Result</Button>
 
 <Toast onClose={() => setShow(false)} show={show} delay={3000} autohide>
@@ -163,9 +166,6 @@ useEffect(()=>{
 
   <Button variant="secondary" className='btns' onClick={()=>navigate("/lesson")}>Return to Session</Button>
     </Container>
-
-
-
 </>
   )
 }

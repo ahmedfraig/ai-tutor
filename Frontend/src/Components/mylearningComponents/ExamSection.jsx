@@ -1,27 +1,16 @@
-// import React, { useEffect, useState } from "react";
+import React from "react";
 import { Card, Button, Container } from "react-bootstrap";
 import { FaClock } from "react-icons/fa";
 import "./ExamSection.css";
 import { IoDocumentTextOutline } from "react-icons/io5";
 import { PiMedalDuotone } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
-// import axios from "axios";
+
 const ExamSection = () => {
   const navigate=useNavigate();
-  // const[exam,setexam]=useState({});
+  
 
-  // const[question,setquestion]=useState(1);
-  // useEffect(()=>{
-  //   const fetchdata=async()=>{
-  //     try{
-  //       const res = await axios.post("http://127.0.0.1:8000/questions",{});
-  //       setexam(res.data)
-  //     }catch(error){
-  //       console.error(error);
-  //     }
-  //   }
-  //   fetchdata()
-  // },[]);
+ 
   return (
     <Container className="py-5 px-0 exam-section-container">
       <Card className="shadow-sm border-0 text-center exam-card">
