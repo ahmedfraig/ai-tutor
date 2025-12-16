@@ -9,10 +9,12 @@ import Lesson from "./Components/Lesson";
 import Login from "./Components/Authentication/Login";
 import Register from "./Components/Authentication/Register";
 import ProtectedRoute from "./Components/Authentication/ProtectedRoute";
+import ExamStart from "./Components/mylearningComponents/ExamStart";
 
 function App() {
   return (
     <>
+
       <Toaster position="top-center" reverseOrder={false} />
 
       <Routes>
@@ -52,6 +54,14 @@ function App() {
           }
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
+       <Route
+  path="/examstart"
+  element={
+    <ProtectedRoute>
+      <ExamStart />
+    </ProtectedRoute>
+  }
+/>
       </Routes>
     </>
   );

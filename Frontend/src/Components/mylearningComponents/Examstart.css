@@ -1,0 +1,42 @@
+
+
+
+.answerdivc{
+  
+    border-radius: 10px;
+    margin-top: 20px;
+    color: green;
+    background-color: white;
+}
+.answerdivw{
+    
+    border-radius: 10px;
+    margin-top: 20px;
+    color: red;
+    background-color: white;
+}
+.answerbutton{
+width: 30%;
+margin-left: 30%;
+margin-right: 30%;
+border-radius: 20px;
+background-color: black;
+color: white;
+margin-top: 20px;
+padding: 8px;
+}
+
+.list-group-item:hover {
+ background-color: darkgrey
+}
+
+.clicked{
+    background-color: darkgrey;
+}
+.cardexam{
+    margin-bottom: 30px;
+}
+
+.btns{
+    margin-left: 2%;
+}
