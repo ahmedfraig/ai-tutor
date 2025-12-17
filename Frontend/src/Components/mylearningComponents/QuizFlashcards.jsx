@@ -4,6 +4,7 @@ import { easeInOut,motion} from "framer-motion";
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 const QuizFlashcards = () => {
+  const MotionDiv = motion.div;
   const navigate=useNavigate();
   const [showanswers,setshowanswers]=useState(0);
 
@@ -15,7 +16,7 @@ useEffect(() => {
       try {
         const res = await axios.post("http://127.0.0.1:8000/flashcards", {});
         setquiz(res.data || "");
-      
+        
       } catch (error) {
         console.error("Failed to fetch quiz:", error);
       } 
@@ -55,7 +56,7 @@ const rotation=()=>{
     <div className='root'>
 
     
-    <motion.div className='quizheader' animate= {showanswers>0 ? { rotate: [0, 360, 0] } : { rotate: 0 }}
+    <MotionDiv className='quizheader' animate= {showanswers>0 ? { rotate: [0, 360, 0] } : { rotate: 0 }}
   transition={{
     duration: 1,
     ease: easeInOut
@@ -139,7 +140,7 @@ const rotation=()=>{
 
         
       )}
-      </motion.div>
+      </MotionDiv>
         <Button variant="secondary" className='showflashbtn next return'  onClick={()=>navigate("/lesson")}>Return To Session</Button>
       </div>
       </>
