@@ -29,7 +29,6 @@ Currently, two official plugins are available:
 ---
 
 ## 👥 Team
-**Leader:** Mohamed Aboabdallah  
 **Team Members:** 
 - Danny Hossam
 - Ahmed Ismail
