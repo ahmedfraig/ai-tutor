@@ -1,52 +1,58 @@
+import os
 import torch
-import soundfile as sf
-from datasets import load_dataset
-from transformers import (
-    SpeechT5Processor,
-    SpeechT5ForTextToSpeech,
-    SpeechT5HifiGan,
+import torchaudio
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import Xtts
+from IPython.display import Audio, display
+
+# 1. SETUP PATHS
+# Assuming you downloaded the model to a folder named 'XTTS-v2' in the current directory
+MODEL_DIR = "XTTS-v2" 
+
+CONFIG_FILE_PATH = os.path.join(MODEL_DIR, 'config.json')
+VOCAB_FILE_PATH = os.path.join(MODEL_DIR, 'vocab.json')
+# The checkpoint_dir argument expects the folder containing model.pth, not the file itself
+CHECKPOINT_DIR = MODEL_DIR 
+
+# You need to provide a sample wav file (approx 6-10 seconds) for the voice cloning
+SPEAKER_AUDIO_PATH = 'my_sample_voice.wav' 
+
+# 2. LOAD MODEL
+print("Loading model...")
+config = XttsConfig()
+config.load_json(CONFIG_FILE_PATH)
+model = Xtts.init_from_config(config)
+
+# Note: use_deepspeed=True requires 'deepspeed' installed. Set to False if you have issues.
+model.load_checkpoint(
+    config, 
+    checkpoint_dir=CHECKPOINT_DIR, 
+    vocab_path=VOCAB_FILE_PATH, 
+    use_deepspeed=True 
+)
+model.cuda()
+
+# 3. GET SPEAKER LATENTS
+print("Computing speaker latents...")
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(
+    audio_path=[SPEAKER_AUDIO_PATH]
 )
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print("Using device:", device)
+# 4. INFERENCE
+text = "صباح الخير"
+print("Inference...")
+out = model.inference(
+    text,
+    "ar",
+    gpt_cond_latent,
+    speaker_embedding,
+    temperature=0.75,
+)
 
-#repo_id = "MBZUAI/speecht5_tts_clartts_ar"
-repo_id = "MBZUAI/artst_tts_v3_tmrcv"
+# 5. SAVE AND DISPLAY
+OUTPUT_FILE = "output_audio.wav"
+# Using 24000 as sample rate because XTTS usually outputs at 24khz
+torchaudio.save(OUTPUT_FILE, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 
-# 1) Load processor, model, vocoder
-processor = SpeechT5Processor.from_pretrained(repo_id)
-model = SpeechT5ForTextToSpeech.from_pretrained(repo_id).to(device)
-vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").to(device)
-
-# 2) Load Arabic speaker embeddings (proper dataset, not the old cmu-arctic one)
-embeddings_dataset = load_dataset("herwoww/arabic_xvector_embeddings", split="validation")
-# pick one speaker (you can change the index to change voice)
-speaker_embedding = torch.tensor(
-    embeddings_dataset[0]["speaker_embeddings"]
-).unsqueeze(0).to(device)  # shape [1, 512]
-
-# 3) Load text lines
-with open("text.txt", encoding="utf-8") as f:
-    lines = [l.strip() for l in f.readlines() if l.strip()]
-
-for i, sentence in enumerate(lines):
-    print(f"TTS input {i+1}:", sentence)
-
-    inputs = processor(text=sentence, return_tensors="pt")
-    input_ids = inputs["input_ids"].to(device)
-
-    with torch.no_grad():
-        # ✅ This now returns a 1D waveform (mono 16 kHz),
-        #    because we pass the vocoder.
-        speech = model.generate_speech(
-            input_ids,
-            speaker_embedding,
-            vocoder=vocoder,
-        )
-
-    audio = speech.cpu().numpy()
-    print("   waveform shape:", audio.shape, "dtype:", audio.dtype)
-
-    audio_out = f"tts_output_{i+1}.wav"
-    sf.write(audio_out, audio, samplerate=16000)  # mono, 16 kHz
-    print("Saved:", audio_out)
+print(f"Audio saved to {OUTPUT_FILE}")
+display(Audio(OUTPUT_FILE, autoplay=True))

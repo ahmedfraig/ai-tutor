@@ -91,7 +91,7 @@ async def ocr_endpoint(
         pad_id=app.state.pad_id,
         quality=quality,
     )
-    lesson_vector_db.db.update_lesson_component(
+    lesson_vector_db.update_lesson_component(
         user_id=userID, 
         lesson_id=lid, 
         ocr=ocr_text
