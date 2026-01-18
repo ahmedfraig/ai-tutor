@@ -44,3 +44,8 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+/Backend/Speech/models
+Backend/Speech/__pycache__/
+Backend/Speech/outputs
+Backend/Speech/*.pyc

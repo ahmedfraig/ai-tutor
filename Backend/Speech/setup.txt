@@ -1,0 +1,8 @@
+conda create --name xtts python=3.11.10 -y
+conda activate xtts
+pip install torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121
+pip install git+https://github.com/coqui-ai/TTS.git --no-deps
+pip install cython pysbd unidecode jieba pypinyin hangul-romanize mutagen==1.47.0 bangla bnnumerizer bnunicodenormalizer
+pip install "gruut[de,es,fr]==2.2.3" "inflect>=5.6.0" "matplotlib>=3.7.0"  "spacy[ja]>=3" "umap-learn>=0.5.1" "pandas<2.0,>=1.4"
+pip install trainer pandas transformers==4.37.1 protobuf==3.20.3
+pip install scipy librosa

@@ -1,0 +1,6 @@
+conda create --name xtts_gpu python=3.11.10 -y
+conda activate xtts_gpu
+python -m pip install -U pip setuptools wheel
+pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128
+pip install "TTS @ git+https://github.com/coqui-ai/TTS.git"
+pip install soundfile librosa scipy
