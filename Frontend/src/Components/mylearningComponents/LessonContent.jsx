@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Nav, Tab } from "react-bootstrap";
+import UploadedFile from "./UploadedFile"
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
 import AnalyticsSection from "./AnalyticsSection";
@@ -34,14 +35,9 @@ function LessonContent({ mode, selectedName }) {
     <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
       <h5 className="">{selectedName}</h5>
       <div>
+        {mode === "upload" && <UploadedFile fileName={selectedName} />}
         {mode === "video" && <VideoPlayer title={selectedName} />}
         {mode === "audio" && <AudioPlayer title={selectedName} />}
-        {mode === "file" && (
-          <div className="p-5 text-center border rounded bg-white">
-            <i className="bi bi-file-earmark-text fs-1 mb-3 d-block"></i>
-            <p>{selectedName}</p>
-          </div>
-        )}
       </div>
 
       <Nav variant="tabs" className="mt-3 lesson-tabs">

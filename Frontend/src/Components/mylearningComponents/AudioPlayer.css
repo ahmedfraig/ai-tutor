@@ -1,6 +1,116 @@
-.audio-placeholder {
-    height: 550px;
-    display: flex; 
-    justify-content: center;
-    align-items: center;
+/* Container */
+.audio-player-container {
+  background-color: #fff7ed; /* Light cream/orange background */
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  width: 100%;
+  margin: 20px auto;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-wrapper {
+  width: 75px;
+  height: 75px;
+  background-color: #f97316;
+  border-radius: 50%;
+  
+  /* 1. Use Flexbox for centering */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* 2. Remove line-height to prevent vertical offsets */
+  line-height: 0; 
+  
+  margin-bottom: 24px;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3);
+}
+
+.music-icon {
+  color: white;
+  font-size: 40px;
+  /* Remove font-weight: bold for icons, it can sometimes distort SVGs */
+  display: block; /* Ensures no inline spacing issues */
+}
+
+.track-title {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.track-subtitle {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 32px;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 60px;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 32px;
+}
+
+.wave-bar {
+  width: 4px;
+  background-color: #f97316;
+  border-radius: 4px;
+  opacity: 0.8;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Play Button */
+.play-btn {
+  width: 56px;
+  height: 56px;
+  background-color: #f97316;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px; 
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 0;
+  
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4);
+  line-height: 0; /* Clear text spacing */
+}
+
+.play-btn svg {
+  display: block;
+  stroke:white;
+  stroke-width: 1px;
+}
+
+.play-btn:hover {
+  background-color: #ea580c;
+  transform: scale(1.05);
+}
+
+.play-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scaleY(1); opacity: 0.8; }
+  50% { transform: scaleY(1.2); opacity: 1; }
 }
