@@ -1,0 +1,92 @@
+/* Card Container */
+.preview-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb; /* Light gray border */
+  border-radius: 12px;
+  padding: 40px 20px;
+  width: 100%;
+  margin: 20px auto;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+}
+
+/* Big File Icon */
+.icon-container {
+  margin-bottom: 20px;
+}
+
+.file-icon {
+  font-size: 64px;
+  color: #94a3b8; /* Slate gray color */
+}
+
+/* Typography */
+.file-name {
+  font-size: 20px;
+  font-weight: 500;
+  color: #111827; /* Dark almost black */
+  margin: 0 0 8px 0;
+}
+
+.file-status {
+  font-size: 14px;
+  color: #6b7280; /* Medium gray */
+  margin: 0 0 32px 0;
+}
+
+/* Buttons Container */
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 16px; /* Space between buttons */
+}
+
+/* Shared Button Styles */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 50px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+/* Orange Primary Button */
+.btn-primary {
+  background-color: #f97316; /* Orange color */
+  color: white;
+  border-color: #f97316;
+}
+
+.btn-primary:hover {
+  background-color: #ea580c;
+  border:transparent;
+}
+
+.btn-primary:active {
+  background-color: #c2410c !important;
+  border: transparent;
+}
+
+/* White Secondary Button */
+.btn-secondary {
+  background-color: white;
+  color: #1f2937;
+  border-color: #e5e7eb; /* Light border */
+}
+
+.btn-secondary:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  color:black;
+}

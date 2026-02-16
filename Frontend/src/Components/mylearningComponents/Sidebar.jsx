@@ -15,25 +15,59 @@ function Sidebar({ onCloseSidebar, onSelectContent }) {
   const [audios, setAudios] = useState(["Lesson Audio.mp3"]);
 
   const [activeItem, setActiveItem] = useState(null);
+  
+  // 1. New State: Controls which Accordion tab is open ("0", "1", or "2")
+  const [openAccordion, setOpenAccordion] = useState("1"); 
+
+  // Select the first video on initial load
   useEffect(() => {
     if (videos.length > 0 && !activeItem) {
       setActiveItem(videos[0]);
       onSelectContent("video", videos[0]);
     }
-  }, [videos]);
+    // eslint-disable-next-line
+  }, []); // Run once on mount
 
   const handleUpload = () => {
     const newFile = `UploadedFile_${uploadedFiles.length + 1}.pdf`;
+    
+    // 1. Add to list
     setUploadedFiles([...uploadedFiles, newFile]);
+    
+    // 2. Select it immediately
+    setActiveItem(newFile);
+    onSelectContent("upload", newFile);
+    
+    // 3. Force "Uploaded Files" tab (Key "0") to open
+    setOpenAccordion("0"); 
   };
 
   const handleGenerate = (type) => {
     if (type === "video") {
       const newVideo = `Generated Video ${videos.length + 1}`;
+      
+      // 1. Add
       setVideos([...videos, newVideo]);
+      
+      // 2. Select
+      setActiveItem(newVideo);
+      onSelectContent("video", newVideo);
+      
+      // 3. Open Video Tab (Key "1")
+      setOpenAccordion("1"); 
+
     } else {
       const newAudio = `Generated Audio ${audios.length + 1}`;
+      
+      // 1. Add
       setAudios([...audios, newAudio]);
+      
+      // 2. Select
+      setActiveItem(newAudio);
+      onSelectContent("audio", newAudio);
+      
+      // 3. Open Audio Tab (Key "2")
+      setOpenAccordion("2"); 
     }
   };
 
@@ -76,7 +110,13 @@ function Sidebar({ onCloseSidebar, onSelectContent }) {
         <i className="bi bi-mic me-2"></i> Generate Audio
       </Button>
 
-      <Accordion>
+      {/* We link the Accordion to our state variable using activeKey.
+         We also use onSelect to update the state if the user clicks manually.
+      */}
+      <Accordion 
+        activeKey={openAccordion} 
+        onSelect={(e) => setOpenAccordion(e)}
+      >
         <Accordion.Item eventKey="0" className="accordion-item-custom">
           <Accordion.Header>Uploaded Files</Accordion.Header>
           <Accordion.Body>

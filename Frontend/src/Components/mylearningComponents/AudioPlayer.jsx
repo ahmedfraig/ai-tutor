@@ -1,18 +1,38 @@
 import React from "react";
-import { Card } from "react-bootstrap";
 import "./AudioPlayer.css";
+import { BsMusicNoteBeamed, BsPlayFill } from "react-icons/bs";
 
-function AudioPlayer({ title }) {
+const AudioPlayer = ({ title }) => {
+  const waveformBars = [
+    20, 40, 30, 50, 40, 60, 30, 50, 40, 30, 
+    20, 40, 50, 60, 70, 50, 40, 60, 50, 40,
+    30, 20, 40, 30, 50, 40, 60, 30, 50, 40
+  ];
+
   return (
-    <Card className="bg-dark text-center border-0">
-      <Card.Body className="p-0">
-        <div className="audio-placeholder p-5 text-center border rounded bg-white">
-          <i className="bi bi-music-note-beamed fs-1 mb-3 d-block"></i>
-          <p>{title || "Audio playback area – your generated audio will appear here."}</p>
-        </div>
-      </Card.Body>
-    </Card>
+    <div className="audio-player-container">
+      <div className="icon-wrapper">
+        <BsMusicNoteBeamed className="music-icon" />
+      </div>
+
+      <h3 className="track-title">{title || "Audio 1: Quick Review Summary"}</h3>
+      <p className="track-subtitle">AI Voice Lesson • 5:20</p>
+
+      <div className="waveform">
+        {waveformBars.map((height, index) => (
+          <div 
+            key={index} 
+            className="wave-bar" 
+            style={{ height: `${height}%` }}
+          ></div>
+        ))}
+      </div>
+
+      <button className="play-btn">
+        <BsPlayFill size={32} />
+      </button>
+    </div>
   );
-}
+};
 
 export default AudioPlayer;
