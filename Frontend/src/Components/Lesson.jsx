@@ -5,12 +5,14 @@ import Sidebar from "./mylearningComponents/Sidebar";
 import LessonContent from "./mylearningComponents/LessonContent";
 import AITutorPanel from "./mylearningComponents/AITutorPanel";
 import "./Lesson.css";
-function App() {
-  
+
+function Lesson() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [mode, setMode] = useState("video");
   const [selectedName, setSelectedName] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
+
+  const [lessonFiles, setLessonFiles] = useState({}); 
 
   const showToast = (message) => setToast({ show: true, message });
 
@@ -27,9 +29,17 @@ function App() {
   };
 
   const handleUpload = () => {
-    setMode("file");
+    setMode("upload");
     setSelectedName("Uploaded File");
-    showToast("📄 File uploaded successfully!");
+    showToast("📄 Ready to upload!");
+  };
+
+  const handleFileUpdate = (file) => {
+    setLessonFiles((prevFiles) => ({
+      ...prevFiles,
+      [selectedName]: file,
+    }));
+    showToast("📄 File saved for " + selectedName);
   };
 
   const handleSelectContent = (type, name) => {
@@ -50,7 +60,6 @@ function App() {
 
       <Container fluid className="vh-100 bg-light position-relative">
         <Row className="h-100">
-          {/* Sidebar */}
           <Col
             xl={2}
             className={`sidebarlearning bg-white border-end position-absolute position-xl-static ${
@@ -66,7 +75,6 @@ function App() {
             />
           </Col>
 
-          {/* Main Lesson Area */}
           <Col
             xl={10}
             sm={12}
@@ -80,7 +88,13 @@ function App() {
               <i className="bi bi-list"></i> Menu
             </Button>
 
-            <LessonContent mode={mode} selectedName={selectedName} />
+            {/* --- Pass the specific file and the updater function --- */}
+            <LessonContent 
+                mode={mode} 
+                selectedName={selectedName} 
+                currentFile={lessonFiles[selectedName]}
+                onFileUpload={handleFileUpdate}
+            />
             <AITutorPanel />
           </Col>
         </Row>
@@ -100,4 +114,4 @@ function App() {
   );
 }
 
-export default App;
+export default Lesson;

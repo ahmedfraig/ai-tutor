@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Nav, Tab } from "react-bootstrap";
-import UploadedFile from "./UploadedFile"
+import UploadedFile from "./UploadedFile";
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
 import AnalyticsSection from "./AnalyticsSection";
@@ -8,23 +8,22 @@ import ExamSection from "./ExamSection";
 import Quiz from "./Quiz";
 import "./LessonContent.css";
 import axios from 'axios';
-import DomPurify from 'dompurify'
-function LessonContent({ mode, selectedName }) {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [summarize, setsummarize] = useState("");
-  const[loading,setloading]=useState(true);
+import DomPurify from 'dompurify';
 
+function LessonContent({ mode, selectedName, currentFile, onFileUpload }) {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [summarize, setSummarize] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchdata = async () => {
       try {
         const res = await axios.post("http://127.0.0.1:8000/summarize", {});
-        setsummarize(res.data.summary || "");
-      
+        setSummarize(res.data.summary || "");
       } catch (error) {
         console.error("Failed to fetch summary:", error);
       } finally {
-        setloading(false);
+        setLoading(false);
       }
     };
 
@@ -35,7 +34,15 @@ function LessonContent({ mode, selectedName }) {
     <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
       <h5 className="">{selectedName}</h5>
       <div>
-        {mode === "upload" && <UploadedFile fileName={selectedName} />}
+        {/* Pass the specific file and handler down */}
+        {mode === "upload" && (
+            <UploadedFile 
+                fileName={selectedName} 
+                file={currentFile} 
+                onUpload={onFileUpload} 
+            />
+        )}
+        
         {mode === "video" && <VideoPlayer title={selectedName} />}
         {mode === "audio" && <AudioPlayer title={selectedName} />}
       </div>
@@ -57,10 +64,7 @@ function LessonContent({ mode, selectedName }) {
 
       <Tab.Content className="mt-3">
         <Tab.Pane eventKey="overview">
-
           <strong>Lesson Summary:</strong>
-         
-
           {loading ? (
             <div>Loading summarize</div>
           ) : summarize ? (
@@ -68,8 +72,6 @@ function LessonContent({ mode, selectedName }) {
           ) : (
             <div>No summary available</div>
           )}
-
-
         </Tab.Pane>
 
         <Tab.Pane eventKey="quiz">
@@ -85,7 +87,6 @@ function LessonContent({ mode, selectedName }) {
         </Tab.Pane>
       </Tab.Content>
     </Tab.Container>
-
   );
 }
 
