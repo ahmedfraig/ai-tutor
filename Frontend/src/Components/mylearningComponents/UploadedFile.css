@@ -1,7 +1,7 @@
 /* Card Container */
 .preview-card {
   background-color: #ffffff;
-  border: 1px solid #e5e7eb; /* Light gray border */
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 40px 20px;
   width: 100%;
@@ -18,20 +18,20 @@
 
 .file-icon {
   font-size: 64px;
-  color: #94a3b8; /* Slate gray color */
+  color: #94a3b8;
 }
 
 /* Typography */
 .file-name {
   font-size: 20px;
   font-weight: 500;
-  color: #111827; /* Dark almost black */
+  color: #111827;
   margin: 0 0 8px 0;
 }
 
 .file-status {
   font-size: 14px;
-  color: #6b7280; /* Medium gray */
+  color: #6b7280;
   margin: 0 0 32px 0;
 }
 
@@ -39,7 +39,7 @@
 .button-group {
   display: flex;
   justify-content: center;
-  gap: 16px; /* Space between buttons */
+  gap: 16px;
 }
 
 /* Shared Button Styles */
@@ -56,6 +56,14 @@
   border: 1px solid transparent;
 }
 
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #e5e7eb;
+    color: #9ca3af;
+    border-color: transparent;
+}
+
 .btn-icon {
   margin-right: 8px;
   font-size: 18px;
@@ -63,30 +71,29 @@
 
 /* Orange Primary Button */
 .btn-primary {
-  background-color: #f97316; /* Orange color */
+  background-color: #f97316;
   color: white;
   border-color: #f97316;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: #ea580c;
-  border:transparent;
+  border-color: #ea580c;
 }
 
-.btn-primary:active {
-  background-color: #c2410c !important;
-  border: transparent;
+.btn-primary:active:not(:disabled) {
+  background-color: #c2410c;
 }
 
 /* White Secondary Button */
 .btn-secondary {
   background-color: white;
   color: #1f2937;
-  border-color: #e5e7eb; /* Light border */
+  border-color: #e5e7eb;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: #f9fafb;
   border-color: #d1d5db;
-  color:black;
+  color: black;
 }
