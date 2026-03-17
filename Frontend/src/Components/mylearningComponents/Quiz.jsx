@@ -1,15 +1,24 @@
 import React from "react";
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, useLocation } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import './Quiz.css'
 
-function Quiz() {
-  const navigate=useNavigate();
+function Quiz({ lessonId, lessonTitle }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
-    
     <div>
-    <Button variant="secondary" className="quizbtn" onClick={()=>navigate("/flashcardquiz")}>Start Quiz </Button>
+      <Button
+        variant="secondary"
+        className="quizbtn"
+        onClick={() => navigate("/flashcardquiz", {
+          // Pass lessonId and any existing location state forward
+          state: { ...(location.state || {}), lessonId, lessonTitle }
+        })}
+      >
+        Start Quiz
+      </Button>
     </div>
   );
 }

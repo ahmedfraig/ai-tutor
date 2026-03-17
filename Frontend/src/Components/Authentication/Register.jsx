@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './Register.css';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import apiClient from '../../api/apiClient';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -39,30 +41,34 @@ const Register = () => {
 
     if (!formData.terms) newErrors.terms = "You must agree before creating an account";
 
-    // Check if email already exists in localStorage
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    if (users.some(user => user.email === formData.email))
-      newErrors.email = "Email already registered";
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    users.push({
-      fullname: formData.fullname,
-      email: formData.email,
-      password: formData.password,
-    });
+    setLoading(true);
+    try {
+      await apiClient.post('/auth/register', {
+        full_name: formData.fullname,
+        email: formData.email,
+        password: formData.password,
+      });
 
-    localStorage.setItem("users", JSON.stringify(users));
-
-    toast.success("Account created successfully!");
-    navigate("/login");
+      toast.success("Account created successfully!");
+      navigate("/login");
+    } catch (err) {
+      const message = err.response?.data?.message || "Registration failed. Please try again.";
+      if (message.toLowerCase().includes("email")) {
+        setErrors({ email: message });
+      } else {
+        setErrors({ general: message });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,8 +83,10 @@ const Register = () => {
         <form className='registerform' onSubmit={handleSubmit}>
           <h3 className='register-title'>Create your account</h3>
 
+          {errors.general && <p className="error">{errors.general}</p>}
+
           {/* Full Name */}
-          <label htmlFor="fullname" >Full Name</label>
+          <label htmlFor="fullname">Full Name</label>
           <div className="input-wrapper">
             <i className="bi bi-person input-icon"></i>
             <input
@@ -154,7 +162,9 @@ const Register = () => {
           </div>
           {errors.terms && <p className="error">{errors.terms}</p>}
 
-          <button className="register-btn">Create Account</button>
+          <button className="register-btn" disabled={loading}>
+            {loading ? "Creating Account..." : "Create Account"}
+          </button>
 
           <div className="divider"><span>OR</span></div>
 

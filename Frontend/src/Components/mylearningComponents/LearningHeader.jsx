@@ -4,7 +4,7 @@ import { ArrowLeft } from "react-bootstrap-icons";
 import "./LearningHeader.css";
 import { useNavigate } from "react-router-dom";
     
-function LearningHeader() {
+function LearningHeader({ lessonTitle }) {
   const navigate = useNavigate();
 
   return (
@@ -24,7 +24,7 @@ function LearningHeader() {
           {/* Lesson title and instructor */}
           <Col>
             <div className="lesson-details">
-              <h5 className="lesson-title mb-0">Newton&apos;s Second Law</h5>
+              <h5 className="lesson-title mb-0">{lessonTitle || "Lesson"}</h5>
               <small className="lesson-instructor text-muted">
                 Dr. Sarah Mitchell
               </small>

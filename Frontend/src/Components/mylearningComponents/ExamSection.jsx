@@ -6,11 +6,9 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import { PiMedalDuotone } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 
-const ExamSection = () => {
-  const navigate=useNavigate();
-  
+const ExamSection = ({ lessonId, lessonTitle }) => {
+  const navigate = useNavigate();
 
- 
   return (
     <Container className="py-5 px-0 exam-section-container">
       <Card className="shadow-sm border-0 text-center exam-card">
@@ -38,20 +36,18 @@ const ExamSection = () => {
             </span>
           </div>
 
-         <Button
-  className="w-100 fw-bold py-1 exam-start-btn"
-  onClick={(e) => {
-    e.preventDefault();
-    navigate("/examstart");
-  }}
->
-  Start Exam
-</Button>
-  
+          <Button
+            className="w-100 fw-bold py-1 exam-start-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              // Pass the lessonId forward so ExamStart knows which lesson's exam to load
+              navigate("/examstart", { state: { lessonId, lessonTitle } });
+            }}
+          >
+            Start Exam
+          </Button>
         </Card.Body>
       </Card>
-
-     
     </Container>
   );
 };

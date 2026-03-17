@@ -2,112 +2,100 @@ import React, { useState, useRef, useEffect } from "react";
 import "./UploadedFile.css";
 import { BsFileEarmarkText, BsBook, BsDownload, BsXCircle } from "react-icons/bs";
 
-const UploadedFile = ({ fileName, file, onUpload }) => {
-  
+// fileUrl  = server URL for a DB-stored file (e.g. http://localhost:5000/uploads/...)
+// file     = local JS File object (just after a fresh upload before page refresh)
+// onUpload = callback to add a totally new file (not used for already-stored files)
+const UploadedFile = ({ fileName, file, fileUrl, onUpload }) => {
   const [showPreview, setShowPreview] = useState(false);
-  const [fileUrl, setFileUrl] = useState(null);
-  
+  const [localUrl, setLocalUrl] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Derive the URL to use: prefer server URL, fall back to local blob URL
+  const activeUrl = fileUrl || localUrl;
 
   useEffect(() => {
     if (file) {
       const url = URL.createObjectURL(file);
-      setFileUrl(url);      
+      setLocalUrl(url);
       return () => URL.revokeObjectURL(url);
     } else {
-      setFileUrl(null);
+      setLocalUrl(null);
       setShowPreview(false);
     }
   }, [file]);
 
-  // 2. Handle File Selection
-  const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
-    if (selectedFile) {
-      onUpload(selectedFile);
-      setShowPreview(false); 
-    }
-  };
-
-  const triggerUpload = () => {
-    fileInputRef.current.click();
-  };
+  // When we switch to a new file (fileUrl changes), close any open preview
+  useEffect(() => {
+    setShowPreview(false);
+  }, [fileUrl]);
 
   const togglePreview = () => {
-    if (!file) {
-        alert("Please upload a file first!");
-        return;
-    }
-    setShowPreview(!showPreview);
+    if (!activeUrl) return;
+    setShowPreview((s) => !s);
   };
 
   const handleDownload = () => {
-    if (!file) {
-        alert("Please upload a file first!");
-        return;
-    }
-    
+    if (!activeUrl) return;
     const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = file.name;
+    link.href = activeUrl;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
-    
     document.body.removeChild(link);
   };
 
+  const hasFile = !!activeUrl;
+
   return (
     <div className="preview-card">
+      {/* Hidden input — only used if the parent wants re-upload capability */}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileChange}
+        onChange={(e) => {
+          const f = e.target.files[0];
+          if (f) onUpload(f);
+          setShowPreview(false);
+          e.target.value = "";
+        }}
         style={{ display: "none" }}
         accept="application/pdf"
       />
 
-      {/* --- CONTENT AREA --- */}
-      {showPreview && file && fileUrl ? (
+      {/* CONTENT AREA */}
+      {showPreview && activeUrl ? (
         <div className="pdf-preview-container">
-          <object
-            data={fileUrl}
-            type="application/pdf"
-            width="100%"
-            height="500px"
-          >
-            <p>Your browser does not support PDFs. <a href={fileUrl}>Download the PDF</a>.</p>
+          <object data={activeUrl} type="application/pdf" width="100%" height="500px">
+            <p>Your browser does not support PDFs. <a href={activeUrl}>Download the PDF</a>.</p>
           </object>
         </div>
       ) : (
-        <div className="file-info-area" onClick={!file ? triggerUpload : undefined} style={{cursor: !file ? 'pointer' : 'default'}}>
+        <div className="file-info-area" style={{ cursor: "default" }}>
           <div className="icon-container">
             <BsFileEarmarkText className="file-icon" />
           </div>
-          <h3 className="file-name">
-            {/* Display the file name if it exists, otherwise the Lesson Name */}
-            {file ? file.name : `Select PDF for ${fileName}`}
-          </h3>
+          <h3 className="file-name">{fileName}</h3>
           <p className="file-status">
-            {file ? "Document ready to view" : "Click to upload"}
+            {hasFile ? "Document ready to view" : "File not available"}
           </p>
         </div>
       )}
 
-      {/* --- BUTTON GROUP --- */}
+      {/* BUTTON GROUP */}
       <div className="button-group">
-        <button 
-            className={`btn ${showPreview ? "btn-secondary" : "btn-primary"}`} 
-            onClick={togglePreview}
-            disabled={!file}
+        <button
+          className={`btn ${showPreview ? "btn-secondary" : "btn-primary"}`}
+          onClick={togglePreview}
+          disabled={!hasFile}
         >
           {showPreview ? <BsXCircle className="btn-icon" /> : <BsBook className="btn-icon" />}
           {showPreview ? "Close Preview" : "Open Preview"}
         </button>
 
-        <button 
-            className="btn btn-secondary" 
-            onClick={handleDownload}
-            disabled={!file}
+        <button
+          className="btn btn-secondary"
+          onClick={handleDownload}
+          disabled={!hasFile}
         >
           <BsDownload className="btn-icon" />
           Download

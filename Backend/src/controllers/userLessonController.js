@@ -117,12 +117,21 @@ const updateUserLesson = async (req, res) => {
         } = req.body;
 
         // Build dynamic SET clause from provided fields only
+        // time_spent and videos_watched_count are INCREMENTAL (+=)
         const fields = [];
         const values = [];
         let paramIndex = 1;
 
-        if (time_spent !== undefined) { fields.push(`time_spent = $${paramIndex++}`); values.push(time_spent); }
-        if (videos_watched_count !== undefined) { fields.push(`videos_watched_count = $${paramIndex++}`); values.push(videos_watched_count); }
+        if (time_spent !== undefined) {
+            // Add to existing time_spent rather than overwrite
+            fields.push(`time_spent = time_spent + $${paramIndex++}`);
+            values.push(time_spent);
+        }
+        if (videos_watched_count !== undefined) {
+            // Increment count
+            fields.push(`videos_watched_count = videos_watched_count + $${paramIndex++}`);
+            values.push(videos_watched_count);
+        }
         if (practice_completed !== undefined) { fields.push(`practice_completed = $${paramIndex++}`); values.push(practice_completed); }
         if (last_entered !== undefined) { fields.push(`last_entered = $${paramIndex++}`); values.push(last_entered); }
         if (quiz_score !== undefined) { fields.push(`quiz_score = $${paramIndex++}`); values.push(quiz_score); }

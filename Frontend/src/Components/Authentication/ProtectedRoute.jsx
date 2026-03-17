@@ -1,9 +1,10 @@
 import { Navigate } from "react-router-dom";
 
 export default function ProtectedRoute({ children }) {
-  const isLogged = localStorage.getItem("loggedUser");
+  // Now we check for the JWT token (set by Login.jsx on successful login)
+  const token = localStorage.getItem("token");
 
-  if (!isLogged) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" replace />;
 
   return children;
 }

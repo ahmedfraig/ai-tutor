@@ -26,22 +26,20 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     toast.success("Logged out successfully!");
     navigate("/login");
   };
 
-  const loggedUser = JSON.parse(localStorage.getItem("loggedUser")) || {};
-  const username = loggedUser.fullname || "";
+  // Read user from localStorage (saved on login)
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const username = user.full_name || "";
 
   const getInitials = (name) => {
     if (!name) return "";
     const parts = name.trim().split(" ");
-
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
@@ -69,8 +67,8 @@ const Header = () => {
 
               {logoutdiv && (
                 <div className="logoutdiv">
-                  <div className="ldiv fluid-container">
-                    <i class="bi bi-person iconh"></i>Profile
+                  <div className="ldiv fluid-container" onClick={() => navigate("/profile")} style={{ cursor: 'pointer' }}>
+                    <i className="bi bi-person iconh"></i>Profile
                   </div>
 
                   <hr className="line" />
@@ -101,7 +99,7 @@ const Header = () => {
           >
             <ul className="navbar-nav">
               <li className="nav-item">
-                <a className="nav-link active" onClick={() => navigate("/")}>
+                <a className="nav-link active" onClick={() => navigate("/home")}>
                   <i className="bi bi-house-door"></i> Home
                 </a>
               </li>
@@ -120,7 +118,7 @@ const Header = () => {
                   href="#"
                   onClick={() => navigate("/reminder")}
                 >
-                  <i class="bi bi-bell"></i> Reminders
+                  <i className="bi bi-bell"></i> Reminders
                 </a>
               </li>
             </ul>

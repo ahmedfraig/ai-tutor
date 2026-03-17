@@ -2,50 +2,46 @@ import React, { useState } from "react";
 import "./Login.css";
 import { useNavigate, Link } from "react-router-dom";
 import toast from 'react-hot-toast';
+import apiClient from "../../api/apiClient";
 
 const Login = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
     if (!email.trim()) newErrors.email = "Email is required";
     if (!password.trim()) newErrors.password = "Password is required";
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    const foundUser = users.find(
-      (user) => user.email === email && user.password === password
-    );
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/auth/login', { email, password });
+      const { token, user } = res.data;
 
-    if (!foundUser) {
-      setErrors({ login: "Invalid email or password" });
-      return;
+      // Save token and user info for later use
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      toast.success("Logged in successfully!");
+      navigate("/home");
+    } catch (err) {
+      const message = err.response?.data?.message || "Invalid email or password";
+      setErrors({ login: message });
+    } finally {
+      setLoading(false);
     }
-
-    // Save session (optional)
-    localStorage.setItem(
-      "loggedUser",
-      JSON.stringify({
-        fullname: foundUser.fullname,
-        email: foundUser.email,
-      })
-    );
-
-    toast.success("Logged in successfully!");
-    navigate("/home"); // change to your home page route
   };
 
   return (
@@ -97,7 +93,7 @@ const Login = () => {
           </div>
           {errors.password && <p className="error">{errors.password}</p>}
 
-          <button>Sign In</button>
+          <button disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
 
           <p className="loginp2">
             Don't have an account?
