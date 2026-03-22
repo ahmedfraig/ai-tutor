@@ -1,7 +1,8 @@
 .sidebar-container {
   height: 100%;
   overflow-y: auto;
-  position:relative;
+  position: relative;
+  padding: 20px 15px;
 }
 
 .sideButtons {
@@ -64,20 +65,23 @@
   background-color: #f1f1f1;
 }
 
+/* ── Sidebar header: title + close button ───────────────────── */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-top: 4px;
+}
+
 .sidebar-close-btn {
-  position: absolute;
-  top: 0px;
-  right: 20px;
-  z-index: 1050;
+  color: #333 !important;
+  text-decoration: none !important;
+  line-height: 1;
 }
 
-.sidebar-close-btn button {
-  color: black;
-  text-decoration: none;
-}
-
-.sidebar-close-btn button:hover {
-  color: #ff6900;
+.sidebar-close-btn:hover {
+  color: #ff6900 !important;
 }
 
 
@@ -87,28 +91,7 @@
   border: none !important;
 }
 
-@media (max-width: 768px) {
-  .sidebar-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 80%;
-    background: white;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
-    padding: 15px;
-    padding-top: 70px;
-    transition: transform 0.3s ease-in-out;
-  }
 
-  .d-none.sidebar-container {
-    transform: translateX(-100%);
-  }
-
-  .d-block.sidebar-container {
-    transform: translateX(0);
-  }
-}
 
 /* ── File item: name + action icons ─────────────────────────── */
 .sidebar-file-item {

@@ -236,13 +236,12 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
         </Modal.Body>
       </Modal>
 
-      <div className="sidebar-close-btn d-xl-none">
-        <Button variant="link" className="p-0" onClick={onCloseSidebar}>
+      <div className="sidebar-header">
+        <h4 className="sidebar-title mb-0">Lesson Content</h4>
+        <Button variant="link" className="sidebar-close-btn d-xl-none p-0" onClick={onCloseSidebar}>
           <BsX size={28} />
         </Button>
       </div>
-
-      <h4 className="sidebar-title mb-4">Lesson Content</h4>
 
       <Button variant="outline-dark" className="w-100 mb-3 sideButtons upload-button" onClick={handleUploadClick}>
         <i className="bi bi-upload me-2"></i> Upload File

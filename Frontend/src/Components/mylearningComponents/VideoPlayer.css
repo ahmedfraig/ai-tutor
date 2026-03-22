@@ -1,5 +1,7 @@
 .video-placeholder {
-    height: 550px;
+    aspect-ratio: 16 / 9;
+    max-height: 550px;
+    width: 100%;
     display: flex; 
     justify-content: center;
     align-items: center;

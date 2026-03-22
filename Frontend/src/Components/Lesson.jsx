@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, ToastContainer, Toast } from "react-bootstrap";
+import { Button, ToastContainer, Toast } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
 import LearningHeader from "./mylearningComponents/LearningHeader";
 import Sidebar from "./mylearningComponents/Sidebar";
@@ -96,57 +96,55 @@ function Lesson() {
     <>
       <LearningHeader lessonTitle={lessonTitle} />
 
-      <Container fluid className="vh-100 bg-light position-relative">
-        <Row className="h-100">
-          <Col
-            xl={2}
-            className={`sidebarlearning bg-white border-end position-absolute position-xl-static ${
-              showSidebar ? "d-block" : "d-none d-xl-block"
-            }`}
-            style={{ zIndex: 1050 }}
+      <div className="lesson-layout">
+        {/* ── Backdrop overlay (mobile/tablet) ── */}
+        <div
+          className={`sidebar-backdrop${showSidebar ? " open" : ""}`}
+          onClick={() => setShowSidebar(false)}
+        />
+
+        {/* ── Sidebar ── */}
+        <aside className={`lesson-sidebar${showSidebar ? " open" : ""}`}>
+          <Sidebar
+            onCloseSidebar={() => setShowSidebar(false)}
+            onSelectContent={handleSelectContent}
+            lessonId={lessonId}
+          />
+        </aside>
+
+        {/* ── Main Content ── */}
+        <main className="lesson-main">
+          <Button
+            variant="primary"
+            className="d-xl-none menu-button"
+            onClick={() => setShowSidebar(true)}
           >
-            <Sidebar
-              onCloseSidebar={() => setShowSidebar(false)}
-              onSelectContent={handleSelectContent}
-              onGenerate={handleGenerate}
-              onUpload={handleUpload}
-              lessonId={lessonId}
-            />
-          </Col>
+            <i className="bi bi-list"></i> Menu
+          </Button>
 
-          <Col xl={10} sm={12} className="h-100 offset-xl-2 px-xl-4 learningContainer">
-            <Button
-              variant="primary"
-              className="d-xl-none mb-3 menu-button"
-              onClick={() => setShowSidebar(true)}
-            >
-              <i className="bi bi-list"></i> Menu
-            </Button>
+          <LessonContent
+            mode={mode}
+            selectedName={selectedName}
+            selectedFilePath={selectedFilePath}
+            currentFile={lessonFiles[selectedName]}
+            onFileUpload={handleFileUpdate}
+            lessonId={lessonId}
+            lessonTitle={lessonTitle}
+          />
+          <AITutorPanel lessonTitle={lessonTitle} />
+        </main>
+      </div>
 
-            <LessonContent
-              mode={mode}
-              selectedName={selectedName}
-              selectedFilePath={selectedFilePath}
-              currentFile={lessonFiles[selectedName]}
-              onFileUpload={handleFileUpdate}
-              lessonId={lessonId}
-              lessonTitle={lessonTitle}
-            />
-            <AITutorPanel lessonTitle={lessonTitle} />
-          </Col>
-        </Row>
-
-        <ToastContainer position="bottom-end" className="p-3">
-          <Toast
-            show={toast.show}
-            onClose={() => setToast({ ...toast, show: false })}
-            delay={3000}
-            autohide
-          >
-            <Toast.Body>{toast.message}</Toast.Body>
-          </Toast>
-        </ToastContainer>
-      </Container>
+      <ToastContainer position="bottom-end" className="p-3">
+        <Toast
+          show={toast.show}
+          onClose={() => setToast({ ...toast, show: false })}
+          delay={3000}
+          autohide
+        >
+          <Toast.Body>{toast.message}</Toast.Body>
+        </Toast>
+      </ToastContainer>
     </>
   );
 }

@@ -1,27 +1,39 @@
-.lesson-tabs{
-    display: flex;
-    justify-content: center;
-    width: 100%;
+.lesson-tabs {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  border-bottom: 2px solid #e9ecef;
 }
 
 .lesson-tabs .nav-item {
-    width: 25%;
-    text-align: center;
-    height:40px;
-    background-color: #fff !important;
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  height: 40px;
+  background-color: #fff !important;
 }
 
 .lesson-tabs .nav-link {
-  color: rgba(0,0,0,0.7) !important;
+  color: rgba(0, 0, 0, 0.7) !important;
   font-weight: 500;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  padding: 0 8px;
 }
-
 
 .lesson-tabs .nav-link.active {
   background-color: #ff6900 !important;
   color: #fff !important;
+}
+
+/* Mobile: smaller text to prevent overflow */
+@media (max-width: 576px) {
+  .lesson-tabs .nav-link {
+    font-size: 0.8rem;
+    padding: 0 4px;
+  }
 }
