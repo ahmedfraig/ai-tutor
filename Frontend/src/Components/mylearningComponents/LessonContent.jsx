@@ -54,7 +54,11 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
           <UploadedFile
             fileName={selectedName}
             file={currentFile}
-            fileUrl={selectedFilePath ? `${apiClient.defaults.baseURL?.replace('/api', '') || ''}/${selectedFilePath}` : null}
+            fileUrl={selectedFilePath
+              ? (selectedFilePath.startsWith('http')
+                  ? selectedFilePath
+                  : `${apiClient.defaults.baseURL?.replace('/api', '') || ''}/${selectedFilePath}`)
+              : null}
             onUpload={onFileUpload}
           />
         )}

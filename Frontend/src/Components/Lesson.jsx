@@ -30,15 +30,18 @@ function Lesson() {
     // Init or update the tracking record when the lesson opens
     const initTracking = async () => {
       try {
-        await apiClient.post(`/user-lessons/${lessonId}`, {
+        // Try to update existing record first (most common case)
+        await apiClient.put(`/user-lessons/${lessonId}`, {
           last_entered: new Date().toISOString(),
         });
       } catch (err) {
-        // 409 = record already exists, update last_entered instead
-        if (err.response?.status === 409) {
-          await apiClient.put(`/user-lessons/${lessonId}`, {
-            last_entered: new Date().toISOString(),
-          });
+        // 404 = no record yet, create it
+        if (err.response?.status === 404) {
+          try {
+            await apiClient.post(`/user-lessons/${lessonId}`, {
+              last_entered: new Date().toISOString(),
+            });
+          } catch {/* silent */}
         }
       }
     };

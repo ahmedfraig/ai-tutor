@@ -6,7 +6,11 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN;
+app.use(cors({
+    origin: corsOrigin ? corsOrigin.split(',') : '*',
+    credentials: true,
+}));
 app.use(express.json());
 
 // Serve uploaded files as static assets
