@@ -175,3 +175,273 @@ body.darkmode .remindertable{
   background-color: rgb(35, 35, 35);
     box-shadow: 0 4px 12px rgba(252, 252, 252, 0.15); 
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LESSON PAGE — Dark Mode
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Learning Header ── */
+body.darkmode .learning-header {
+  background-color: #111 !important;
+  border-bottom-color: #333 !important;
+}
+
+body.darkmode .learning-header .back-link,
+body.darkmode .learning-header .lesson-title,
+body.darkmode .learning-header .back-link-container {
+  color: #f0f0f0 !important;
+}
+
+body.darkmode .learning-header .lesson-instructor {
+  color: #999 !important;
+}
+
+body.darkmode .learning-header .vertical-divider {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+body.darkmode .learning-header .header-divider {
+  border-color: #333 !important;
+}
+
+/* ── Sidebar ── */
+body.darkmode .lesson-sidebar {
+  background-color: #111 !important;
+  border-right-color: #333 !important;
+}
+
+body.darkmode .sidebar-container {
+  background-color: #111 !important;
+}
+
+body.darkmode .sidebar-header .sidebar-title {
+  color: #f0f0f0 !important;
+}
+
+body.darkmode .sidebar-close-btn {
+  color: #ccc !important;
+}
+
+body.darkmode .sidebar-close-btn:hover {
+  color: #ff6900 !important;
+}
+
+/* Sidebar buttons */
+body.darkmode .sideButtons {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #e0e0e0 !important;
+}
+
+body.darkmode .upload-button:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+
+body.darkmode .generate-button:hover {
+  background-color: rgba(255, 105, 0, 0.15) !important;
+  color: #ff6900 !important;
+}
+
+/* Accordion */
+body.darkmode .accordion-item {
+  background-color: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.darkmode .accordion-button {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
+
+body.darkmode .accordion-button:hover {
+  background-color: #222 !important;
+}
+
+body.darkmode .accordion-button:not(.collapsed) {
+  background-color: #222 !important;
+  color: #fff !important;
+}
+
+body.darkmode .accordion-button::after {
+  filter: invert(1);
+}
+
+body.darkmode .accordion-body {
+  background-color: #1a1a1a !important;
+}
+
+/* File list items */
+body.darkmode .list-group-item {
+  background-color: transparent !important;
+  color: #ccc !important;
+}
+
+body.darkmode .list-group-item:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+body.darkmode .list-group-item.active {
+  background-color: rgba(255, 105, 0, 0.15) !important;
+  color: #ff6900 !important;
+}
+
+body.darkmode .sidebar-icon {
+  color: #999;
+}
+
+body.darkmode .sidebar-icon:hover {
+  color: #ff6900;
+}
+
+body.darkmode .badge.bg-secondary {
+  background-color: #444 !important;
+}
+
+/* ── Main Content Area ── */
+body.darkmode .lesson-main {
+  background-color: #0d0d0d !important;
+  color: #e0e0e0 !important;
+}
+
+body.darkmode .lesson-main h5 {
+  color: #f0f0f0 !important;
+}
+
+/* ── Menu Button — keep orange in dark mode ── */
+body.darkmode .menu-button {
+  background-color: #ff6900 !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* ── Lesson Tabs ── */
+body.darkmode .lesson-tabs {
+  border-bottom-color: #333 !important;
+}
+
+body.darkmode .lesson-tabs .nav-item {
+  background-color: #111 !important;
+}
+
+body.darkmode .lesson-tabs .nav-link {
+  color: #bbb !important;
+}
+
+body.darkmode .lesson-tabs .nav-link.active {
+  background-color: #ff6900 !important;
+  color: #fff !important;
+}
+
+/* ── Video Player ── */
+body.darkmode .video-placeholder {
+  background-color: #1a1a1a !important;
+  color: #555;
+}
+
+/* ── Audio Player ── */
+body.darkmode .audio-player-container {
+  background-color: #1a1a1a !important;
+}
+
+body.darkmode .track-title {
+  color: #f0f0f0 !important;
+}
+
+body.darkmode .track-subtitle {
+  color: #999 !important;
+}
+
+/* ── Uploaded File Card ── */
+body.darkmode .preview-card {
+  background-color: #1a1a1a !important;
+  border-color: #333 !important;
+}
+
+body.darkmode .file-name {
+  color: #f0f0f0 !important;
+}
+
+body.darkmode .file-status {
+  color: #999 !important;
+}
+
+body.darkmode .file-icon {
+  color: #666 !important;
+}
+
+/* ── Backdrop ── */
+body.darkmode .sidebar-backdrop.open {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* ── Delete Modal ── */
+body.darkmode .delete-modal-content {
+  background-color: #1a1a1a !important;
+}
+
+body.darkmode .delete-modal-title {
+  color: #f0f0f0 !important;
+}
+
+body.darkmode .delete-modal-subtitle {
+  color: #999 !important;
+}
+
+body.darkmode .delete-modal-filename {
+  color: #ccc !important;
+}
+
+body.darkmode .delete-btn-cancel {
+  background-color: #222 !important;
+  border-color: #444 !important;
+  color: #ccc !important;
+}
+
+body.darkmode .delete-btn-cancel:hover {
+  background-color: #333 !important;
+}
+
+/* ── AI Tutor Panel ── */
+body.darkmode .ai-tutor-panel {
+  background-color: #111 !important;
+  box-shadow: -3px 0 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.darkmode .ai-body {
+  background-color: #0d0d0d !important;
+}
+
+body.darkmode .ai-bubble-msg {
+  background-color: #222 !important;
+  color: #e0e0e0 !important;
+}
+
+body.darkmode .ai-footer {
+  background-color: #111 !important;
+  border-top-color: #333 !important;
+}
+
+body.darkmode .ai-input {
+  background-color: #1a1a1a !important;
+  border-color: #333 !important;
+  color: #e0e0e0 !important;
+}
+
+body.darkmode .ai-input:focus {
+  border-color: #0d6efd !important;
+}
+
+/* ── Overview/Summary text ── */
+body.darkmode .lesson-main strong {
+  color: #f0f0f0 !important;
+}
+
+body.darkmode .lesson-main .text-muted {
+  color: #888 !important;
+}
+
+/* ── Toast ── */
+body.darkmode .toast {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
