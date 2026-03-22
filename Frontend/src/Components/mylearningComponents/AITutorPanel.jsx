@@ -27,7 +27,7 @@ const AITutorPanel = () => {
     setMessages([...messages, newMessage]);
     setInputValue("");
 
-    // --- Demo auto-reply ---
+    // -- Demo auto-reply ---
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
