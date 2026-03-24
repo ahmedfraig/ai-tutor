@@ -28,7 +28,7 @@
   z-index: 1002;
   display: flex;
   flex-direction: column;
-  padding-top: 90px !important;
+  padding-top: 60px !important;
 }
 
 .ai-tutor-panel.open {
