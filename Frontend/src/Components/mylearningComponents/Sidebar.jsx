@@ -80,6 +80,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       setActiveId(data.id);
       onSelectContent("upload", data.name, data.file_path);
       setOpenAccordion("0");
+      if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Upload failed:", err);
     }
@@ -103,6 +104,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       setActiveId(data.id);
       onSelectContent(type, data.name, data.file_path);
       setOpenAccordion(type === "video" ? "1" : "2");
+      if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Generate failed:", err);
     }
@@ -113,6 +115,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
     if (editingId !== null) return;
     setActiveId(record.id);
     onSelectContent(record.type, record.name, record.file_path);
+    if (onCloseSidebar) onCloseSidebar();
   };
 
   // ── Rename ───────────────────────────────────────────────────

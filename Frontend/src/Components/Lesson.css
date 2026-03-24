@@ -5,7 +5,8 @@
 /* Main layout wrapper — sits below the fixed header */
 .lesson-layout {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 61px);
+  overflow: hidden;
 }
 
 /* ── Sidebar (left panel) ─────────────────────────────────────── */
@@ -15,7 +16,7 @@
   background: #fff;
   border-right: 1px solid #e9ecef;
   overflow-y: auto;
-  z-index: 1040;
+  z-index: 1010;
 }
 
 /* ── Main content (right panel) ───────────────────────────────── */
