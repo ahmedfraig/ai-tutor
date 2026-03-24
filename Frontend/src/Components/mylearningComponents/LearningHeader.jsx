@@ -8,7 +8,7 @@ function LearningHeader({ lessonTitle }) {
   const navigate = useNavigate();
 
   return (
-    <div className="learning-header ">
+    <div className="learning-header sticky-top">
       <Container fluid className="px-4 py-2">
         <Row className="align-items-center">
           <Col xs="auto" className="d-flex align-items-center back-link-container"
