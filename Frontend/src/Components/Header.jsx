@@ -80,7 +80,7 @@ const Header = () => {
           <div className="collapse navbar-collapse" id="navbarNav">
             
             {/* Nav Links */}
-            <ul className="navbar-nav me-auto mb-2 mb-lg-0 gap-1 gap-lg-3 ms-lg-4 mt-3 mt-lg-0">
+            <ul className="navbar-nav mx-auto mb-2 mb-lg-0 gap-1 gap-lg-4 mt-3 mt-lg-0">
               <li className="nav-item">
                 <a className="nav-link rounded px-3 py-2 d-flex align-items-center" style={{cursor: 'pointer'}} onClick={() => navigate("/home")}>
                   <i className="bi bi-house-door fs-5 me-2"></i> <span className="fw-medium">Home</span>

@@ -84,148 +84,138 @@ const Mylearning = () => {
     <>
       <Header />
 
-      <header className="mylearningheader">
-        <div className="learnhdiv1 col-10">
-          <h5>My Learning</h5>
-          <p>Continue your learning journey</p>
-        </div>
-        <div className="learnhdiv2">
+      <main className="container pt-4 pb-5" style={{ maxWidth: '1200px' }}>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+          <div>
+            <h3 className="mb-1" style={{ fontWeight: '400', color: '#1a1a1a' }}>My Learning</h3>
+            <p className="text-muted mb-0" style={{ fontSize: '1.05rem' }}>Continue your learning journey</p>
+          </div>
           <button
-            className="startlessonbtn"
+            className="btn btn-dark rounded-3 px-4 py-2 d-flex align-items-center justify-content-center hover-scale shadow-sm"
             data-bs-toggle="modal"
             data-bs-target="#exampleModal"
+            style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.05rem' }}
           >
-            <i className="bi bi-plus"></i>Start a New Lesson
+            <i className="bi bi-plus-lg me-2"></i>Start a New Lesson
           </button>
+        </div>
 
-          <div
-            className="modal fade"
-            id="exampleModal"
-            tabIndex="-1"
-            aria-labelledby="exampleModalLabel"
-            aria-hidden="true"
-          >
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <button
-                  type="button"
-                  className="btn-close "
-                  data-bs-dismiss="modal"
-                  aria-label="Close"
-                ></button>
-                <h5 className="modal-title" id="exampleModalLabel">
-                  Start a New Lesson
-                </h5>
+        {/* Modal definition */}
+        <div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow rounded-4 p-3">
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title fw-semibold" id="exampleModalLabel">Start a New Lesson</h5>
+                <button type="button" className="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div className="modal-body pb-0">
+                <p className="text-muted mb-4">Create a new learning session</p>
+                <div className="mb-3">
+                  <label className="form-label fw-medium text-muted small">Lesson Title</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-lg bg-light border-0 shadow-sm"
+                    placeholder="Enter Lesson Name"
+                    value={lessonTitle}
+                    onChange={(e) => setLessonTitle(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && createLesson()}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="modal-footer border-0 pt-0 d-flex gap-2">
+                <button type="button" className="btn btn-light px-4 flex-grow-1" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" className="btn btn-dark px-4 flex-grow-1" onClick={createLesson} disabled={creating}>
+                  {creating ? "Creating..." : "Create Lesson"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                <p className="modp">Create a new learning session</p>
-                <label htmlFor="" className="mt-3 mb-3 modl">
-                  Lesson Title
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Enter Lesson Name"
-                  value={lessonTitle}
-                  onChange={(e) => setLessonTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && createLesson()}
-                />
+        {loading && <p className="text-center text-muted mt-5">Loading lessons...</p>}
+        {!loading && lessons.length === 0 && (
+          <div className="text-center py-5">
+            <div className="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style={{ width: '80px', height: '80px' }}>
+              <i className="bi bi-journal-plus text-secondary fs-1"></i>
+            </div>
+            <h5 className="fw-medium text-muted">No lessons yet</h5>
+            <p className="text-muted">Start by creating a new lesson!</p>
+          </div>
+        )}
 
-                <div className="moddiv">
-                  <button
-                    type="button"
-                    className=" mb-4 offset-2 modbtn btn btn-secondary"
-                    data-bs-dismiss="modal"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className=" mb-4 modbtn btn btn-secondary"
-                    onClick={createLesson}
-                    disabled={creating}
-                  >
-                    {creating ? "Creating..." : "Create Lesson"}
-                  </button>
+        <div className="row g-4">
+          {lessons.map((item, index) => (
+            <div className="col-12 col-md-6 col-lg-4" key={item.id || index}>
+              <div className="card shadow-sm border-light rounded-4 h-100 hover-scale" style={{ transition: 'transform 0.2s, box-shadow 0.2s' }}
+                 onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 0.5rem 1rem rgba(0,0,0,0.1)'}
+                 onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 .125rem .25rem rgba(0,0,0,.075)'}>
+                <div className="card-body p-4 d-flex flex-column">
+                  
+                  {editingId === item.id ? (
+                    <div className="d-flex gap-2 mb-3">
+                      <input
+                        className="form-control form-control-sm border-secondary"
+                        value={editTitle}
+                        onChange={e => setEditTitle(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
+                        autoFocus
+                      />
+                      <button className="btn btn-sm btn-dark px-3" onClick={() => saveEdit(item.id)}>✓</button>
+                      <button className="btn btn-sm btn-light px-3" onClick={() => setEditingId(null)}>✕</button>
+                    </div>
+                  ) : (
+                    <h5 className="mb-4 fw-medium text-dark text-truncate" title={item.title}>{item.title}</h5>
+                  )}
+
+                  <div className="mb-4">
+                    <span className="text-muted small d-block mb-2">Progress</span>
+                    <div className="progress bg-light" style={{ height: '8px', borderRadius: '4px' }}>
+                      <div className="progress-bar bg-dark" style={{ width: "25%", borderRadius: '4px' }}></div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-muted small mb-4">
+                    <i className="bi bi-clock me-1"></i> Total 24 minutes
+                  </p>
+                  
+                  <div className="mt-auto d-flex flex-column gap-3">
+                    <button
+                      className="btn btn-dark w-100 rounded-pill py-2 hover-scale d-flex align-items-center justify-content-center"
+                      style={{ transition: 'transform 0.2s', fontWeight: '500' }}
+                      onClick={() => navigate("/lesson", { state: { lessonId: item.id, lessonTitle: item.title } })}
+                    >
+                      <i className="bi bi-play-circle me-2"></i> Resume
+                    </button>
+                    
+                    <div className="d-flex justify-content-between align-items-center">
+                      <button 
+                        className="btn btn-light btn-sm text-secondary rounded-pill px-3 d-flex align-items-center hover-scale" 
+                        style={{ transition: 'all 0.2s', backgroundColor: '#f8f9fa' }}
+                        onClick={() => startEdit(item)}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e9ecef'; e.currentTarget.style.color = '#212529' }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; e.currentTarget.style.color = '#6c757d' }}
+                      >
+                        <i className="bi bi-pencil me-1"></i> Edit
+                      </button>
+                      
+                      <button 
+                        className="btn btn-light btn-sm text-danger rounded-pill px-3 d-flex align-items-center hover-scale" 
+                        style={{ transition: 'all 0.2s', backgroundColor: '#f8f9fa' }}
+                        onClick={() => deleteLesson(item.id)}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
+                      >
+                        <i className="bi bi-trash me-1"></i> Delete
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
-      </header>
-
-      <main className="learnmain mt-5">
-        {loading && <p className="text-center text-muted">Loading lessons...</p>}
-        {!loading && lessons.length === 0 && (
-          <p className="text-center text-muted">
-            No lessons yet. Start by creating a new lesson!
-          </p>
-        )}
-        {lessons.map((item, index) => (
-          <div className="div" key={item.id || index}>
-            {/* Lesson title — normal or edit mode */}
-            {editingId === item.id ? (
-              <div style={{ display: 'flex', gap: '4px', marginBottom: '0.5rem' }}>
-                <input
-                  className="form-control form-control-sm"
-                  value={editTitle}
-                  onChange={e => setEditTitle(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
-                  autoFocus
-                />
-                <button
-                  className="btn btn-sm btn-dark"
-                  onClick={() => saveEdit(item.id)}
-                >✓</button>
-                <button
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setEditingId(null)}
-                >✕</button>
-              </div>
-            ) : (
-              <h6>{item.title}</h6>
-            )}
-
-            <label htmlFor="">Progress</label>
-            <div className="progress mb-3">
-              <div
-                className="progress-bar lbar"
-                style={{ width: "25%", backgroundColor: "black" }}
-              ></div>
-            </div>
-            <p>
-              <i className="bi bi-clock"></i> Total 24 minutes
-            </p>
-
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-              <button
-                className="col-10 mb-2"
-                onClick={() =>
-                  navigate("/lesson", {
-                    state: { lessonId: item.id, lessonTitle: item.title },
-                  })
-                }
-              >
-                Resume
-              </button>
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                title="Rename"
-                style={{ borderRadius: '8px' }}
-                onClick={() => startEdit(item)}
-              >
-                <i className="bi bi-pencil"></i>
-              </button>
-              <button
-                className="btn btn-sm btn-outline-danger"
-                title="Delete"
-                style={{ borderRadius: '8px' }}
-                onClick={() => deleteLesson(item.id)}
-              >
-                <i className="bi bi-trash"></i>
-              </button>
-            </div>
-          </div>
-        ))}
       </main>
     </>
   );

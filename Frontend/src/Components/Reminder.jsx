@@ -83,105 +83,124 @@ const Reminder = () => {
     <>
       <Header />
 
-      <main className='remindermain'>
-        <div className='remindermaindiv1'>
+      <main className="container pt-4 pb-5" style={{ maxWidth: '1000px' }}>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
           <div>
-            <h5>Reminders</h5>
-            <p>{reminders.length} reminder{reminders.length !== 1 ? 's' : ''} scheduled</p>
+            <h3 className="mb-1" style={{ fontWeight: '400', color: '#1a1a1a' }}>Reminders</h3>
+            <p className="text-muted mb-0">{reminders.length} reminder{reminders.length !== 1 ? 's' : ''} scheduled</p>
           </div>
-          <button className='btnr' onClick={() => setShowForm(!showForm)}>
-            <i className="bi bi-plus"></i>Add Reminder
+          <button className="btn btn-primary rounded-pill px-4 py-2 d-flex align-items-center justify-content-center border-0 shadow-sm hover-scale" 
+            style={{ backgroundColor: '#1877f2', transition: 'transform 0.2s' }}
+            onClick={() => setShowForm(!showForm)}>
+            <i className="bi bi-plus-lg me-2"></i>Add Reminder
           </button>
         </div>
 
         {/* Add Reminder Form */}
         {showForm && (
-          <div className="reminderform" style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={newDate}
-                  onChange={e => setNewDate(e.target.value)}
-                  style={{ width: '180px' }}
-                />
+          <div className="card shadow-sm border-0 bg-light rounded-4 mb-4">
+            <div className="card-body p-4">
+              <div className="row g-3 align-items-end">
+                <div className="col-12 col-md-auto">
+                  <label className="form-label fw-medium text-muted mb-1" style={{ fontSize: '0.9rem' }}>Date</label>
+                  <input
+                    type="date"
+                    className="form-control border-0 shadow-sm"
+                    value={newDate}
+                    onChange={e => setNewDate(e.target.value)}
+                    style={{ minWidth: '160px' }}
+                  />
+                </div>
+                <div className="col-12 col-md">
+                  <label className="form-label fw-medium text-muted mb-1" style={{ fontSize: '0.9rem' }}>Notes</label>
+                  <input
+                    type="text"
+                    className="form-control border-0 shadow-sm"
+                    placeholder="What do you need to remember?"
+                    value={newNotes}
+                    onChange={e => setNewNotes(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                  />
+                </div>
+                <div className="col-12 col-md-auto d-flex gap-2 mt-3 mt-md-0">
+                  <button className="btn btn-dark px-4 flex-grow-1 flex-md-grow-0 shadow-sm" onClick={handleAdd} disabled={creating}>
+                    {creating ? 'Saving...' : 'Save'}
+                  </button>
+                  <button className="btn btn-outline-secondary px-4 flex-grow-1 flex-md-grow-0 bg-white" onClick={() => setShowForm(false)}>
+                    Cancel
+                  </button>
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>Notes</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="What do you need to remember?"
-                  value={newNotes}
-                  onChange={e => setNewNotes(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAdd()}
-                />
-              </div>
-              <button className='btnr' onClick={handleAdd} disabled={creating}>
-                {creating ? 'Saving...' : 'Save'}
-              </button>
-              <button className='btnr' style={{ background: '#6c757d' }} onClick={() => setShowForm(false)}>
-                Cancel
-              </button>
             </div>
           </div>
         )}
 
-        <div className="searchdiv">
-          <input
-            type="search"
-            placeholder="Search..."
-            className='form-control search'
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="mb-4 d-flex justify-content-start">
+          <div className="position-relative w-100" style={{ maxWidth: '400px' }}>
+            <i className="bi bi-search position-absolute text-muted" style={{ top: '50%', transform: 'translateY(-50%)', left: '16px' }}></i>
+            <input
+              type="search"
+              placeholder="Search reminders..."
+              className="form-control rounded-pill py-2 border-0 shadow-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ backgroundColor: '#f8f9fa', paddingLeft: '40px' }}
+            />
+          </div>
         </div>
 
-        <table className='remindertable'>
-          <thead>
-            <tr>
-              <th>Day</th>
-              <th>Month</th>
-              <th>Year</th>
-              <th className='reminder'>Reminder</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr><td colSpan="5" style={{ textAlign: 'center', color: '#888' }}>Loading...</td></tr>
-            )}
-            {!loading && filtered.length === 0 && (
-              <tr><td colSpan="5" style={{ textAlign: 'center', color: '#888' }}>No reminders yet.</td></tr>
-            )}
-            {filtered.map(r => {
-              const { day, month, year } = formatDate(r.remind_date);
-              return (
-                <tr key={r.id}>
-                  <td>{day}</td>
-                  <td>{month}</td>
-                  <td>{year}</td>
-                  <td className='remindertd'>
-                    <ul>
-                      {r.notes.split('\n').map((line, i) => (
-                        <li key={i}>{line}</li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td>
-                    <i
-                      className="bi bi-trash tabletrash"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handleDelete(r.id)}
-                    ></i>
-                  </td>
+        <div className="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+          <div className="table-responsive">
+            <table className="table table-hover mb-0 align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th className="px-4 py-3 text-muted fw-semibold border-0" style={{ minWidth: '150px' }}>Date</th>
+                  <th className="px-4 py-3 text-muted fw-semibold border-0 w-100">Reminder</th>
+                  <th className="px-4 py-3 text-muted fw-semibold border-0 text-center">Action</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody style={{ borderTop: 'none' }}>
+                {loading && (
+                  <tr><td colSpan="3" className="text-center py-5 text-muted">Loading...</td></tr>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <tr><td colSpan="3" className="text-center py-5 text-muted">No reminders yet.</td></tr>
+                )}
+                {filtered.map(r => {
+                  const { day, month, year } = formatDate(r.remind_date);
+                  const dateNum = new Date(r.remind_date).getUTCDate();
+                  return (
+                    <tr key={r.id}>
+                      <td className="px-4 py-3 text-nowrap">
+                        <span className="fw-medium text-dark">{day}, {month} {dateNum}</span>
+                        <div className="text-muted small">{year}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <ul className="mb-0 ps-3" style={{ listStyleType: 'circle' }}>
+                          {r.notes.split('\n').map((line, i) => (
+                            <li key={i} className="text-dark">{line}</li>
+                          ))}
+                        </ul>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button 
+                          onClick={() => handleDelete(r.id)}
+                          className="btn btn-sm btn-light text-danger border-0 rounded-circle"
+                          style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="Delete Reminder"
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
     </>
   );

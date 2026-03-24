@@ -6,7 +6,6 @@
 .lesson-layout {
   display: flex;
   height: 100vh;
-  padding-top: 58px; /* matches LearningHeader rendered height */
 }
 
 /* ── Sidebar (left panel) ─────────────────────────────────────── */
