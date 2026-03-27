@@ -49,3 +49,5 @@ Thumbs.db
 Backend/Speech/__pycache__/
 Backend/Speech/outputs
 Backend/Speech/*.pyc
+
+.agents

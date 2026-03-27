@@ -4,7 +4,13 @@ import './AnalyticsSection.css';
 import apiClient from '../../api/apiClient';
 
 const LearningProgressBar = ({ label, current, total }) => {
+  const [mounted, setMounted] = useState(false);
   const percentage = total > 0 ? (current / total) * 100 : 0;
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="mb-3">
@@ -14,11 +20,13 @@ const LearningProgressBar = ({ label, current, total }) => {
       </div>
       
       <div className="progress analytics-progress-track" style={{ height: '5px' }}>
-        <ProgressBar 
-          now={percentage} 
-          variant="dark" 
-          className="analytics-progress-fill"
-          style={{ minWidth: percentage > 0 ? '2%' : '0' }}
+        <div
+          className="progress-bar analytics-progress-fill"
+          role="progressbar"
+          style={{ width: `${mounted ? percentage : 0}%`, borderRadius: '10px', backgroundColor: 'var(--color-accent, #ff6900)' }}
+          aria-valuenow={percentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
         />
       </div>
     </div>
@@ -28,6 +36,12 @@ const LearningProgressBar = ({ label, current, total }) => {
 const AnalyticsSection = ({ lessonId }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 80);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!lessonId) {
@@ -78,12 +92,17 @@ const AnalyticsSection = ({ lessonId }) => {
       <Row className="mb-4">
         
         <Col md={4} className="mb-3">
-          <Card className="shadow-sm border-0 h-100 analytics-card">
+          <Card className="shadow-sm border-0 h-100 analytics-card" style={{ borderLeft: '4px solid var(--color-accent, #ff6900)', borderRadius: '12px' }}>
             <Card.Body>
               <p className="text-muted">Completion</p>
               <h3 className="fw-normal mb-3">{completion}%</h3>
               <div className="progress analytics-progress-track" style={{ height: '3px' }}>
-                <ProgressBar now={completion} variant="dark" className="analytics-progress-fill" />
+                <div
+                  className="progress-bar"
+                  role="progressbar"
+                  style={{ width: `${mounted ? completion : 0}%`, borderRadius: '10px', backgroundColor: 'var(--color-accent, #ff6900)', transition: 'width 700ms cubic-bezier(0.25,1,0.5,1)' }}
+                  aria-valuenow={completion} aria-valuemin={0} aria-valuemax={100}
+                />
               </div>
             </Card.Body>
           </Card>
@@ -92,10 +111,18 @@ const AnalyticsSection = ({ lessonId }) => {
         <Col md={4} className="mb-3">
           <Card className="shadow-sm border-0 h-100 analytics-card">
             <Card.Body>
-              <p className="text-muted">Quiz Avg</p>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <i className="bi bi-patch-question" style={{ color: '#f59e0b', fontSize: '1rem' }}></i>
+                <p className="text-muted mb-0">Quiz Avg</p>
+              </div>
               <h3 className="fw-normal mb-3">{quizScore}%</h3>
               <div className="progress analytics-progress-track" style={{ height: '3px' }}>
-                <ProgressBar now={quizScore} variant="dark" className="analytics-progress-fill" />
+                <div
+                  className="progress-bar"
+                  role="progressbar"
+                  style={{ width: `${mounted ? quizScore : 0}%`, borderRadius: '10px', backgroundColor: 'var(--color-accent, #ff6900)', transition: 'width 700ms cubic-bezier(0.25,1,0.5,1)' }}
+                  aria-valuenow={quizScore} aria-valuemin={0} aria-valuemax={100}
+                />
               </div>
             </Card.Body>
           </Card>
@@ -104,7 +131,10 @@ const AnalyticsSection = ({ lessonId }) => {
         <Col md={4} className="mb-3">
           <Card className="shadow-sm border-0 h-100 analytics-card">
             <Card.Body>
-              <p className="text-muted">Time Spent</p>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <i className="bi bi-clock-fill" style={{ color: '#22c55e', fontSize: '1rem' }}></i>
+                <p className="text-muted mb-0">Time Spent</p>
+              </div>
               <h3 className="fw-normal mb-3">{timeSpentLabel}</h3>
             </Card.Body>
           </Card>
@@ -113,7 +143,10 @@ const AnalyticsSection = ({ lessonId }) => {
 
       <Card className="shadow-sm border-0 analytics-card">
         <Card.Body>
-          <h4 className="fw-bold mb-4">Learning Progress</h4>
+          <div className="d-flex align-items-center gap-2 mb-4">
+            <i className="bi bi-bar-chart-fill" style={{ color: 'var(--color-accent)', fontSize: '1.1rem' }}></i>
+            <h4 className="fw-bold mb-0">Learning Progress</h4>
+          </div>
           
           <LearningProgressBar 
             label="Videos Watched" 

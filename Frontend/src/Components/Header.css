@@ -50,3 +50,17 @@
 .darkmode .border-secondary-subtle {
   border-color: #495057 !important;
 }
+
+/* Mobile nav divider — only draw the top border below lg breakpoint */
+.header-controls {
+  border: none; /* never on desktop */
+}
+@media (max-width: 991.98px) {
+  .header-controls {
+    border-top: 1px solid #dee2e6;
+    padding-top: 0.75rem;
+  }
+  .darkmode .header-controls {
+    border-top-color: #495057;
+  }
+}

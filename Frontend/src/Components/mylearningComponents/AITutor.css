@@ -10,9 +10,28 @@
   font-size: 16px;
   z-index: 3000;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  background-color: #ff6900 !important;
+  background-color: var(--color-accent, #ff6900) !important;
   border: transparent !important;
-  padding:0 !important;
+  padding: 0 !important;
+  /* needed for ::before stacking */
+  isolation: isolate;
+}
+
+/* Attention pulse ring */
+.ai-float-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: ai-pulse 3s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  pointer-events: none;
+  will-change: box-shadow; /* promote to compositor layer */
+}
+
+@keyframes ai-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(255, 105, 0, 0.55); }
+  60%  { box-shadow: 0 0 0 14px rgba(255, 105, 0, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(255, 105, 0, 0); }
 }
 
 /* Panel */
@@ -37,8 +56,8 @@
 
 /* Header */
 .ai-icon {
-  background: #e9f2ff;
-  color: #0d6efd;
+  background: var(--color-accent-muted, rgba(255,105,0,0.12));
+  color: var(--color-accent, #ff6900);
   border-radius: 50%;
   width: 38px;
   height: 38px;
@@ -85,7 +104,7 @@
 }
 
 .user-bubble {
-  background-color: #0d6efd;
+  background-color: var(--color-accent, #ff6900);
   color: white;
   border-top-right-radius: 0;
 }
@@ -105,8 +124,8 @@
 
 .ai-input:focus {
   outline: none !important;
-  box-shadow: none !important;
-  border: 2px solid #0d6efd !important;
+  box-shadow: 0 0 0 3px var(--color-accent-ring, rgba(255,105,0,0.3)) !important;
+  border: 2px solid var(--color-accent, #ff6900) !important;
 }
 
 
@@ -122,7 +141,7 @@
 }
 
 .ai-send-btn:enabled {
-  background-color: #0d6efd !important;
+  background-color: var(--color-accent, #ff6900) !important;
   color: white !important;
 }
 

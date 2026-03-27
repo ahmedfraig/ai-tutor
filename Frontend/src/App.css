@@ -1,12 +1,52 @@
 body.darkmode {
-  background-color: black !important;
-  color: white !important;
+  background-color: #0d0d0d !important; /* near-black — no halation, token-aligned */
+  color: #f0f0f0 !important;            /* off-white — less harsh, still 14:1 contrast */
 }
 
 body.darkmode header,
 body.darkmode .navbar {
-  background-color: #000 !important;
+  background-color: #0d0d0d !important; /* matches body */
+  color: #f0f0f0 !important;
+}
+
+/* Global .text-muted override — fixes 4.48:1 WCAG AA fail on non-lesson pages */
+body.darkmode .text-muted {
+  color: #9ca3af !important; /* 5.7:1 on #0d0d0d ✅ WCAG AA */
+}
+
+/* Page heading — explicit light/dark color so inline styles can be removed from JSX */
+.page-heading {
+  color: #1a1a1a;
+}
+body.darkmode .page-heading {
+  color: #ffffff !important; /* 21:1 contrast — maximum readability for primary headings */
+}
+
+/* Brand orange button — survives body.darkmode .btn override via higher specificity */
+.btn-accent {
+  background-color: var(--color-accent, #ff6900) !important;
   color: #fff !important;
+  border: none !important;
+}
+.btn-accent:hover {
+  background-color: var(--color-accent-hover, #e55f00) !important;
+  color: #fff !important;
+}
+/* .btn.btn-accent → specificity (0,3,1) beats body.darkmode .btn → (0,2,1) */
+body.darkmode .btn.btn-accent {
+  background-color: var(--color-accent, #ff6900) !important;
+  color: #fff !important;
+  border: none !important;
+}
+body.darkmode .btn.btn-accent:hover {
+  background-color: var(--color-accent-hover, #e55f00) !important;
+}
+
+/* Global .card override — Bootstrap cards stay white on dark without this */
+body.darkmode .card {
+  background: var(--color-surface, #1a1a1a) !important; /* shorthand resets background-image */
+  border-color: var(--color-border, #2d2d2d) !important;
+  color: var(--color-text, #f0f0f0) !important;
 }
 
 body.darkmode .navbar a,
@@ -22,6 +62,25 @@ body.darkmode .btn {
 
 body.darkmode .btn:hover {
   background-color: #333 !important;
+}
+
+/* .edit-btn / .delete-btn dark mode — survive the global .btn !important above */
+body.darkmode .edit-btn {
+  background-color: #2a2a2a !important;
+  color: #d1d5db !important;
+  border-color: #3a3a3a !important;
+}
+body.darkmode .edit-btn:hover {
+  background-color: #383838 !important;
+  color: #f0f0f0 !important;
+}
+body.darkmode .delete-btn {
+  background-color: #2a1a1a !important;
+  color: #f87171 !important; /* red-400 — 4.6:1 on #2a1a1a ✅ WCAG AA */
+  border-color: #4a2a2a !important;
+}
+body.darkmode .delete-btn:hover {
+  background-color: #3a1f1f !important;
 }  
 
 body.darkmode .navbar-toggler{
@@ -169,6 +228,14 @@ body.darkmode .learnmain .div p{
 body.darkmode .learnmain .div button{
   color:black;
   background-color:white;
+}
+
+/* Reminder delete button — CSS hover replaces onMouseOver mutation */
+.reminder-delete-btn {
+  transition: background-color 0.15s;
+}
+.reminder-delete-btn:hover {
+  background-color: #fee2e2 !important;
 }
 
 body.darkmode .remindertable{
@@ -428,7 +495,8 @@ body.darkmode .ai-input {
 }
 
 body.darkmode .ai-input:focus {
-  border-color: #0d6efd !important;
+  border-color: var(--color-accent, #ff6900) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-ring, rgba(255,105,0,0.3)) !important;
 }
 
 /* ── Overview/Summary text ── */

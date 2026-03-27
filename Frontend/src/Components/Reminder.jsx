@@ -84,13 +84,14 @@ const Reminder = () => {
       <Header />
 
       <main className="container pt-4 pb-5" style={{ maxWidth: '1000px' }}>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
           <div>
             <h3 className="mb-1" style={{ fontWeight: '400', color: '#1a1a1a' }}>Reminders</h3>
             <p className="text-muted mb-0">{reminders.length} reminder{reminders.length !== 1 ? 's' : ''} scheduled</p>
           </div>
-          <button className="btn btn-primary rounded-pill px-4 py-2 d-flex align-items-center justify-content-center border-0 shadow-sm hover-scale" 
-            style={{ backgroundColor: '#1877f2', transition: 'transform 0.2s' }}
+          <button
+            className="btn btn-dark rounded-pill px-4 py-2 d-flex align-items-center justify-content-center shadow-sm hover-scale"
+            style={{ transition: 'transform 0.2s' }}
             onClick={() => setShowForm(!showForm)}>
             <i className="bi bi-plus-lg me-2"></i>Add Reminder
           </button>
@@ -135,7 +136,7 @@ const Reminder = () => {
           </div>
         )}
 
-        <div className="mb-4 d-flex justify-content-start">
+        <div className="mb-5 d-flex justify-content-start">
           <div className="position-relative w-100" style={{ maxWidth: '400px' }}>
             <i className="bi bi-search position-absolute text-muted" style={{ top: '50%', transform: 'translateY(-50%)', left: '16px' }}></i>
             <input
@@ -185,13 +186,12 @@ const Reminder = () => {
                       <td className="px-4 py-3 text-center">
                         <button 
                           onClick={() => handleDelete(r.id)}
-                          className="btn btn-sm btn-light text-danger border-0 rounded-circle"
-                          style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          className="btn btn-sm btn-light text-danger border-0 rounded-circle reminder-delete-btn"
+                          style={{ width: '44px', height: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          aria-label={`Delete reminder: ${r.subject}`}
                           title="Delete Reminder"
-                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
-                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
                         >
-                          <i className="bi bi-trash"></i>
+                          <i className="bi bi-trash" aria-hidden="true"></i>
                         </button>
                       </td>
                     </tr>

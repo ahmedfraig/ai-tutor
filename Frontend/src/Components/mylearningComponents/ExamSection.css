@@ -1,10 +1,10 @@
 .exam-section-container {
-    width:100% !important;
+    width: 100% !important;
 }
 
 .exam-card {
     border-radius: 12px;
-    width:100% !important;
+    width: 100% !important;
 }
 
 .exam-icon-wrapper {
@@ -19,20 +19,36 @@
     height: 40px;
     font-size: 50px;
     line-height: 1;
-    color: #ff6900;
+    color: var(--color-accent, #ff6900);
 }
 
 .exam-start-btn {
-    background-color: #ff6900 !important;
-    border-color: #ff6900 !important;
+    background-color: var(--color-accent, #ff6900) !important;
+    border-color: var(--color-accent, #ff6900) !important;
     border-radius: 20px !important;
     font-size: 1.15rem;
     transition: background-color 0.2s;
     color: rgba(255, 255, 255, 0.8) !important;
+    min-height: 44px;
 }
 
 .exam-start-btn:hover {
-    background-color: #e67e00 !important;
-    border-color: #e67e00 !important;
+    background-color: var(--color-accent-hover, #e05e00) !important;
+    border-color: var(--color-accent-hover, #e05e00) !important;
 }
+
+/* ── Mobile (≤576px) ──────────────────────────────────────── */
+@media (max-width: 576px) {
+    .exam-medal-icon {
+        font-size: 36px;
+        width: 32px;
+        height: 32px;
+    }
+
+    .exam-start-btn {
+        font-size: 1rem;
+        width: 100%;
+    }
+}
+
 

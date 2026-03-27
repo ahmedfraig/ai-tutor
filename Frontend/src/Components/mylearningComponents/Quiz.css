@@ -1,132 +1,167 @@
-.quizbtn{
-    position: absolute;
-    margin-left: 30%;
-    color: coral!important;
+.quizbtn {
+    color: coral !important;
     background-color: wheat !important;
-    
-    
 }
 
-.quizbtn:hover{
-    
-    color: wheat!important;
-    background-color: coral!important;
+.quizbtn:hover {
+    color: wheat !important;
+    background-color: coral !important;
 }
 
-.root{
- background: linear-gradient(
-        135deg,
-        #e0f2ff,
-        #cfe8ff,
-        #e8f4ff
-    );
-
-     min-height: 100vh;
-}
-
-.quizheader{
-    
+/* ── Quiz root: full-screen flex centering ──────────────────── */
+.root {
+    background: linear-gradient(135deg, #e0f2ff, #cfe8ff, #e8f4ff);
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-position: absolute;
-left: 25%;
-top: 20%;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    box-sizing: border-box;
+}
+
+/* ── Flashcard: centered, fluid width ───────────────────────── */
+.quizheader {
+    display: flex;
+    flex-direction: column;
+    width: clamp(300px, 90vw, 640px);
     background: linear-gradient(180deg, #0f0f0f, #050505);
     color: #f1f1f1;
-
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-
-    width: 50%;
-   
-   
-    padding: 18px 20px;
-
+    padding: 24px 20px;
     box-shadow:
         0 4px 12px rgba(0, 0, 0, 0.6),
         0 0 0 1px rgba(255, 255, 255, 0.03);
-
     transition: box-shadow 0.3s ease, transform 0.3s ease;
+    cursor: pointer;
 }
+
 .quizheader:hover {
     box-shadow:
         0 8px 24px rgba(0, 0, 0, 0.8),
         0 0 0 1px rgba(255, 255, 255, 0.06);
     transform: translateY(-2px);
 }
-.div1{
+
+@media (prefers-reduced-motion: reduce) {
+    .quizheader {
+        transition: none;
+    }
+    .quizheader:hover {
+        transform: none;
+    }
+}
+
+.div1 {
     display: flex;
     flex-direction: row;
+    align-items: center;
 }
 
-.quizh3{
+.quizh3 {
     margin-left: 5%;
     margin-top: 2%;
+    font-size: clamp(1rem, 3.5vw, 1.3rem);
+    line-height: 1.5;
+    word-break: break-word;
 }
-.iconq{
-    color: #4da3ff;  
-  
 
+.iconq {
+    color: #4da3ff;
 }
-.icondq{
-     background: linear-gradient(145deg, #3a3a3a, #2b2b2b);
+
+.icondq {
+    background: linear-gradient(145deg, #3a3a3a, #2b2b2b);
     border-radius: 8px;
     width: 30px;
-     display: flex;
+    min-width: 30px;
+    display: flex;
     align-items: center;
     justify-content: center;
-     
-
 }
-.div1pq{
+
+.div1pq {
     position: relative;
     left: 10px;
     top: 10px;
     color: rgb(178, 177, 177);
-
 }
 
-.showflashbtn{
-   margin-top: 30px;
-
-    background-color: #1e3a5f !important;  /* deep blue */
+.showflashbtn {
+    margin-top: 30px;
+    background-color: #1e3a5f !important;
     color: #eaf4ff !important;
-     border-radius: 8px;
-    
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 8px 16px;
 }
 
-.bodyq{
+.bodyq {
     display: flex;
     flex-direction: column;
 }
 
-.part2a{
+.part2a {
     margin-top: 30px;
     color: lightgreen;
-     background-color: #eaffea; 
-     padding: 5px;
+    background-color: #eaffea;
+    padding: 5px;
 }
-.part3{
+
+.part3 {
     position: relative;
     top: 34px;
     color: darkgray;
 }
-.answerp{
+
+.answerp {
     margin-left: 40px;
+    word-break: break-word;
 }
-.blue{
+
+.blue {
     color: lightblue;
 }
-.icccc{
+
+.icccc {
     color: red;
 }
 
-.btndiv{
+.btndiv {
     display: flex;
-  justify-content: space-between;
-  width: 100%;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
 }
-    
-.return{
-    margin-left: 20px;
+
+.return {
+    margin-left: 8px;
+}
+
+/* ── Mobile (≤576px) ────────────────────────────────────────── */
+@media (max-width: 576px) {
+    .root {
+        padding: 16px 12px;
+        justify-content: flex-start;
+        padding-top: 32px;
+    }
+
+    .quizheader {
+        padding: 16px 14px;
+    }
+
+    .btndiv {
+        flex-direction: column;
+    }
+
+    .showflashbtn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .return {
+        margin-left: 0;
+        margin-top: 12px;
+    }
 }

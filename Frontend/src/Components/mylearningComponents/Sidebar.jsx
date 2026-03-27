@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Accordion, Button, ListGroup, Spinner, Modal } from "react-bootstrap";
+import { Accordion, Button, Spinner, Modal } from "react-bootstrap";
 import { BsX, BsPencil, BsTrash, BsCheck, BsXCircle } from "react-icons/bs";
+import { motion, AnimatePresence } from "framer-motion";
 import apiClient from "../../api/apiClient";
 import "./Sidebar.css";
 
@@ -9,6 +10,25 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(null);
   const [openAccordion, setOpenAccordion] = useState("0");
+
+  // Reduced-motion preference
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 7 },
+    show: {
+      opacity: 1, y: 0,
+      transition: { duration: prefersReducedMotion ? 0 : 0.18, ease: [0.25, 1, 0.5, 1] },
+    },
+  };
+
+  const listVariants = {
+    hidden: {},
+    show: { transition: { staggerChildren: prefersReducedMotion ? 0 : 0.05 } },
+  };
+
 
   // Rename state
   const [editingId, setEditingId] = useState(null);
@@ -163,12 +183,12 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
 
   // ── Render a single list item ────────────────────────────────
   const renderItem = (record) => (
-    <ListGroup.Item
+    <motion.li
       key={record.id}
-      action
-      active={activeId === record.id}
+      variants={itemVariants}
+      className={`list-group-item list-group-item-action d-flex align-items-center justify-content-between sidebar-file-item${activeId === record.id ? " active" : ""}`}
       onClick={() => handleSelect(record)}
-      className="d-flex align-items-center justify-content-between sidebar-file-item"
+      style={{ cursor: "pointer" }}
     >
       {editingId === record.id ? (
         <div className="d-flex align-items-center gap-1 w-100" onClick={(e) => e.stopPropagation()}>
@@ -190,12 +210,28 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
         <>
           <span className="sidebar-file-name text-truncate">{record.name}</span>
           <span className="sidebar-actions ms-2 d-flex gap-1">
-            <BsPencil className="sidebar-icon" title="Rename" onClick={(e) => startEdit(e, record)} />
-            <BsTrash className="sidebar-icon text-danger" title="Delete" onClick={(e) => askDelete(e, record)} />
+            <BsPencil
+              className="sidebar-icon"
+              title="Rename"
+              aria-label={`Rename ${record.name}`}
+              role="button"
+              tabIndex={0}
+              onClick={(e) => startEdit(e, record)}
+              onKeyDown={(e) => e.key === 'Enter' && startEdit(e, record)}
+            />
+            <BsTrash
+              className="sidebar-icon text-danger"
+              title="Delete"
+              aria-label={`Delete ${record.name}`}
+              role="button"
+              tabIndex={0}
+              onClick={(e) => askDelete(e, record)}
+              onKeyDown={(e) => e.key === 'Enter' && askDelete(e, record)}
+            />
           </span>
         </>
       )}
-    </ListGroup.Item>
+    </motion.li>
   );
 
   return (
@@ -268,7 +304,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
             <Accordion.Body>
               {uploadedFiles.length === 0
                 ? <p className="text-muted small mb-0">No files uploaded yet.</p>
-                : <ListGroup variant="flush">{uploadedFiles.map(renderItem)}</ListGroup>}
+                : <motion.ul className="list-group list-group-flush" variants={listVariants} initial="hidden" animate="show">{uploadedFiles.map(renderItem)}</motion.ul>}
             </Accordion.Body>
           </Accordion.Item>
 
@@ -280,7 +316,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
             <Accordion.Body>
               {videos.length === 0
                 ? <p className="text-muted small mb-0">No videos generated yet.</p>
-                : <ListGroup variant="flush">{videos.map(renderItem)}</ListGroup>}
+                : <motion.ul className="list-group list-group-flush" variants={listVariants} initial="hidden" animate="show">{videos.map(renderItem)}</motion.ul>}
             </Accordion.Body>
           </Accordion.Item>
 
@@ -292,7 +328,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
             <Accordion.Body>
               {audios.length === 0
                 ? <p className="text-muted small mb-0">No audios generated yet.</p>
-                : <ListGroup variant="flush">{audios.map(renderItem)}</ListGroup>}
+                : <motion.ul className="list-group list-group-flush" variants={listVariants} initial="hidden" animate="show">{audios.map(renderItem)}</motion.ul>}
             </Accordion.Body>
           </Accordion.Item>
         </Accordion>

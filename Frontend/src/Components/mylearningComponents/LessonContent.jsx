@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Nav, Tab } from "react-bootstrap";
+import { Nav } from "react-bootstrap";
 import UploadedFile from "./UploadedFile";
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
@@ -24,13 +24,11 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
     const fetchSummary = async () => {
       setLoading(true);
       try {
-        // Fetch saved summary from our backend (ai_generations table)
         const res = await apiClient.get(
           `/ai-generations/lesson/${lessonId}?type=summary`
         );
         const records = res.data;
         if (records.length > 0) {
-          // Use the most recent summary
           setSummarize(records[0].content || "");
         } else {
           setSummarize("");
@@ -47,8 +45,10 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
   }, [lessonId]);
 
   return (
-    <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
-      <h5 className="">{selectedName}</h5>
+    <div>
+      <h5>{selectedName}</h5>
+
+      {/* Media area */}
       <div>
         {mode === "upload" && (
           <UploadedFile
@@ -62,12 +62,17 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
             onUpload={onFileUpload}
           />
         )}
-
         {mode === "video" && <VideoPlayer title={selectedName} />}
         {mode === "audio" && <AudioPlayer title={selectedName} />}
       </div>
 
-      <Nav variant="tabs" className="mt-3 lesson-tabs">
+      {/* Tab nav */}
+      <Nav
+        variant="tabs"
+        className="mt-3 lesson-tabs"
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k)}
+      >
         <Nav.Item>
           <Nav.Link eventKey="overview">Overview</Nav.Link>
         </Nav.Item>
@@ -82,11 +87,18 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
         </Nav.Item>
       </Nav>
 
-      <Tab.Content className="mt-3">
-        <Tab.Pane eventKey="overview">
+      {/* Tab panels — all kept mounted to prevent API re-fetch on tab switch.
+          Visibility controlled via CSS display:none. Active panel gets
+          tab-fade-in animation via CSS keyframe. */}
+      <div className="mt-3">
+
+        <div className={activeTab === "overview" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
           <strong>Lesson Summary:</strong>
           {loading ? (
-            <div>Loading summary...</div>
+            <div className="d-flex align-items-center gap-2 text-muted mt-3">
+              <div className="spinner-border spinner-border-sm" role="status" aria-label="Loading summary" />
+              <span>Loading summary…</span>
+            </div>
           ) : summarize ? (
             <div dangerouslySetInnerHTML={{ __html: DomPurify.sanitize(summarize) }} />
           ) : (
@@ -94,21 +106,22 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
               No summary available for this lesson yet.
             </div>
           )}
-        </Tab.Pane>
+        </div>
 
-        <Tab.Pane eventKey="quiz">
+        <div className={activeTab === "quiz" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
           <Quiz lessonId={lessonId} lessonTitle={lessonTitle} />
-        </Tab.Pane>
+        </div>
 
-        <Tab.Pane eventKey="exam">
+        <div className={activeTab === "exam" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
           <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} />
-        </Tab.Pane>
+        </div>
 
-        <Tab.Pane eventKey="analytics">
+        <div className={activeTab === "analytics" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
           <AnalyticsSection lessonId={lessonId} />
-        </Tab.Pane>
-      </Tab.Content>
-    </Tab.Container>
+        </div>
+
+      </div>
+    </div>
   );
 }
 

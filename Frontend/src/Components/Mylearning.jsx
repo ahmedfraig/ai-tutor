@@ -87,7 +87,7 @@ const Mylearning = () => {
       <main className="container pt-4 pb-5" style={{ maxWidth: '1200px' }}>
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
           <div>
-            <h3 className="mb-1" style={{ fontWeight: '400', color: '#1a1a1a' }}>My Learning</h3>
+            <h3 className="mb-1 page-heading" style={{ fontWeight: '400' }}>My Learning</h3>
             <p className="text-muted mb-0" style={{ fontSize: '1.05rem' }}>Continue your learning journey</p>
           </div>
           <button
@@ -136,10 +136,11 @@ const Mylearning = () => {
         {loading && <p className="text-center text-muted mt-5">Loading lessons...</p>}
         {!loading && lessons.length === 0 && (
           <div className="text-center py-5">
-            <div className="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style={{ width: '80px', height: '80px' }}>
-              <i className="bi bi-journal-plus text-secondary fs-1"></i>
+            <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                 style={{ width: '80px', height: '80px', backgroundColor: 'var(--color-accent-muted, rgba(255,105,0,0.12))' }}>
+              <i className="bi bi-journal-plus fs-1" style={{ color: 'var(--color-accent)' }}></i>
             </div>
-            <h5 className="fw-medium text-muted">No lessons yet</h5>
+            <h5 className="fw-medium" style={{ color: 'var(--color-text)' }}>No lessons yet</h5>
             <p className="text-muted">Start by creating a new lesson!</p>
           </div>
         )}
@@ -147,9 +148,7 @@ const Mylearning = () => {
         <div className="row g-4">
           {lessons.map((item, index) => (
             <div className="col-12 col-md-6 col-lg-4" key={item.id || index}>
-              <div className="card shadow-sm border-light rounded-4 h-100 hover-scale" style={{ transition: 'transform 0.2s, box-shadow 0.2s' }}
-                 onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 0.5rem 1rem rgba(0,0,0,0.1)'}
-                 onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 .125rem .25rem rgba(0,0,0,.075)'}>
+              <div className="card shadow-sm border-light rounded-4 h-100 lesson-card-hover">
                 <div className="card-body p-4 d-flex flex-column">
                   
                   {editingId === item.id ? (
@@ -165,13 +164,13 @@ const Mylearning = () => {
                       <button className="btn btn-sm btn-light px-3" onClick={() => setEditingId(null)}>✕</button>
                     </div>
                   ) : (
-                    <h5 className="mb-4 fw-medium text-dark text-truncate" title={item.title}>{item.title}</h5>
+                    <h5 className="mb-4 fw-medium text-truncate lesson-card-title" title={item.title}>{item.title}</h5>
                   )}
 
                   <div className="mb-4">
                     <span className="text-muted small d-block mb-2">Progress</span>
-                    <div className="progress bg-light" style={{ height: '8px', borderRadius: '4px' }}>
-                      <div className="progress-bar bg-dark" style={{ width: "25%", borderRadius: '4px' }}></div>
+                    <div className="progress" style={{ height: '6px', borderRadius: '4px', backgroundColor: 'rgba(128,128,128,0.2)' }}>
+                      <div className="progress-bar" style={{ width: "25%", borderRadius: '4px', backgroundColor: 'var(--color-accent)' }}></div>
                     </div>
                   </div>
                   

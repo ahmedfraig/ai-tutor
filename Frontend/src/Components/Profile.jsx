@@ -75,64 +75,82 @@ const Profile = () => {
   return (
     <>
       <Header />
-      <main style={{ maxWidth: '520px', margin: '2rem auto', padding: '0 1rem' }}>
-        <h4 style={{ marginBottom: '1.5rem' }}>My Profile</h4>
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <main className="container pt-5 pb-5" style={{ maxWidth: '560px' }}>
+        <h2 className="h4 mb-1 fw-normal">My Profile</h2>
+        <p className="text-muted mb-4" style={{ fontSize: '0.95rem' }}>Manage your account details</p>
 
-          <div>
-            <label style={{ fontWeight: '500', display: 'block', marginBottom: '4px' }}>Full Name</label>
-            <input
-              className="form-control"
-              type="text"
-              value={formData.full_name}
-              onChange={e => setFormData({ ...formData, full_name: e.target.value })}
-            />
-            {errors.full_name && <p className="error">{errors.full_name}</p>}
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* ── Account Info ─────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div>
+              <label htmlFor="profile-name" className="form-label fw-medium text-muted small">Full Name</label>
+              <input
+                id="profile-name"
+                className="form-control"
+                type="text"
+                autoComplete="name"
+                value={formData.full_name}
+                onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+              />
+              {errors.full_name && <p className="error" role="alert">{errors.full_name}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="profile-email" className="form-label fw-medium text-muted small">Email</label>
+              <input
+                id="profile-email"
+                className="form-control"
+                type="email"
+                autoComplete="email"
+                value={formData.email}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
+              />
+              {errors.email && <p className="error" role="alert">{errors.email}</p>}
+            </div>
           </div>
 
-          <div>
-            <label style={{ fontWeight: '500', display: 'block', marginBottom: '4px' }}>Email</label>
-            <input
-              className="form-control"
-              type="email"
-              value={formData.email}
-              onChange={e => setFormData({ ...formData, email: e.target.value })}
-            />
-            {errors.email && <p className="error">{errors.email}</p>}
+          {/* ── Change Password──────────────── */}
+          <div className="bg-light rounded-3 p-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div>
+              <p className="fw-medium mb-0" style={{ fontSize: '0.9rem' }}>Change Password</p>
+              <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>Leave blank to keep current password</p>
+            </div>
+
+            <div>
+              <label htmlFor="profile-password" className="form-label fw-medium text-muted small">New Password</label>
+              <input
+                id="profile-password"
+                className="form-control"
+                type="password"
+                placeholder="New password (optional)"
+                autoComplete="new-password"
+                value={formData.password}
+                onChange={e => setFormData({ ...formData, password: e.target.value })}
+              />
+              {errors.password && <p className="error" role="alert">{errors.password}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="profile-confirm-password" className="form-label fw-medium text-muted small">Confirm New Password</label>
+              <input
+                id="profile-confirm-password"
+                className="form-control"
+                type="password"
+                placeholder="Confirm new password"
+                autoComplete="new-password"
+                value={formData.confirmPassword}
+                onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+              />
+              {errors.confirmPassword && <p className="error" role="alert">{errors.confirmPassword}</p>}
+            </div>
           </div>
 
-          <hr />
-          <p style={{ color: '#888', fontSize: '0.9rem', margin: 0 }}>Leave password blank to keep current password</p>
-
-          <div>
-            <label style={{ fontWeight: '500', display: 'block', marginBottom: '4px' }}>New Password</label>
-            <input
-              className="form-control"
-              type="password"
-              placeholder="New password (optional)"
-              value={formData.password}
-              onChange={e => setFormData({ ...formData, password: e.target.value })}
-            />
-            {errors.password && <p className="error">{errors.password}</p>}
-          </div>
-
-          <div>
-            <label style={{ fontWeight: '500', display: 'block', marginBottom: '4px' }}>Confirm New Password</label>
-            <input
-              className="form-control"
-              type="password"
-              placeholder="Confirm new password"
-              value={formData.confirmPassword}
-              onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-            />
-            {errors.confirmPassword && <p className="error">{errors.confirmPassword}</p>}
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          {/* ── Actions ─────────────────────── */}
+          <div className="d-flex gap-2">
             <button
               type="submit"
-              className="btn btn-dark"
-              style={{ flex: 1 }}
+              className="btn btn-dark flex-fill"
               disabled={saving}
             >
               {saving ? 'Saving...' : 'Save Changes'}

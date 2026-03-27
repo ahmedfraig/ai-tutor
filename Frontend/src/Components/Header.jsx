@@ -99,7 +99,8 @@ const Header = () => {
             </ul>
 
             {/* Profile & Controls (inside collapse for mobile menu) */}
-            <div className="d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3 mt-3 mt-lg-0 border-top pt-3 border-lg-0 pt-lg-0 border-secondary-subtle">
+            <div className="d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3 mt-3 mt-lg-0 header-controls">
+
               
               <button
                 onClick={changemode}

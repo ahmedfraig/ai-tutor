@@ -26,8 +26,55 @@
 }
 
 .lesson-tabs .nav-link.active {
-  background-color: #ff6900 !important;
+  background-color: var(--color-accent, #ff6900) !important;
   color: #fff !important;
+}
+
+/* ── Tab Panels ──────────────────────────────────────────── */
+/* All panels stay mounted — only display toggles.          */
+.tab-panel--hidden {
+  display: none;
+}
+
+.tab-panel--active {
+  display: block;
+  animation: tab-fade-in 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes tab-fade-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel--active { animation: none; }
+}
+
+/* ── Mylearning card hover (CSS only — no JS onMouseOver) — */
+.lesson-card-hover:hover {
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+.edit-btn {
+  color: #6c757d;
+  background-color: #f8f9fa;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.edit-btn:hover {
+  background-color: #e9ecef !important;
+  color: #212529 !important;
+}
+
+.delete-btn {
+  color: #dc3545;
+  background-color: #f8f9fa;
+  transition: background-color 0.15s;
+}
+
+.delete-btn:hover {
+  background-color: #fee2e2 !important;
 }
 
 /* Mobile: smaller text to prevent overflow */

@@ -51,10 +51,10 @@ const Home = () => {
 
       <main className="container pt-4 pb-5" style={{ maxWidth: '1000px' }}>
         <header className="mb-5">
-          <h2 className="mb-2" style={{ fontWeight: '400', color: '#1a1a1a' }}>Welcome back, {username}</h2>
+          <h2 className="mb-2 page-heading" style={{ fontWeight: '400' }}>Welcome back, {username}</h2>
           <p className="text-muted mb-4" style={{ fontSize: '1.1rem' }}>Ready to continue your learning journey</p>
 
-          <div className="card shadow-sm border-0 rounded-4" style={{ backgroundColor: '#f4f4f5' }}>
+          <div className="card shadow-sm border-0 rounded-4" style={{ background: 'linear-gradient(135deg, #fff7ed 0%, #f9fafb 100%)' }}>
             <div className="card-body p-4 p-md-5">
               <div className="d-flex flex-column flex-md-row align-items-md-center gap-4">
                 
@@ -69,8 +69,8 @@ const Home = () => {
                       <span className="text-muted">{lastLesson ? (lastLesson.practice_completed ? "100%" : "In Progress") : "0%"}</span>
                     </div>
                     
-                    <div className="progress mb-3 bg-white" style={{ height: '10px', borderRadius: '5px' }}>
-                      <div className="progress-bar bg-dark rounded" style={{ width: lastLesson ? (lastLesson.practice_completed ? '100%' : '50%') : '0%' }}></div>
+                    <div className="progress mb-3" style={{ height: '10px', borderRadius: '5px', backgroundColor: 'rgba(128,128,128,0.2)' }}>
+                      <div className="progress-bar rounded" style={{ width: lastLesson ? (lastLesson.practice_completed ? '100%' : '50%') : '0%', backgroundColor: 'var(--color-accent, #ff6900)' }}></div>
                     </div>
                     
                     <p className="text-muted mb-0" style={{ fontSize: '0.95rem' }}>
@@ -80,7 +80,7 @@ const Home = () => {
                 </div>
 
                 <div className="d-flex justify-content-start justify-content-md-end align-items-center mt-3 mt-md-0 ms-md-4">
-                  <button className="btn btn-dark rounded-3 px-4 py-3 d-flex align-items-center hover-scale" style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.1rem' }}>
+                  <button className="btn btn-accent rounded-3 px-4 py-3 d-flex align-items-center hover-scale" style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.1rem' }}>
                     <i className="bi bi-caret-right fs-5 me-2"></i> Continue
                   </button>
                 </div>
@@ -91,45 +91,52 @@ const Home = () => {
         </header>
 
         <section>
-          <h4 className="mb-4" style={{ fontWeight: '400' }}>This Week</h4>
-          <div className="row g-4">
-            
-            <div className="col-12 col-md-4">
-              <div className="card shadow-sm border-light rounded-4 h-100">
-                <div className="card-body p-4 d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-3">
-                    <i className="bi bi-clock fs-5"></i>
-                    <span style={{ fontSize: '1.1rem' }}>Study Time</span>
+          <p className="text-muted small fw-semibold text-uppercase mb-3"
+             style={{ letterSpacing: '0.08em', fontSize: '0.75rem', color: 'var(--color-accent)' }}>
+            This Week
+          </p>
+          <div className="stats-grid">
+
+            {/* Primary metric — Study Time */}
+            <div className="card shadow-sm border-0 rounded-4 stats-card-primary">
+              <div className="card-body p-4 d-flex align-items-center gap-4">
+                <i className="bi bi-clock-fill fs-3" style={{ color: '#f59e0b' }}></i>
+                <div>
+                  <div className="text-muted small mb-1">Study Time</div>
+                  <div className="fw-bold" style={{ fontSize: '1.75rem', lineHeight: 1.1 }}>
+                    {loadingStats ? '—' : stats.studyTime}
                   </div>
-                  <span className="fw-bold" style={{ fontSize: '1.2rem' }}>{loadingStats ? "..." : stats.studyTime}</span>
+                  <div className="text-muted" style={{ fontSize: '0.8rem' }}>this week</div>
                 </div>
               </div>
             </div>
-            
-            <div className="col-12 col-md-4">
-              <div className="card shadow-sm border-light rounded-4 h-100">
-                <div className="card-body p-4 d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-3">
-                    <i className="bi bi-play-circle fs-5"></i>
-                    <span style={{ fontSize: '1.1rem' }}>Sessions</span>
+
+            {/* Sessions */}
+            <div className="card shadow-sm border-0 rounded-4">
+              <div className="card-body p-4 d-flex flex-column justify-content-between" style={{ minHeight: '100px' }}>
+                <i className="bi bi-play-circle-fill" style={{ color: '#22c55e', fontSize: '1.25rem' }}></i>
+                <div className="mt-3">
+                  <div className="fw-bold" style={{ fontSize: '1.5rem', lineHeight: 1 }}>
+                    {loadingStats ? '—' : stats.sessions}
                   </div>
-                  <span className="fw-bold" style={{ fontSize: '1.2rem' }}>{loadingStats ? "..." : stats.sessions}</span>
+                  <div className="text-muted small mt-1">Sessions</div>
                 </div>
               </div>
             </div>
-            
-            <div className="col-12 col-md-4">
-              <div className="card shadow-sm border-light rounded-4 h-100">
-                <div className="card-body p-4 d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-3">
-                    <i className="bi bi-lightning-charge fs-5"></i>
-                    <span style={{ fontSize: '1.1rem' }}>Streak</span>
+
+            {/* Streak */}
+            <div className="card shadow-sm border-0 rounded-4">
+              <div className="card-body p-4 d-flex flex-column justify-content-between" style={{ minHeight: '100px' }}>
+                <i className="bi bi-lightning-charge-fill" style={{ color: 'var(--color-accent)', fontSize: '1.25rem' }}></i>
+                <div className="mt-3">
+                  <div className="fw-bold" style={{ fontSize: '1.5rem', lineHeight: 1 }}>
+                    {loadingStats ? '—' : `${stats.streak}`}
                   </div>
-                  <span className="fw-bold" style={{ fontSize: '1.2rem' }}>{loadingStats ? "..." : `${stats.streak} days`}</span>
+                  <div className="text-muted small mt-1">Day streak</div>
                 </div>
               </div>
             </div>
-            
+
           </div>
         </section>
       </main>

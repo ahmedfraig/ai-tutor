@@ -11,11 +11,11 @@
 }
 
 .back-link-container:hover {
-  color: #ff6900;
+  color: var(--color-accent, #ff6900);
 }
 
 .back-link-container:hover .back-link {
-  color: #ff6900;
+  color: var(--color-accent, #ff6900);
 }
 
 .lesson-title {
