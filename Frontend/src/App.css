@@ -81,7 +81,36 @@ body.darkmode .delete-btn {
 }
 body.darkmode .delete-btn:hover {
   background-color: #3a1f1f !important;
-}  
+}
+
+/* ── AI Tutor Panel dark mode ── */
+body.darkmode .ai-tutor-panel {
+  background: var(--color-surface, #1a1a1a) !important;
+  box-shadow: -3px 0 12px rgba(0, 0, 0, 0.5) !important;
+}
+body.darkmode .ai-body {
+  background: var(--color-bg, #141414) !important;
+}
+body.darkmode .ai-bubble-msg {
+  background-color: #2a2a2a !important;
+  color: #e0e0e0 !important; /* 9.3:1 on #2a2a2a ✅ WCAG AAA */
+}
+body.darkmode .ai-footer {
+  background: var(--color-surface, #1a1a1a) !important;
+  border-top-color: var(--color-border, #2d2d2d) !important;
+}
+body.darkmode .ai-send-btn:not(:enabled) {
+  background-color: rgba(255, 255, 255, 0.1) !important; /* visible on dark */
+}
+body.darkmode .ai-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+/* Panel header border in dark mode */
+body.darkmode .header1.border-bottom,
+body.darkmode .header1 {
+  border-bottom-color: var(--color-border, #2d2d2d) !important;
+}
+
 
 body.darkmode .navbar-toggler{
   background-color: white !important;

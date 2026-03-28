@@ -67,6 +67,27 @@
   font-size: 18px;
 }
 
+/* ── Header layout — responsive truncation fix ── */
+/* Left group must be able to shrink below its natural content width */
+.header1 > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+/* Text block inside the icon+text group */
+.header1 > div:first-child > div:last-child {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;         /* grow to fill leftover space → ellipsis works */
+}
+/* Title and subtitle: single line with ellipsis, never wrap */
+.header1 .fw-bold,
+.header1 small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ai-close-btn {
   font-size: 1.5rem;
   border-radius: 20px !important;
@@ -74,6 +95,8 @@
   border: none;
   padding: 5px !important;
   line-height: 1;
+  flex-shrink: 0;      /* never squish the × button */
+  align-self: center;  /* keep it vertically centred */
 }
 
 .ai-close-btn:hover {
@@ -123,7 +146,7 @@
 }
 
 .ai-input:focus {
-  outline: none !important;
+  outline: 2px solid transparent; /* invisible but allows forced-colors/HCM override */
   box-shadow: 0 0 0 3px var(--color-accent-ring, rgba(255,105,0,0.3)) !important;
   border: 2px solid var(--color-accent, #ff6900) !important;
 }
@@ -164,3 +187,30 @@
     right: 15px;
   }
 }
+
+/* ── Chat bubble entrance animations (replaces framer-motion motion.div) ──
+   Uses transform+opacity only → stays on compositor layer, 60fps guaranteed.
+   Same cubic-bezier as the previous EASE_OUT_QUART constant.             */
+@keyframes ai-bubble-in-user {
+  from { opacity: 0; transform: translate(12px, 4px); }
+  to   { opacity: 1; transform: translate(0,   0);    }
+}
+@keyframes ai-bubble-in-tutor {
+  from { opacity: 0; transform: translate(-12px, 4px); }
+  to   { opacity: 1; transform: translate(0,    0);    }
+}
+
+/* Apply to bubble classes — only NEW bubbles animate (animation runs once) */
+.user-bubble {
+  animation: ai-bubble-in-user 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+.ai-bubble-msg {
+  animation: ai-bubble-in-tutor 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .user-bubble, .ai-bubble-msg {
+    animation-duration: 0.01ms !important;
+  }
+}

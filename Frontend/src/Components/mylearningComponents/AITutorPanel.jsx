@@ -17,7 +17,9 @@ const AITutorPanel = () => {
     },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isSending, setIsSending] = useState(false); // prevents double-send
   const bodyRef = useRef(null);
+  const timerRef = useRef(null); // tracks pending reply timer for cleanup
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -26,8 +28,15 @@ const AITutorPanel = () => {
     }
   }, [messages]);
 
+  // Cancel any pending reply timer on unmount (prevents memory leak)
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const handleSend = () => {
-    if (inputValue.trim() === "") return;
+    if (inputValue.trim() === "" || isSending) return;
 
     const newMessage = {
       id: Date.now(),
@@ -35,11 +44,12 @@ const AITutorPanel = () => {
       sender: "user",
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setInputValue("");
+    setIsSending(true); // block further sends until reply arrives
 
     // -- Demo auto-reply ---
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setMessages((prev) => [
         ...prev,
         {
@@ -48,8 +58,10 @@ const AITutorPanel = () => {
           sender: "tutor",
         },
       ]);
+      setIsSending(false); // unblock sends after reply
     }, 1000);
   };
+
 
   return (
     <>
@@ -101,21 +113,16 @@ const AITutorPanel = () => {
           aria-live="polite"
           aria-atomic="false"
         >
-          <AnimatePresence initial={false}>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                className={`ai-bubble mb-2 ${
-                  msg.sender === "user" ? "user-bubble ms-auto" : "ai-bubble-msg me-auto"
-                }`}
-                initial={{ opacity: 0, x: msg.sender === "user" ? 16 : -16, y: 4 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
-              >
-                {msg.text}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`ai-bubble mb-2 ${
+                msg.sender === "user" ? "user-bubble ms-auto" : "ai-bubble-msg me-auto"
+              }`}
+            >
+              {msg.text}
+            </div>
+          ))}
         </div>
 
         {/* Footer */}
@@ -129,12 +136,14 @@ const AITutorPanel = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            maxLength={500}
+            disabled={isSending}
           />
           <motion.button
             className="btn ai-send-btn"
             onClick={handleSend}
-            disabled={!inputValue.trim()}
-            aria-label="Send message"
+            disabled={!inputValue.trim() || isSending}
+            aria-label={isSending ? "Sending…" : "Send message"}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.92 }}
             transition={{ duration: 0.12 }}
