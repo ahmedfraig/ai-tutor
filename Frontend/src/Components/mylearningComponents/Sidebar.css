@@ -259,9 +259,54 @@
   transform: translateY(0);
 }
 
-/* ── Ensure delete modal renders above the sidebar drawer ─────────
-   Targeted only to our delete modal via className/backdropClassName
-   props so we don't disturb any other modals in the app.         */
+/* ── Toast slide-in animation ────────────────────────────────── */
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Ensure delete/generate modal renders above the sidebar drawer ─
+   Targeted only to our modal via className/backdropClassName props. */
 .delete-confirm-modal   { z-index: 2100 !important; }
 .delete-confirm-backdrop { z-index: 2090 !important; }
 
+/* ── Generate modal checkboxes — orange accent ───────────────── */
+.delete-modal-content input[type="checkbox"] {
+  accent-color: #ff6900;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+
+.darkmode .delete-modal-content {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+.darkmode .delete-modal-content h5,
+.darkmode .delete-modal-content h6 {
+  color: #f0f0f0 !important;
+}
+
+.darkmode .delete-modal-content p,
+.darkmode .delete-modal-content label {
+  color: #c0c0c0 !important;
+}
+
+.darkmode .delete-modal-content .text-muted {
+  color: #888 !important;
+}
+
+/* Divider lines inside modal */
+.darkmode .delete-modal-content [style*="border-bottom"],
+.darkmode .delete-modal-content [style*="border-top"] {
+  border-color: #333 !important;
+}
+
+/* Cancel button in dark mode */
+.darkmode .delete-modal-content .btn-secondary {
+  background: #2d2d2d !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
+}

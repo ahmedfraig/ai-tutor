@@ -172,7 +172,12 @@ const uploadFile = async (req, res) => {
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error in uploadFile:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        // Give the client a meaningful reason so it can be displayed in the UI
+        const msg = error?.response?.data?.error_description   // Google OAuth error
+            || error?.errors?.[0]?.message                     // Drive API error
+            || error?.message                                   // JS Error
+            || 'Upload failed on server';
+        res.status(500).json({ message: msg });
     }
 };
 
@@ -326,6 +331,69 @@ const downloadFile = async (req, res) => {
     }
 };
 
+// ── streamFile — inline stream for <video> / <audio> playback ───────────────
+// Serves the file without Content-Disposition so the browser plays it inline.
+// Supports Range requests (required for video seeking / audio scrubbing).
+const streamFile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+
+        const result = await db.query(
+            'SELECT * FROM lesson_files WHERE id = $1 AND user_id = $2',
+            [id, userId]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ message: 'File not found' });
+
+        const record = result.rows[0];
+        if (!record.file_path) return res.status(204).end(); // no file yet
+
+        // Extract Drive file ID from stored URL
+        let driveFileId;
+        try {
+            driveFileId = new URL(record.file_path).searchParams.get('id');
+        } catch { /* not a URL */ }
+        if (!driveFileId) {
+            const m = record.file_path.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            driveFileId = m ? m[1] : null;
+        }
+        if (!driveFileId) return res.status(400).json({ message: 'Cannot determine Drive file ID' });
+
+        const streamUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+
+        // Content-Type by record type
+        const contentTypes = { video: 'video/mp4', audio: 'audio/mpeg', upload: 'application/octet-stream' };
+        res.setHeader('Content-Type', contentTypes[record.type] || 'application/octet-stream');
+        res.setHeader('Accept-Ranges', 'bytes');
+
+        const rangeHeader = req.headers.range;
+        const reqOptions = rangeHeader ? { headers: { Range: rangeHeader } } : {};
+
+        const doStream = (url, options) => {
+            https.get(url, options, (upstream) => {
+                if (upstream.statusCode === 301 || upstream.statusCode === 302) {
+                    return doStream(upstream.headers.location, options);
+                }
+                if (upstream.headers['content-length'])
+                    res.setHeader('Content-Length', upstream.headers['content-length']);
+                if (upstream.headers['content-range'])
+                    res.setHeader('Content-Range', upstream.headers['content-range']);
+                res.status(upstream.statusCode === 206 ? 206 : 200);
+                upstream.pipe(res);
+            }).on('error', (err) => {
+                console.error('Stream error:', err.message);
+                if (!res.headersSent) res.status(500).json({ message: 'Stream failed' });
+            });
+        };
+
+        doStream(streamUrl, reqOptions);
+
+    } catch (error) {
+        console.error('Error in streamFile:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     getFilesByLesson,
     uploadFile,
@@ -333,4 +401,6 @@ module.exports = {
     renameFile,
     deleteFile,
     downloadFile,
+    streamFile,
 };
+

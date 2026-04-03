@@ -10,6 +10,7 @@ const {
     renameFile,
     deleteFile,
     downloadFile,
+    streamFile,
 } = require('../controllers/lessonFileController');
 
 // --- Multer in-memory storage (buffer passed to Google Drive uploader) ---
@@ -25,6 +26,9 @@ router.use(protect);
 
 // GET  /api/lesson-files/download/:id  — proxy download with correct filename
 router.get('/download/:id', downloadFile);
+
+// GET  /api/lesson-files/stream/:id   — inline stream for <video>/<audio> playback
+router.get('/stream/:id', streamFile);
 
 // GET  /api/lesson-files/:lessonId  — list files for a lesson
 router.get('/:lessonId', getFilesByLesson);

@@ -31,6 +31,18 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   // Custom delete confirm modal
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, name }
 
+  // Generate-with-PDF-selection modal
+  const [generateModal, setGenerateModal] = useState({ show: false, type: null, selectedPdfIds: [] });
+
+  // In-app toast notification (replaces browser alert)
+  const [toast, setToast] = useState({ show: false, type: 'error', message: '' });
+  const toastTimer = useRef(null);
+  const showToast = (type, message) => {
+    clearTimeout(toastTimer.current);
+    setToast({ show: true, type, message });
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, show: false })), 4500);
+  };
+
   // ── Fetch files from DB ──────────────────────────────────────
   const fetchFiles = async () => {
     if (!lessonId) return;
@@ -96,32 +108,57 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Upload failed:", err);
-      alert(`Upload failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
+      showToast('error', err.response?.data?.message || err.message || 'Upload failed. Please try again.');
     }
     e.target.value = "";
   };
 
-  // ── Generate (AI-generated placeholder record) ───────────────
-  const handleGenerate = async (type) => {
+  // ── Generate — step 1: open PDF-selection modal ─────────────
+  const openGenerateModal = (type) => {
+    setGenerateModal({ show: true, type, selectedPdfIds: [] });
+  };
+
+  // ── Generate — step 2: confirm and send to backend ───────────
+  const handleGenerate = async () => {
+    const { type, selectedPdfIds } = generateModal;
+    setGenerateModal({ show: false, type: null, selectedPdfIds: [] });
     if (!lessonId) return;
+
     const label = type === "video" ? "AI Video" : "AI Audio";
     const count = (type === "video" ? videos : audios).length + 1;
     const name = `${label} ${count}`;
+
+    // Build source file details for the AI team
+    const sourcePdfs = uploadedFiles
+      .filter((f) => selectedPdfIds.includes(f.id))
+      .map((f) => ({ id: f.id, name: f.name, file_path: f.file_path }));
 
     try {
       const { data } = await apiClient.post("/lesson-files", {
         lesson_id: lessonId,
         type,
         name,
+        source_file_ids: selectedPdfIds,   // AI team uses these to locate PDFs
+        source_files: sourcePdfs,           // convenience: full paths included
       });
       setFiles((prev) => [...prev, data]);
       setActiveId(data.id);
-      onSelectContent(type, data.name, data.file_path);
+      onSelectContent(type, data.name, data.file_path, data.id);
       setOpenAccordion(type === "video" ? "1" : "2");
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Generate failed:", err);
+      showToast('error', err.response?.data?.message || err.message || 'Generation request failed.');
     }
+  };
+
+  const togglePdfSelection = (id) => {
+    setGenerateModal((prev) => ({
+      ...prev,
+      selectedPdfIds: prev.selectedPdfIds.includes(id)
+        ? prev.selectedPdfIds.filter((x) => x !== id)
+        : [...prev.selectedPdfIds, id],
+    }));
   };
 
   // ── Select ───────────────────────────────────────────────────
@@ -243,6 +280,44 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
         onChange={handleFileSelected}
       />
 
+      {/* ── In-app Toast Notification ── */}
+      {toast.show && (
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 9999,
+            margin: '0 0 12px 0',
+            padding: '12px 14px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            background: toast.type === 'error'
+              ? 'linear-gradient(135deg, #ff4d4d22, #c0392b22)'
+              : toast.type === 'success'
+              ? 'linear-gradient(135deg, #00c85122, #27ae6022)'
+              : '#ff690022',
+            border: `1px solid ${toast.type === 'error' ? '#ff4d4d66' : toast.type === 'success' ? '#00c85166' : '#ff690066'}`,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            animation: 'toast-slide-in 0.3s ease',
+          }}
+        >
+          <span style={{ fontSize: '1.1rem', lineHeight: 1.4 }}>
+            {toast.type === 'error' ? '❌' : toast.type === 'success' ? '✅' : 'ℹ️'}
+          </span>
+          <p style={{ margin: 0, fontSize: '0.83rem', lineHeight: 1.5, flex: 1, color: toast.type === 'error' ? '#ff6b6b' : toast.type === 'success' ? '#2ecc71' : '#ff6900', fontWeight: 500 }}>
+            {toast.message}
+          </p>
+          <button
+            onClick={() => setToast((t) => ({ ...t, show: false }))}
+            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '1rem', padding: 0, lineHeight: 1 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── Custom Delete Confirm Modal ── */}
       <Modal
         show={!!deleteTarget}
@@ -281,6 +356,99 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
         </Modal.Body>
       </Modal>
 
+      {/* ── PDF-Selection Modal (Generate Video / Audio) ── */}
+      <Modal
+        show={generateModal.show}
+        onHide={() => setGenerateModal({ show: false, type: null, selectedPdfIds: [] })}
+        centered
+        className="delete-confirm-modal"
+        backdropClassName="delete-confirm-backdrop"
+        dialogClassName="delete-modal-dialog"
+        contentClassName="delete-modal-content"
+      >
+        <Modal.Body className="px-4 pt-4 pb-3">
+          <h5 className="fw-bold mb-1">
+            {generateModal.type === "video" ? "🎬 Generate Video" : "🎙️ Generate Audio"}
+          </h5>
+          <p className="text-muted mb-3" style={{ fontSize: "0.85rem" }}>
+            Select which uploaded PDFs the AI should use as source material.
+          </p>
+
+          {uploadedFiles.length === 0 ? (
+            <p className="text-muted text-center py-3" style={{ fontSize: "0.9rem" }}>
+              ⚠️ No PDFs uploaded yet. Upload at least one file first.
+            </p>
+          ) : (
+            <>
+              {/* Select All shortcut */}
+              <div className="d-flex align-items-center gap-2 mb-2 pb-2" style={{ borderBottom: "1px solid #eee" }}>
+                <input
+                  type="checkbox"
+                  id="gen-select-all"
+                  checked={generateModal.selectedPdfIds.length === uploadedFiles.length}
+                  onChange={() =>
+                    setGenerateModal((prev) => ({
+                      ...prev,
+                      selectedPdfIds:
+                        prev.selectedPdfIds.length === uploadedFiles.length
+                          ? []
+                          : uploadedFiles.map((f) => f.id),
+                    }))
+                  }
+                />
+                <label htmlFor="gen-select-all" style={{ fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>
+                  Select All
+                </label>
+              </div>
+
+              {/* Per-file checkboxes */}
+              {uploadedFiles.map((f) => (
+                <div key={f.id} className="d-flex align-items-center gap-2 py-1">
+                  <input
+                    type="checkbox"
+                    id={`gen-pdf-${f.id}`}
+                    checked={generateModal.selectedPdfIds.includes(f.id)}
+                    onChange={() => togglePdfSelection(f.id)}
+                  />
+                  <label
+                    htmlFor={`gen-pdf-${f.id}`}
+                    style={{ fontSize: "0.88rem", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "220px" }}
+                    title={f.name}
+                  >
+                    📄 {f.name}
+                  </label>
+                </div>
+              ))}
+            </>
+          )}
+
+          <div className="d-flex gap-2 mt-3 pt-2" style={{ borderTop: "1px solid #eee" }}>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: 1, minWidth: 0, borderRadius: "50px", padding: "12px 0" }}
+              onClick={() => setGenerateModal({ show: false, type: null, selectedPdfIds: [] })}
+            >
+              Cancel
+            </button>
+            <button
+              className="delete-btn-confirm"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                maxWidth: "none",       /* override class's max-width: 160px */
+                background: "#ff6900",
+                boxShadow: "0 4px 16px rgba(255,105,0,0.35)",
+                opacity: generateModal.selectedPdfIds.length === 0 ? 0.5 : 1,
+              }}
+              disabled={generateModal.selectedPdfIds.length === 0}
+              onClick={handleGenerate}
+            >
+              Generate
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
       <div className="sidebar-header">
         <h4 className="sidebar-title mb-0">Lesson Content</h4>
         <Button variant="link" className="sidebar-close-btn d-xl-none p-0" onClick={onCloseSidebar}>
@@ -291,10 +459,10 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       <Button variant="outline-dark" className="w-100 mb-3 sideButtons upload-button" onClick={handleUploadClick}>
         <i className="bi bi-upload me-2"></i> Upload File
       </Button>
-      <Button variant="outline-dark" className="w-100 mb-2 sideButtons generate-button" onClick={() => handleGenerate("video")}>
+      <Button variant="outline-dark" className="w-100 mb-2 sideButtons generate-button" onClick={() => openGenerateModal("video")}>
         <i className="bi bi-camera-video me-2"></i> Generate Video
       </Button>
-      <Button variant="outline-dark" className="w-100 mb-3 sideButtons generate-button" onClick={() => handleGenerate("audio")}>
+      <Button variant="outline-dark" className="w-100 mb-3 sideButtons generate-button" onClick={() => openGenerateModal("audio")}>
         <i className="bi bi-mic me-2"></i> Generate Audio
       </Button>
 

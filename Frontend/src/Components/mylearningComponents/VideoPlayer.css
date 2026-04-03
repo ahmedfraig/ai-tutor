@@ -1,9 +1,49 @@
-.video-placeholder {
-    aspect-ratio: 16 / 9;
-    max-height: 550px;
-    width: 100%;
-    display: flex; 
-    justify-content: center;
-    align-items: center;
-    color: #ccc;
+/* ── Real embed (16:9 iframe) ──────────────────────────────── */
+.video-embed-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.video-embed-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ── Placeholder (no file yet) ─────────────────────────────── */
+.video-placeholder-box {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  background: #1a1a1a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #aaa;
+}
+
+.video-placeholder-icon {
+  font-size: 2.5rem;
+  opacity: 0.6;
+}
+
+.video-placeholder-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ccc;
+  margin: 0;
+}
+
+.video-placeholder-sub {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
 }

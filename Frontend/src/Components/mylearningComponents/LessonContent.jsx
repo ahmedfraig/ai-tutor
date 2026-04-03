@@ -63,8 +63,8 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             onUpload={onFileUpload}
           />
         )}
-        {mode === "video" && <VideoPlayer title={selectedName} />}
-        {mode === "audio" && <AudioPlayer title={selectedName} />}
+        {mode === "video" && <VideoPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />}
+        {mode === "audio" && <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />}
       </div>
 
       {/* Tab nav */}
