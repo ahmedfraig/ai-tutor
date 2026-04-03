@@ -37,11 +37,23 @@
   padding: 6px 14px !important;
   font-weight: 500 !important;
   font-size: 0.85rem !important;
-  display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
   margin-bottom: 12px !important;
-  width: auto !important;   /* compact — not full width */
+  width: auto !important;
+}
+
+/* Only show as flex when the sidebar is in drawer mode (<xl) */
+@media (max-width: 1199px) {
+  .menu-button {
+    display: inline-flex !important;
+  }
+}
+/* On xl+ Bootstrap's d-xl-none handles hiding, but be explicit */
+@media (min-width: 1200px) {
+  .menu-button {
+    display: none !important;
+  }
 }
 
 /* ── Backdrop overlay (mobile/tablet) ────────────────────────── */

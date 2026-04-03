@@ -542,3 +542,67 @@ body.darkmode .toast {
   background-color: #1a1a1a !important;
   color: #e0e0e0 !important;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   MODERN SCROLLBARS
+   Targets: sidebar panel, video wrapper, PDF list in modal
+   ════════════════════════════════════════════════════════════════ */
+
+/* Firefox */
+.sidebar-container,
+.video-embed-wrapper,
+.lesson-main,
+[style*="overflowY: auto"],
+[style*="overflow-y: auto"] {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 105, 0, 0.4) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+.sidebar-container::-webkit-scrollbar,
+.video-embed-wrapper::-webkit-scrollbar,
+.lesson-main::-webkit-scrollbar,
+[style*="overflowY: auto"]::-webkit-scrollbar,
+[style*="overflow-y: auto"]::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-container::-webkit-scrollbar-track,
+.video-embed-wrapper::-webkit-scrollbar-track,
+.lesson-main::-webkit-scrollbar-track,
+[style*="overflowY: auto"]::-webkit-scrollbar-track,
+[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-container::-webkit-scrollbar-thumb,
+.video-embed-wrapper::-webkit-scrollbar-thumb,
+.lesson-main::-webkit-scrollbar-thumb,
+[style*="overflowY: auto"]::-webkit-scrollbar-thumb,
+[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(180, 180, 180, 0.35);
+  border-radius: 999px;
+}
+
+.sidebar-container::-webkit-scrollbar-thumb:hover,
+.video-embed-wrapper::-webkit-scrollbar-thumb:hover,
+.lesson-main::-webkit-scrollbar-thumb:hover,
+[style*="overflowY: auto"]::-webkit-scrollbar-thumb:hover,
+[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 105, 0, 0.6);
+}
+
+/* Dark mode: slightly lighter track visibility */
+body.darkmode .sidebar-container::-webkit-scrollbar-thumb,
+body.darkmode .lesson-main::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+body.darkmode .sidebar-container::-webkit-scrollbar-thumb:hover,
+body.darkmode .lesson-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 105, 0, 0.55);
+}
+
+/* ── Space above Cancel / Generate buttons in modal ────────────── */
+.delete-modal-actions {
+  margin-top: 16px;
+}

@@ -34,15 +34,6 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   // Generate-with-PDF-selection modal
   const [generateModal, setGenerateModal] = useState({ show: false, type: null, selectedPdfIds: [] });
 
-  // In-app toast notification (replaces browser alert)
-  const [toast, setToast] = useState({ show: false, type: 'error', message: '' });
-  const toastTimer = useRef(null);
-  const showToast = (type, message) => {
-    clearTimeout(toastTimer.current);
-    setToast({ show: true, type, message });
-    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, show: false })), 4500);
-  };
-
   // ── Fetch files from DB ──────────────────────────────────────
   const fetchFiles = async () => {
     if (!lessonId) return;
@@ -108,7 +99,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Upload failed:", err);
-      showToast('error', err.response?.data?.message || err.message || 'Upload failed. Please try again.');
+      alert(`Upload failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
     }
     e.target.value = "";
   };
@@ -148,7 +139,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Generate failed:", err);
-      showToast('error', err.response?.data?.message || err.message || 'Generation request failed.');
+      alert(`Generation request failed: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -280,44 +271,6 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
         onChange={handleFileSelected}
       />
 
-      {/* ── In-app Toast Notification ── */}
-      {toast.show && (
-        <div
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 9999,
-            margin: '0 0 12px 0',
-            padding: '12px 14px',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px',
-            background: toast.type === 'error'
-              ? 'linear-gradient(135deg, #ff4d4d22, #c0392b22)'
-              : toast.type === 'success'
-              ? 'linear-gradient(135deg, #00c85122, #27ae6022)'
-              : '#ff690022',
-            border: `1px solid ${toast.type === 'error' ? '#ff4d4d66' : toast.type === 'success' ? '#00c85166' : '#ff690066'}`,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-            animation: 'toast-slide-in 0.3s ease',
-          }}
-        >
-          <span style={{ fontSize: '1.1rem', lineHeight: 1.4 }}>
-            {toast.type === 'error' ? '❌' : toast.type === 'success' ? '✅' : 'ℹ️'}
-          </span>
-          <p style={{ margin: 0, fontSize: '0.83rem', lineHeight: 1.5, flex: 1, color: toast.type === 'error' ? '#ff6b6b' : toast.type === 'success' ? '#2ecc71' : '#ff6900', fontWeight: 500 }}>
-            {toast.message}
-          </p>
-          <button
-            onClick={() => setToast((t) => ({ ...t, show: false }))}
-            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '1rem', padding: 0, lineHeight: 1 }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       {/* ── Custom Delete Confirm Modal ── */}
       <Modal
         show={!!deleteTarget}
@@ -401,46 +354,40 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
                 </label>
               </div>
 
-              {/* Per-file checkboxes */}
-              {uploadedFiles.map((f) => (
-                <div key={f.id} className="d-flex align-items-center gap-2 py-1">
-                  <input
-                    type="checkbox"
-                    id={`gen-pdf-${f.id}`}
-                    checked={generateModal.selectedPdfIds.includes(f.id)}
-                    onChange={() => togglePdfSelection(f.id)}
-                  />
-                  <label
-                    htmlFor={`gen-pdf-${f.id}`}
-                    style={{ fontSize: "0.88rem", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "220px" }}
-                    title={f.name}
-                  >
-                    📄 {f.name}
-                  </label>
-                </div>
-              ))}
+              {/* Per-file checkboxes — scrollable after 3 rows (~42px each) */}
+              <div style={{ maxHeight: "130px", overflowY: "auto", paddingRight: "4px" }}>
+                {uploadedFiles.map((f) => (
+                  <div key={f.id} className="d-flex align-items-center gap-2 py-1">
+                    <input
+                      type="checkbox"
+                      id={`gen-pdf-${f.id}`}
+                      checked={generateModal.selectedPdfIds.includes(f.id)}
+                      onChange={() => togglePdfSelection(f.id)}
+                    />
+                    <label
+                      htmlFor={`gen-pdf-${f.id}`}
+                      style={{ fontSize: "0.88rem", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "220px" }}
+                      title={f.name}
+                    >
+                      📄 {f.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
-          <div className="d-flex gap-2 mt-3 pt-2" style={{ borderTop: "1px solid #eee" }}>
+          <div className="delete-modal-actions">
             <button
-              className="btn btn-secondary"
-              style={{ flex: 1, minWidth: 0, borderRadius: "50px", padding: "12px 0" }}
+              className="delete-btn-cancel"
               onClick={() => setGenerateModal({ show: false, type: null, selectedPdfIds: [] })}
             >
               Cancel
             </button>
             <button
-              className="delete-btn-confirm"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                maxWidth: "none",       /* override class's max-width: 160px */
-                background: "#ff6900",
-                boxShadow: "0 4px 16px rgba(255,105,0,0.35)",
-                opacity: generateModal.selectedPdfIds.length === 0 ? 0.5 : 1,
-              }}
+              className="delete-btn-confirm generate-btn-confirm"
               disabled={generateModal.selectedPdfIds.length === 0}
+              style={{ opacity: generateModal.selectedPdfIds.length === 0 ? 0.5 : 1 }}
               onClick={handleGenerate}
             >
               Generate

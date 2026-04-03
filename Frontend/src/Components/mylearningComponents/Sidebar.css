@@ -79,7 +79,6 @@
   height: 36px !important;
   min-width: 36px !important;
   border-radius: 50% !important;
-  display: flex !important;
   align-items: center;
   justify-content: center;
   padding: 0 !important;
@@ -87,6 +86,18 @@
   text-decoration: none !important;
   line-height: 1;
   background: rgba(0,0,0,0.06) !important;
+}
+
+/* Only render as flex on screens where sidebar is a drawer */
+@media (max-width: 1199px) {
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+}
+@media (min-width: 1200px) {
+  .sidebar-close-btn {
+    display: none !important;
+  }
 }
 
 .sidebar-close-btn:hover {
@@ -214,6 +225,24 @@
   display: flex;
   gap: 12px;
   justify-content: center;
+  width: 100%;        /* stretch across full modal width */
+}
+
+/* Force equal width regardless of content — both get exactly 50% */
+.delete-modal-actions .delete-btn-cancel,
+.delete-modal-actions .delete-btn-confirm {
+  flex: 1 1 0% !important; /* equal flex base */
+  max-width: none !important; /* remove 160px cap */
+  min-width: 0 !important;
+}
+
+/* Orange accent on all checkboxes in the modal */
+.delete-modal-content input[type="checkbox"] {
+  accent-color: var(--color-accent, #ff6900);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .delete-btn-cancel {
@@ -259,54 +288,51 @@
   transform: translateY(0);
 }
 
-/* ── Toast slide-in animation ────────────────────────────────── */
-@keyframes toast-slide-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Ensure delete/generate modal renders above the sidebar drawer ─
-   Targeted only to our modal via className/backdropClassName props. */
+/* ── Ensure delete modal renders above the sidebar drawer ─────────
+   Targeted only to our delete modal via className/backdropClassName
+   props so we don't disturb any other modals in the app.         */
 .delete-confirm-modal   { z-index: 2100 !important; }
 .delete-confirm-backdrop { z-index: 2090 !important; }
 
-/* ── Generate modal checkboxes — orange accent ───────────────── */
-.delete-modal-content input[type="checkbox"] {
-  accent-color: #ff6900;
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+/* ── Generate modal: orange button instead of red ─────────────── */
+.generate-btn-confirm {
+  background: var(--color-accent, #ff6900) !important;
+  box-shadow: 0 4px 16px rgba(255, 105, 0, 0.4) !important;
+}
+.generate-btn-confirm:hover {
+  background: #e05e00 !important;
 }
 
-
+/* ── Dark mode — modal background, text, borders ──────────────── */
 .darkmode .delete-modal-content {
-  background-color: #1e1e1e !important;
-  color: #e0e0e0 !important;
+  background: #1e1e1e !important;
+  color: #e4e4e4 !important;
 }
 
-.darkmode .delete-modal-content h5,
-.darkmode .delete-modal-content h6 {
+.darkmode .delete-modal-content h5 {
   color: #f0f0f0 !important;
 }
 
-.darkmode .delete-modal-content p,
+.darkmode .delete-modal-content p {
+  color: #b0b0b0 !important;
+}
+
 .darkmode .delete-modal-content label {
-  color: #c0c0c0 !important;
+  color: #c8c8c8 !important;
 }
 
-.darkmode .delete-modal-content .text-muted {
-  color: #888 !important;
-}
-
-/* Divider lines inside modal */
-.darkmode .delete-modal-content [style*="border-bottom"],
-.darkmode .delete-modal-content [style*="border-top"] {
-  border-color: #333 !important;
+/* Separator lines rendered via inline style */
+.darkmode .delete-modal-content hr {
+  border-color: #3a3a3a;
 }
 
 /* Cancel button in dark mode */
-.darkmode .delete-modal-content .btn-secondary {
-  background: #2d2d2d !important;
-  border-color: #444 !important;
+.darkmode .delete-btn-cancel {
+  background: #2a2a2a !important;
   color: #e0e0e0 !important;
+  border-color: #4a4a4a !important;
+}
+.darkmode .delete-btn-cancel:hover {
+  background: #333 !important;
+  border-color: #666 !important;
 }

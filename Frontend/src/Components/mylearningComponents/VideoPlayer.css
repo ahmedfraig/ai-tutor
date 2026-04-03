@@ -1,19 +1,38 @@
-/* ── Real embed (16:9 iframe) ──────────────────────────────── */
+/* ── Real embed — responsive 16:9 iframe ──────────────────────── */
 .video-embed-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  /* padding-bottom gives 16:9 ratio; min-height keeps controls visible */
+  padding-bottom: 56.25%;
+  min-height: 360px;
+  height: 0;
   background: #000;
   border-radius: 8px;
-  overflow: hidden;
+  /* Do NOT set overflow:hidden — clips Drive's player controls */
 }
 
 .video-embed-iframe {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* ── Tablet / large mobile ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .video-embed-wrapper {
+    min-height: 320px;
+  }
+}
+
+/* ── Small mobile ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .video-embed-wrapper {
+    padding-bottom: 75%; /* taller ratio on tiny screens */
+    min-height: 280px;
+  }
 }
 
 /* ── Placeholder (no file yet) ─────────────────────────────── */

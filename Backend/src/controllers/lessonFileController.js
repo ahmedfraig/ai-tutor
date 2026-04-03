@@ -172,12 +172,7 @@ const uploadFile = async (req, res) => {
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error in uploadFile:', error);
-        // Give the client a meaningful reason so it can be displayed in the UI
-        const msg = error?.response?.data?.error_description   // Google OAuth error
-            || error?.errors?.[0]?.message                     // Drive API error
-            || error?.message                                   // JS Error
-            || 'Upload failed on server';
-        res.status(500).json({ message: msg });
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 

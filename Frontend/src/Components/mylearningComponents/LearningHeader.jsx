@@ -25,9 +25,6 @@ function LearningHeader({ lessonTitle }) {
           <Col>
             <div className="lesson-details">
               <h5 className="lesson-title mb-0">{lessonTitle || "Lesson"}</h5>
-              <small className="lesson-instructor text-muted">
-                Dr. Sarah Mitchell
-              </small>
             </div>
           </Col>
         </Row>
