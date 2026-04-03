@@ -132,9 +132,10 @@ const uploadFile = async (req, res) => {
         const lessonFolderName = safeName(`lesson_${lesson_id}_${lessonTitle}`);
 
         // ── Get or create the nested folder structure ────────────────────
-        //   ROOT  →  user folder  →  lesson folder
+        //   ROOT  →  user folder  →  lesson folder  →  uploaded_files/
         const userFolderId   = await getOrCreateFolder(ROOT_FOLDER_ID, userFolderName);
         const lessonFolderId = await getOrCreateFolder(userFolderId, lessonFolderName);
+        const uploadedFolderId = await getOrCreateFolder(lessonFolderId, 'uploaded_files');
 
         // ── Upload the file into the lesson folder ───────────────────────
         const { originalname, mimetype, buffer } = req.file;
@@ -143,7 +144,7 @@ const uploadFile = async (req, res) => {
         const driveResponse = await drive.files.create({
             requestBody: {
                 name: driveFileName,
-                parents: [lessonFolderId],
+                parents: [uploadedFolderId],  // ← uploads go into uploaded_files/ subfolder
                 mimeType: mimetype,
             },
             media: {
@@ -180,10 +181,34 @@ const uploadFile = async (req, res) => {
 const createRecord = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { lesson_id, type, name, file_path } = req.body;
+        const { lesson_id, type, name, file_path, source_file_ids, source_files } = req.body;
 
         if (!lesson_id || !type || !name) {
             return res.status(400).json({ message: 'lesson_id, type, and name are required' });
+        }
+
+        // ── Resolve the target Drive subfolder for this record ───────────
+        // This gives the AI team the folder ID to upload the generated file into.
+        let targetDriveFolderId = null;
+        try {
+            const [userRow, lessonRow] = await Promise.all([
+                db.query('SELECT full_name FROM users WHERE id = $1', [userId]),
+                db.query('SELECT title FROM lessons WHERE id = $1', [lesson_id]),
+            ]);
+            const userName     = userRow.rows[0]?.full_name || `user_${userId}`;
+            const lessonTitle  = lessonRow.rows[0]?.title   || `lesson_${lesson_id}`;
+            const userFolderName   = safeName(`user_${userId}_${userName}`);
+            const lessonFolderName = safeName(`lesson_${lesson_id}_${lessonTitle}`);
+
+            const userFolderId   = await getOrCreateFolder(ROOT_FOLDER_ID, userFolderName);
+            const lessonFolderId = await getOrCreateFolder(userFolderId, lessonFolderName);
+
+            // videos/ or audios/ subfolder
+            const subfolderName  = type === 'video' ? 'videos' : 'audios';
+            targetDriveFolderId  = await getOrCreateFolder(lessonFolderId, subfolderName);
+        } catch (folderErr) {
+            // Non-fatal: placeholder record is still useful without folder
+            console.warn('Could not resolve Drive folder for record:', folderErr.message);
         }
 
         const result = await db.query(
@@ -192,7 +217,13 @@ const createRecord = async (req, res) => {
             [lesson_id, userId, type, name, file_path || null]
         );
 
-        res.status(201).json(result.rows[0]);
+        // Return the target Drive folder ID so the AI team knows where to upload
+        res.status(201).json({
+            ...result.rows[0],
+            target_drive_folder_id: targetDriveFolderId,
+            source_file_ids: source_file_ids || [],
+            source_files: source_files || [],
+        });
     } catch (error) {
         console.error('Error in createRecord:', error);
         res.status(500).json({ message: 'Internal Server Error' });

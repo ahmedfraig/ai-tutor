@@ -336,3 +336,89 @@
   background: #333 !important;
   border-color: #666 !important;
 }
+
+/* ── Sidebar in-app toast notification ────────────────────────── */
+.sidebar-toast {
+  position: sticky;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  margin: 12px 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12);
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
+  z-index: 999;
+  animation: none; /* handled by framer-motion */
+}
+
+/* Error */
+.sidebar-toast--error {
+  background: rgba(255, 59, 48, 0.12);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  color: #c0392b;
+}
+.darkmode .sidebar-toast--error {
+  background: rgba(255, 80, 60, 0.18);
+  border-color: rgba(255, 80, 60, 0.35);
+  color: #ff6b6b;
+}
+
+/* Success */
+.sidebar-toast--success {
+  background: rgba(52, 199, 89, 0.12);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  color: #1e7e34;
+}
+.darkmode .sidebar-toast--success {
+  background: rgba(52, 199, 89, 0.18);
+  border-color: rgba(52, 199, 89, 0.35);
+  color: #5dda7e;
+}
+
+/* Info */
+.sidebar-toast--info {
+  background: rgba(0, 122, 255, 0.1);
+  border: 1px solid rgba(0, 122, 255, 0.25);
+  color: #0056b3;
+}
+.darkmode .sidebar-toast--info {
+  background: rgba(10, 132, 255, 0.18);
+  border-color: rgba(10, 132, 255, 0.35);
+  color: #5ea9ff;
+}
+
+.sidebar-toast__icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.sidebar-toast__msg {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.sidebar-toast__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+.sidebar-toast__close:hover {
+  opacity: 1;
+}

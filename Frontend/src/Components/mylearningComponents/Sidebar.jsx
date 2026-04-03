@@ -34,6 +34,16 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   // Generate-with-PDF-selection modal
   const [generateModal, setGenerateModal] = useState({ show: false, type: null, selectedPdfIds: [] });
 
+  // ── In-app toast notification ────────────────────────────────
+  const [notify, setNotify] = useState(null); // { type: 'error'|'success'|'info', message }
+  const notifyTimerRef = useRef(null);
+
+  const showNotify = (type, message) => {
+    if (notifyTimerRef.current) clearTimeout(notifyTimerRef.current);
+    setNotify({ type, message });
+    notifyTimerRef.current = setTimeout(() => setNotify(null), 4500);
+  };
+
   // ── Fetch files from DB ──────────────────────────────────────
   const fetchFiles = async () => {
     if (!lessonId) return;
@@ -99,7 +109,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Upload failed:", err);
-      alert(`Upload failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
+      showNotify("error", `Upload failed: ${err.response?.data?.message || err.message || "Unknown error"}`);
     }
     e.target.value = "";
   };
@@ -139,7 +149,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Generate failed:", err);
-      alert(`Generation request failed: ${err.response?.data?.message || err.message}`);
+      showNotify("error", `Generation failed: ${err.response?.data?.message || err.message || "Unknown error"}`);
     }
   };
 
@@ -202,6 +212,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       }
     } catch (err) {
       console.error("Delete failed:", err);
+      showNotify("error", `Delete failed: ${err.response?.data?.message || err.message || "Unknown error"}`);
     }
   };
 
@@ -454,6 +465,34 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
           </Accordion.Item>
         </Accordion>
       )}
+
+      {/* ── In-app toast notification ─────────────────────────────── */}
+      <AnimatePresence>
+        {notify && (
+          <motion.div
+            key="sidebar-toast"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+            className={`sidebar-toast sidebar-toast--${notify.type}`}
+          >
+            <span className="sidebar-toast__icon">
+              {notify.type === "error"   && "⚠️"}
+              {notify.type === "success" && "✅"}
+              {notify.type === "info"    && "ℹ️"}
+            </span>
+            <span className="sidebar-toast__msg">{notify.message}</span>
+            <button
+              className="sidebar-toast__close"
+              onClick={() => setNotify(null)}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

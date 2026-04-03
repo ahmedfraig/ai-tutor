@@ -1,14 +1,16 @@
-/* ── Real embed — responsive 16:9 iframe ──────────────────────── */
+/* ── Google Drive iframe embed ───────────────────────────────────
+   SIMPLE approach: always 16:9 ratio, let Drive handle the rest.
+   Drive's player letterboxes portrait videos automatically.
+   overflow: hidden keeps controls inside the container.
+   ─────────────────────────────────────────────────────────────── */
 .video-embed-wrapper {
   position: relative;
   width: 100%;
-  /* padding-bottom gives 16:9 ratio; min-height keeps controls visible */
-  padding-bottom: 56.25%;
-  min-height: 360px;
+  padding-bottom: 56.25%;  /* 16:9 ratio — industry standard */
   height: 0;
   background: #000;
   border-radius: 8px;
-  /* Do NOT set overflow:hidden — clips Drive's player controls */
+  overflow: hidden;  /* contain Drive's UI within the border-radius */
 }
 
 .video-embed-iframe {
@@ -20,25 +22,11 @@
   border: none;
 }
 
-/* ── Tablet / large mobile ─────────────────────────────────────── */
-@media (max-width: 768px) {
-  .video-embed-wrapper {
-    min-height: 320px;
-  }
-}
-
-/* ── Small mobile ──────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .video-embed-wrapper {
-    padding-bottom: 75%; /* taller ratio on tiny screens */
-    min-height: 280px;
-  }
-}
-
-/* ── Placeholder (no file yet) ─────────────────────────────── */
+/* ── Placeholder (no video yet) ─────────────────────────────── */
 .video-placeholder-box {
-  aspect-ratio: 16 / 9;
   width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 180px;
   background: #1a1a1a;
   border-radius: 8px;
   display: flex;
@@ -49,10 +37,7 @@
   color: #aaa;
 }
 
-.video-placeholder-icon {
-  font-size: 2.5rem;
-  opacity: 0.6;
-}
+.video-placeholder-icon  { font-size: 2.5rem; opacity: 0.6; }
 
 .video-placeholder-title {
   font-size: 1rem;
@@ -65,4 +50,6 @@
   font-size: 0.8rem;
   color: #666;
   margin: 0;
+  text-align: center;
+  padding: 0 16px;
 }
