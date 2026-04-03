@@ -155,7 +155,9 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   // ── Delete (custom modal) ────────────────────────────────────
   const askDelete = (e, record) => {
     e.stopPropagation();
-    setDeleteTarget(record);
+    if (onCloseSidebar) onCloseSidebar(); // start sidebar slide-out (0.3s transition)
+    // Open modal AFTER the sidebar has finished sliding out
+    setTimeout(() => setDeleteTarget(record), 320);
   };
 
   const confirmDelete = async () => {
@@ -239,6 +241,8 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
         show={!!deleteTarget}
         onHide={() => setDeleteTarget(null)}
         centered
+        className="delete-confirm-modal"
+        backdropClassName="delete-confirm-backdrop"
         dialogClassName="delete-modal-dialog"
         contentClassName="delete-modal-content"
       >

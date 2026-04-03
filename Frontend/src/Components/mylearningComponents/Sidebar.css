@@ -248,3 +248,10 @@
 .delete-btn-confirm:active {
   transform: translateY(0);
 }
+
+/* ── Ensure delete modal renders above the sidebar drawer ─────────
+   Targeted only to our delete modal via className/backdropClassName
+   props so we don't disturb any other modals in the app.         */
+.delete-confirm-modal   { z-index: 2100 !important; }
+.delete-confirm-backdrop { z-index: 2090 !important; }
+

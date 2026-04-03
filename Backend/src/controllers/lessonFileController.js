@@ -5,7 +5,59 @@ const { Readable } = require('stream');
 const https = require('https');
 const http = require('http');
 
-const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+// ── In-memory folder ID cache ─────────────────────────────────────────────
+// Key: 'parentId::folderName'  Value: Drive folder ID
+// Lives for the lifetime of the Node process — fast, no DB needed.
+const folderCache = new Map();
+
+// Helper: sanitize a string so it's safe as a Drive folder name
+function safeName(str) {
+    return String(str)
+        .replace(/[/\\:*?"<>|]/g, '_')   // remove filename-unsafe chars
+        .replace(/\s+/g, '_')             // spaces → underscores
+        .slice(0, 80);                    // Drive name limit safety
+}
+
+// Helper: find an existing folder OR create it, returning its Drive ID.
+// Results are cached so repeated uploads to the same lesson cost 0 extra calls.
+async function getOrCreateFolder(parentId, folderName) {
+    const cacheKey = `${parentId}::${folderName}`;
+    if (folderCache.has(cacheKey)) return folderCache.get(cacheKey);
+
+    // Search Drive for an existing folder with this name under parentId
+    const listRes = await drive.files.list({
+        q: [
+            `name='${folderName}'`,
+            `'${parentId}' in parents`,
+            `mimeType='application/vnd.google-apps.folder'`,
+            `trashed=false`,
+        ].join(' and '),
+        fields: 'files(id)',
+        spaces: 'drive',
+    });
+
+    if (listRes.data.files.length > 0) {
+        const id = listRes.data.files[0].id;
+        folderCache.set(cacheKey, id);
+        return id;
+    }
+
+    // Folder doesn't exist — create it
+    const createRes = await drive.files.create({
+        requestBody: {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentId],
+        },
+        fields: 'id',
+    });
+
+    const id = createRes.data.id;
+    folderCache.set(cacheKey, id);
+    return id;
+}
 
 // Helper: convert a Buffer to a readable stream
 function bufferToStream(buffer) {
@@ -66,13 +118,32 @@ const uploadFile = async (req, res) => {
             return res.status(400).json({ message: 'lesson_id is required' });
         }
 
-        const { originalname, mimetype, buffer } = req.file;
+        // ── Resolve user name + lesson title for folder naming ──────────
+        const [userRow, lessonRow] = await Promise.all([
+            db.query('SELECT full_name FROM users WHERE id = $1', [userId]),
+            db.query('SELECT title FROM lessons WHERE id = $1', [lesson_id]),
+        ]);
 
-        // Upload buffer to Google Drive
+        const userName   = userRow.rows[0]?.full_name  || `user_${userId}`;
+        const lessonTitle = lessonRow.rows[0]?.title    || `lesson_${lesson_id}`;
+
+        // Folder names: e.g. "user_7_Kareem_Ismail" / "lesson_3_Programming"
+        const userFolderName   = safeName(`user_${userId}_${userName}`);
+        const lessonFolderName = safeName(`lesson_${lesson_id}_${lessonTitle}`);
+
+        // ── Get or create the nested folder structure ────────────────────
+        //   ROOT  →  user folder  →  lesson folder
+        const userFolderId   = await getOrCreateFolder(ROOT_FOLDER_ID, userFolderName);
+        const lessonFolderId = await getOrCreateFolder(userFolderId, lessonFolderName);
+
+        // ── Upload the file into the lesson folder ───────────────────────
+        const { originalname, mimetype, buffer } = req.file;
+        const driveFileName = `${Date.now()}_${safeName(originalname)}`;
+
         const driveResponse = await drive.files.create({
             requestBody: {
-                name: `${Date.now()}-${originalname.replace(/\s+/g, '_')}`,
-                parents: [FOLDER_ID],
+                name: driveFileName,
+                parents: [lessonFolderId],
                 mimeType: mimetype,
             },
             media: {
@@ -87,13 +158,9 @@ const uploadFile = async (req, res) => {
         // Make the file publicly readable (anyone with the link)
         await drive.permissions.create({
             fileId,
-            requestBody: {
-                role: 'reader',
-                type: 'anyone',
-            },
+            requestBody: { role: 'reader', type: 'anyone' },
         });
 
-        // Public URL — works with Google Docs Viewer on the frontend
         const file_path = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
         const result = await db.query(
