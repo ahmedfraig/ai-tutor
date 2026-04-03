@@ -49,5 +49,6 @@ Thumbs.db
 Backend/Speech/__pycache__/
 Backend/Speech/outputs
 Backend/Speech/*.pyc
+Backend/google-service-account.json
 
 .agents

@@ -1,8 +1,37 @@
 // src/controllers/lessonFileController.js
 const db = require('../config/db');
-const cloudinary = require('../config/cloudinary');
+const drive = require('../config/googleDrive');
+const { Readable } = require('stream');
 const https = require('https');
 const http = require('http');
+
+const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+// Helper: convert a Buffer to a readable stream
+function bufferToStream(buffer) {
+    const readable = new Readable();
+    readable.push(buffer);
+    readable.push(null);
+    return readable;
+}
+
+// Helper: extract Google Drive file ID from a stored URL
+// Supports two URL formats:
+//   https://drive.google.com/uc?export=view&id=FILE_ID
+//   https://drive.google.com/file/d/FILE_ID/view
+function extractDriveFileId(url) {
+    if (!url) return null;
+    try {
+        // Format: ?id=FILE_ID
+        const idParam = new URL(url).searchParams.get('id');
+        if (idParam) return idParam;
+        // Format: /file/d/FILE_ID/
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
+    } catch {
+        return null;
+    }
+}
 
 // GET /api/lesson-files/:lessonId — list all files for a lesson
 const getFilesByLesson = async (req, res) => {
@@ -24,7 +53,7 @@ const getFilesByLesson = async (req, res) => {
     }
 };
 
-// POST /api/lesson-files/upload — upload a file to Cloudinary
+// POST /api/lesson-files/upload — upload a file to Google Drive
 const uploadFile = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -37,14 +66,40 @@ const uploadFile = async (req, res) => {
             return res.status(400).json({ message: 'lesson_id is required' });
         }
 
-        const name = req.file.originalname;
-        // Store the plain Cloudinary URL — frontend handles display via Google Docs Viewer
-        const file_path = req.file.path;
+        const { originalname, mimetype, buffer } = req.file;
+
+        // Upload buffer to Google Drive
+        const driveResponse = await drive.files.create({
+            requestBody: {
+                name: `${Date.now()}-${originalname.replace(/\s+/g, '_')}`,
+                parents: [FOLDER_ID],
+                mimeType: mimetype,
+            },
+            media: {
+                mimeType: mimetype,
+                body: bufferToStream(buffer),
+            },
+            fields: 'id',
+        });
+
+        const fileId = driveResponse.data.id;
+
+        // Make the file publicly readable (anyone with the link)
+        await drive.permissions.create({
+            fileId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+
+        // Public URL — works with Google Docs Viewer on the frontend
+        const file_path = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
         const result = await db.query(
             `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path)
              VALUES ($1, $2, 'upload', $3, $4) RETURNING *`,
-            [lesson_id, userId, name, file_path]
+            [lesson_id, userId, originalname, file_path]
         );
 
         res.status(201).json(result.rows[0]);
@@ -55,7 +110,6 @@ const uploadFile = async (req, res) => {
 };
 
 // POST /api/lesson-files — create a name-only record (AI-generated video/audio)
-// When the AI model generates a file it calls this endpoint with the file_path included.
 const createRecord = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -106,22 +160,7 @@ const renameFile = async (req, res) => {
     }
 };
 
-// Extract Cloudinary public_id from a full URL
-// e.g. https://res.cloudinary.com/xxx/image/upload/v123/papyrus/abc.pdf → papyrus/abc
-function extractPublicId(url) {
-    if (!url) return null;
-    try {
-        const parts = url.split('/upload/');
-        if (parts.length < 2) return null;
-        // Remove version prefix (v1234567890/) and file extension
-        const afterUpload = parts[1].replace(/^v\d+\//, '');
-        return afterUpload.replace(/\.[^/.]+$/, '');
-    } catch {
-        return null;
-    }
-}
-
-// DELETE /api/lesson-files/:id — delete record and remove file from Cloudinary
+// DELETE /api/lesson-files/:id — delete record and remove file from Google Drive
 const deleteFile = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -139,19 +178,17 @@ const deleteFile = async (req, res) => {
 
         const record = existing.rows[0];
 
-        // Delete from DB
+        // Delete from DB first
         await db.query('DELETE FROM lesson_files WHERE id = $1', [id]);
 
-        // Delete from Cloudinary if it's a Cloudinary URL
-        if (record.file_path && record.file_path.includes('cloudinary')) {
-            const publicId = extractPublicId(record.file_path);
-            if (publicId) {
-                // Determine resource type from URL
-                const resourceType = record.file_path.includes('/image/upload/') ? 'image' : 'raw';
+        // Delete from Google Drive if URL present
+        if (record.file_path && record.file_path.includes('drive.google.com')) {
+            const fileId = extractDriveFileId(record.file_path);
+            if (fileId) {
                 try {
-                    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
-                } catch (cloudErr) {
-                    console.error('Cloudinary delete error (non-fatal):', cloudErr.message);
+                    await drive.files.delete({ fileId });
+                } catch (driveErr) {
+                    console.error('Google Drive delete error (non-fatal):', driveErr.message);
                 }
             }
         }
@@ -183,26 +220,37 @@ const downloadFile = async (req, res) => {
             return res.status(404).json({ message: 'No file available' });
         }
 
-        // Strip any broken Cloudinary flags (attachment:false → filename becomes "false")
-        const cleanUrl = record.file_path.replace(/\/fl_attachment[^/]*\//g, '/');
+        // For Google Drive URLs: use export=download for forced download
+        let downloadUrl = record.file_path;
+        const driveFileId = extractDriveFileId(record.file_path);
+        if (driveFileId) {
+            downloadUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+        }
 
-        // Use the original name stored in DB for the download filename
-        const filename = record.name || 'download.pdf';
+        const filename = record.name || 'download';
         const safeFilename = encodeURIComponent(filename);
 
-        // Set headers so browser downloads with correct name
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${safeFilename}`);
         res.setHeader('Content-Type', 'application/octet-stream');
 
-        // Stream the file from Cloudinary to the client
-        const protocol = cleanUrl.startsWith('https') ? https : http;
-        protocol.get(cleanUrl, (fileRes) => {
-            fileRes.pipe(res);
+        // Stream the file to the client
+        const protocol = downloadUrl.startsWith('https') ? https : http;
+        protocol.get(downloadUrl, (fileRes) => {
+            // Follow redirects (Drive download redirects once)
+            if (fileRes.statusCode === 302 || fileRes.statusCode === 301) {
+                const redirectUrl = fileRes.headers.location;
+                https.get(redirectUrl, (redirectRes) => {
+                    redirectRes.pipe(res);
+                }).on('error', (err) => {
+                    console.error('Redirect download error:', err.message);
+                    if (!res.headersSent) res.status(500).json({ message: 'Failed to download file' });
+                });
+            } else {
+                fileRes.pipe(res);
+            }
         }).on('error', (err) => {
             console.error('Proxy download error:', err.message);
-            if (!res.headersSent) {
-                res.status(500).json({ message: 'Failed to download file' });
-            }
+            if (!res.headersSent) res.status(500).json({ message: 'Failed to download file' });
         });
 
     } catch (error) {
