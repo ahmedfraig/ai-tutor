@@ -16,17 +16,10 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 7 },
-    show: {
-      opacity: 1, y: 0,
-      transition: { duration: prefersReducedMotion ? 0 : 0.18, ease: [0.25, 1, 0.5, 1] },
-    },
-  };
-
-  const listVariants = {
-    hidden: {},
-    show: { transition: { staggerChildren: prefersReducedMotion ? 0 : 0.05 } },
+  const itemAnim = {
+    initial: { opacity: 0, y: prefersReducedMotion ? 0 : 7 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: prefersReducedMotion ? 0 : 0.18, ease: [0.25, 1, 0.5, 1] },
   };
 
 
@@ -185,7 +178,9 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   const renderItem = (record) => (
     <motion.li
       key={record.id}
-      variants={itemVariants}
+      initial={itemAnim.initial}
+      animate={itemAnim.animate}
+      transition={itemAnim.transition}
       className={`list-group-item list-group-item-action d-flex align-items-center justify-content-between sidebar-file-item${activeId === record.id ? " active" : ""}`}
       onClick={() => handleSelect(record)}
       style={{ cursor: "pointer" }}
@@ -304,7 +299,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
             <Accordion.Body>
               {uploadedFiles.length === 0
                 ? <p className="text-muted small mb-0">No files uploaded yet.</p>
-                : <motion.ul className="list-group list-group-flush" variants={listVariants} initial="hidden" animate="show">{uploadedFiles.map(renderItem)}</motion.ul>}
+                : <ul className="list-group list-group-flush">{uploadedFiles.map(renderItem)}</ul>}
             </Accordion.Body>
           </Accordion.Item>
 
@@ -316,7 +311,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
             <Accordion.Body>
               {videos.length === 0
                 ? <p className="text-muted small mb-0">No videos generated yet.</p>
-                : <motion.ul className="list-group list-group-flush" variants={listVariants} initial="hidden" animate="show">{videos.map(renderItem)}</motion.ul>}
+                : <ul className="list-group list-group-flush">{videos.map(renderItem)}</ul>}
             </Accordion.Body>
           </Accordion.Item>
 
@@ -328,7 +323,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
             <Accordion.Body>
               {audios.length === 0
                 ? <p className="text-muted small mb-0">No audios generated yet.</p>
-                : <motion.ul className="list-group list-group-flush" variants={listVariants} initial="hidden" animate="show">{audios.map(renderItem)}</motion.ul>}
+                : <ul className="list-group list-group-flush">{audios.map(renderItem)}</ul>}
             </Accordion.Body>
           </Accordion.Item>
         </Accordion>

@@ -120,6 +120,13 @@
   opacity: 1;
 }
 
+/* Touch devices have no hover — always show the action icons */
+@media (hover: none) {
+  .sidebar-actions {
+    opacity: 1;
+  }
+}
+
 .sidebar-icon {
   cursor: pointer;
   font-size: 0.85rem;
