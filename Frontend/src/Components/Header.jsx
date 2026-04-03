@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../App.css";
 import "./Header.css";
 import { useNavigate } from "react-router-dom";
@@ -6,18 +6,33 @@ import toast from 'react-hot-toast';
 
 const Header = () => {
   const navigate = useNavigate();
-  const [darkmode, setdarkmode] = useState(false);
+  // Read persisted preference on every mount (header re-mounts on navigation)
+  const [darkmode, setdarkmode] = useState(
+    () => localStorage.getItem('darkmode') === 'true'
+  );
   const [logoutdiv, setlogoutdiv] = useState(false);
 
-  const changemode = () => {
-    setdarkmode(!darkmode);
-    if (darkmode === false) {
-      document.body.classList.add("darkmode");
-      document.body.classList.remove("lightmode");
+  // Sync body class on initial mount (covers fresh page load + navigation)
+  useEffect(() => {
+    if (darkmode) {
+      document.body.classList.add('darkmode');
+      document.body.classList.remove('lightmode');
+    } else {
+      document.body.classList.remove('darkmode');
+      document.body.classList.remove('lightmode');
     }
-    if (darkmode === true) {
-      document.body.classList.add("lightmode");
-      document.body.classList.remove("darkmode");
+  }, []);
+
+  const changemode = () => {
+    const next = !darkmode;
+    setdarkmode(next);
+    localStorage.setItem('darkmode', String(next));
+    if (next) {
+      document.body.classList.add('darkmode');
+      document.body.classList.remove('lightmode');
+    } else {
+      document.body.classList.remove('darkmode');
+      document.body.classList.add('lightmode');
     }
   };
 

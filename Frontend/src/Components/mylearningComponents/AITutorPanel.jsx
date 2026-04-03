@@ -87,13 +87,11 @@ const AITutorPanel = () => {
 
       {/* AI Tutor Panel */}
       <div className={`ai-tutor-panel ${isOpen ? "open" : ""}`}>
-        <div className="header1 d-flex justify-content-between align-items-center p-3 border-bottom">
-          <div className="d-flex align-items-center gap-2">
-            <div className="ai-icon">🤖</div>
-            <div>
-              <div className="fw-bold">Ask AI Tutor</div>
-              <small className="text-muted">Always here to help</small>
-            </div>
+        <div className="ai-panel-header">
+          <div className="ai-icon">🤖</div>
+          <div className="ai-header-text">
+            <div className="fw-bold">Ask AI Tutor</div>
+            <small className="text-muted">Always here to help</small>
           </div>
           <button
             className="btn ai-close-btn"
