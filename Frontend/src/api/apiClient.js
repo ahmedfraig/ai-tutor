@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    // Use relative URL in dev (Vite proxies /api → localhost:5000)
+    // Use VITE_API_URL in production/deployment
+    baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 // Attach JWT token to every request automatically

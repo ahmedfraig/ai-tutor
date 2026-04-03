@@ -33,12 +33,15 @@
   background-color: var(--color-accent, #ff6900) !important;
   border: none !important;
   color: #fff !important;
-  border-radius: 12px !important;
-  padding: 8px 18px !important;
+  border-radius: 10px !important;
+  padding: 6px 14px !important;
   font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  margin-bottom: 16px !important;
+  gap: 5px !important;
+  margin-bottom: 12px !important;
+  width: auto !important;   /* compact — not full width */
 }
 
 /* ── Backdrop overlay (mobile/tablet) ────────────────────────── */

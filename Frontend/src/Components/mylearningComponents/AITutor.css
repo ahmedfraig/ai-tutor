@@ -54,6 +54,15 @@
   right: 0;
 }
 
+/* Transparent backdrop — intercepts outside clicks to close the panel */
+.ai-tutor-backdrop {
+  position: fixed;
+  inset: 0;              /* covers the entire viewport */
+  z-index: 1001;         /* below panel (1002) but above page content */
+  background: transparent;
+  cursor: default;
+}
+
 /* ── Panel header: icon | text (flex:1) | close btn ── */
 .ai-panel-header {
   display: flex;

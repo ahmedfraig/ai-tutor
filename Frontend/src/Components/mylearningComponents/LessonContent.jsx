@@ -10,7 +10,7 @@ import "./LessonContent.css";
 import apiClient from "../../api/apiClient";
 import DomPurify from 'dompurify';
 
-function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFileUpload, lessonId, lessonTitle }) {
+function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, currentFile, onFileUpload, lessonId, lessonTitle }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [summarize, setSummarize] = useState("");
   const [loading, setLoading] = useState(true);
@@ -54,6 +54,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, currentFile, onFi
           <UploadedFile
             fileName={selectedName}
             file={currentFile}
+            fileId={selectedFileId}
             fileUrl={selectedFilePath
               ? (selectedFilePath.startsWith('http')
                   ? selectedFilePath

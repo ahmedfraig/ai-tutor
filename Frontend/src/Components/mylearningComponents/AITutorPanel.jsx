@@ -86,6 +86,14 @@ const AITutorPanel = () => {
       </AnimatePresence>
 
       {/* AI Tutor Panel */}
+      {/* Backdrop — closes panel when clicking outside */}
+      {isOpen && (
+        <div
+          className="ai-tutor-backdrop"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
       <div className={`ai-tutor-panel ${isOpen ? "open" : ""}`}>
         <div className="ai-panel-header">
           <div className="ai-icon">🤖</div>

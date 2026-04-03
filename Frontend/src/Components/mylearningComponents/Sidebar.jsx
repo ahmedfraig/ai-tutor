@@ -86,9 +86,9 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
     formData.append("lesson_id", lessonId);
 
     try {
-      const { data } = await apiClient.post("/lesson-files/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // ⚠️ Do NOT set Content-Type manually — axios sets multipart/form-data
+      // with the correct boundary automatically when FormData is passed.
+      const { data } = await apiClient.post("/lesson-files/upload", formData);
       setFiles((prev) => [...prev, data]);
       setActiveId(data.id);
       onSelectContent("upload", data.name, data.file_path);
@@ -96,6 +96,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Upload failed:", err);
+      alert(`Upload failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
     }
     e.target.value = "";
   };
@@ -127,7 +128,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   const handleSelect = (record) => {
     if (editingId !== null) return;
     setActiveId(record.id);
-    onSelectContent(record.type, record.name, record.file_path);
+    onSelectContent(record.type, record.name, record.file_path, record.id);
     if (onCloseSidebar) onCloseSidebar();
   };
 
@@ -234,7 +235,13 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
   return (
     <div className="sidebar-container">
       {/* Hidden file input */}
-      <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileSelected} />
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,image/*,application/pdf"
+        onChange={handleFileSelected}
+      />
 
       {/* ── Custom Delete Confirm Modal ── */}
       <Modal

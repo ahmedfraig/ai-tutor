@@ -7,6 +7,11 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom';
 
+// Apply persisted dark mode before first render (prevents flash on any page reload)
+if (localStorage.getItem('darkmode') === 'true') {
+  document.body.classList.add('darkmode');
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>

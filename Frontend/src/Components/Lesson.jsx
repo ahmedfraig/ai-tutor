@@ -16,6 +16,7 @@ function Lesson() {
   const [mode, setMode] = useState("video");
   const [selectedName, setSelectedName] = useState("");
   const [selectedFilePath, setSelectedFilePath] = useState(null);
+  const [selectedFileId, setSelectedFileId] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
   const [lessonFiles, setLessonFiles] = useState({});
 
@@ -61,10 +62,11 @@ function Lesson() {
   }, [lessonId]);
 
   // Track videos watched when content is selected
-  const handleSelectContent = (type, name, filePath = null) => {
+  const handleSelectContent = (type, name, filePath = null, fileId = null) => {
     setMode(type);
     setSelectedName(name);
     setSelectedFilePath(filePath);
+    setSelectedFileId(fileId);
     showToast(
       type === "video" ? `🎬 Opened ${name}` :
       type === "audio" ? `🎧 Playing ${name}` : `📄 Opened ${name}`
@@ -129,6 +131,7 @@ function Lesson() {
             mode={mode}
             selectedName={selectedName}
             selectedFilePath={selectedFilePath}
+            selectedFileId={selectedFileId}
             currentFile={lessonFiles[selectedName]}
             onFileUpload={handleFileUpdate}
             lessonId={lessonId}

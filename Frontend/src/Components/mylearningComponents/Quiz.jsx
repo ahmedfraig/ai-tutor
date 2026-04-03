@@ -8,7 +8,7 @@ function Quiz({ lessonId, lessonTitle }) {
   const location = useLocation();
 
   return (
-    <div>
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '120px' }}>
       <Button
         variant="secondary"
         className="quizbtn"
