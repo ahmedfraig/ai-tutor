@@ -27,14 +27,70 @@
     border-color: var(--color-accent, #ff6900) !important;
     border-radius: 20px !important;
     font-size: 1.15rem;
-    transition: background-color 0.2s;
-    color: rgba(255, 255, 255, 0.8) !important;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    color: #fff !important;
     min-height: 44px;
+    box-shadow: 0 4px 16px rgba(255, 105, 0, 0.35);
 }
 
 .exam-start-btn:hover {
     background-color: var(--color-accent-hover, #e05e00) !important;
     border-color: var(--color-accent-hover, #e05e00) !important;
+    box-shadow: 0 6px 20px rgba(255, 105, 0, 0.45);
+}
+
+/* Force orange even when body.darkmode .btn overrides it */
+body.darkmode .exam-start-btn {
+    background-color: var(--color-accent, #ff6900) !important;
+    border-color: var(--color-accent, #ff6900) !important;
+    color: #fff !important;
+}
+
+body.darkmode .exam-start-btn:hover {
+    background-color: var(--color-accent-hover, #e05e00) !important;
+    border-color: var(--color-accent-hover, #e05e00) !important;
+}
+
+/* Exam card dark mode */
+body.darkmode .exam-card {
+    background: #1a1a1a !important;
+    border-color: #2d2d2d !important;
+}
+
+body.darkmode .exam-card .card-title,
+body.darkmode .exam-card h2 {
+    color: #f0f0f0 !important;
+}
+
+body.darkmode .exam-card .card-text,
+body.darkmode .exam-card .text-muted {
+    color: #9ca3af !important;
+}
+
+body.darkmode .exam-card .text-muted {
+    color: #6b7280 !important;
+}
+
+/* ── Exam card text element classes ── */
+.exam-card-title {
+    color: #1a1a1a;
+}
+
+.exam-card-text {
+    color: #6b7280;
+}
+
+.exam-card-meta {
+    color: #6b7280;
+}
+
+body.darkmode .exam-card-title {
+    color: #f0f0f0 !important;
+}
+
+body.darkmode .exam-card-text,
+body.darkmode .exam-card-meta {
+    color: #9ca3af !important;
 }
 
 /* ── Mobile (≤576px) ──────────────────────────────────────── */

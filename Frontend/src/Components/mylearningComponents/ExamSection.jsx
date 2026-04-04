@@ -19,15 +19,15 @@ const ExamSection = ({ lessonId, lessonTitle }) => {
             </span>
           </div>
 
-          <Card.Title as="h2" className="fw-normal mb-3">
+          <Card.Title as="h2" className="fw-normal mb-3 exam-card-title">
             Full Exam Mode
           </Card.Title>
-          <Card.Text className="text-muted mb-5 px-md-5">
+          <Card.Text className="exam-card-text mb-5 px-md-5">
             Take a comprehensive exam to test your understanding of all lesson
             material.
           </Card.Text>
 
-          <div className="d-flex justify-content-center align-items-center text-muted mb-5">
+          <div className="d-flex justify-content-center align-items-center exam-card-meta mb-5">
             <span className="me-4">
               <FaClock className="me-2" /> 45 minutes
             </span>
@@ -38,9 +38,13 @@ const ExamSection = ({ lessonId, lessonTitle }) => {
 
           <Button
             className="w-100 fw-bold py-1 exam-start-btn"
+            style={{
+              backgroundColor: 'var(--color-accent, #ff6900)',
+              borderColor: 'var(--color-accent, #ff6900)',
+              color: '#fff',
+            }}
             onClick={(e) => {
               e.preventDefault();
-              // Pass the lessonId forward so ExamStart knows which lesson's exam to load
               navigate("/examstart", { state: { lessonId, lessonTitle } });
             }}
           >

@@ -6,7 +6,7 @@
 .lesson-layout {
   display: flex;
   height: calc(100vh - 61px);
-  overflow: hidden;
+  overflow: clip; /* prevents outer scroll without affecting inner scroll containers */
 }
 
 /* ── Sidebar (left panel) ─────────────────────────────────────── */

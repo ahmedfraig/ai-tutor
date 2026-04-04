@@ -3,7 +3,7 @@ import Header from './Header';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import './Home.css'; // reuse existing form styles
+import './Profile.css';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -48,18 +48,11 @@ const Profile = () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = {
-        full_name: formData.full_name,
-        email: formData.email,
-      };
+      const payload = { full_name: formData.full_name, email: formData.email };
       if (formData.password) payload.password = formData.password;
-
       const res = await apiClient.put('/users/profile', payload);
-
-      // Update localStorage with new name/email
       const currentUser = JSON.parse(localStorage.getItem('user')) || {};
       localStorage.setItem('user', JSON.stringify({ ...currentUser, ...res.data }));
-
       toast.success('Profile updated!');
       setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
     } catch (err) {
@@ -70,99 +63,93 @@ const Profile = () => {
     }
   };
 
-  if (loading) return <><Header /><div className="p-5 text-muted">Loading profile...</div></>;
+  if (loading) return <><Header /><div className="p-5 pf-text-muted">Loading profile...</div></>;
 
   return (
     <>
       <Header />
-      <main className="container pt-5 pb-5" style={{ maxWidth: '560px' }}>
-        <h2 className="h4 mb-1 fw-normal">My Profile</h2>
-        <p className="text-muted mb-4" style={{ fontSize: '0.95rem' }}>Manage your account details</p>
+      <main className="container pf-container">
 
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <h2 className="pf-heading">My Profile</h2>
+        <p className="pf-subheading">Manage your account details</p>
+
+        <form onSubmit={handleSave} className="pf-form">
 
           {/* ── Account Info ─────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          <div className="pf-group">
             <div>
-              <label htmlFor="profile-name" className="form-label fw-medium text-muted small">Full Name</label>
+              <label htmlFor="profile-name" className="pf-label">Full Name</label>
               <input
                 id="profile-name"
-                className="form-control"
+                className="pf-input"
                 type="text"
                 autoComplete="name"
                 value={formData.full_name}
                 onChange={e => setFormData({ ...formData, full_name: e.target.value })}
               />
-              {errors.full_name && <p className="error" role="alert">{errors.full_name}</p>}
+              {errors.full_name && <p className="pf-error" role="alert">{errors.full_name}</p>}
             </div>
 
             <div>
-              <label htmlFor="profile-email" className="form-label fw-medium text-muted small">Email</label>
+              <label htmlFor="profile-email" className="pf-label">Email</label>
               <input
                 id="profile-email"
-                className="form-control"
+                className="pf-input"
                 type="email"
                 autoComplete="email"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
               />
-              {errors.email && <p className="error" role="alert">{errors.email}</p>}
+              {errors.email && <p className="pf-error" role="alert">{errors.email}</p>}
             </div>
           </div>
 
-          {/* ── Change Password──────────────── */}
-          <div className="bg-light rounded-3 p-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          {/* ── Change Password ───────────────── */}
+          <div className="pf-password-section">
             <div>
-              <p className="fw-medium mb-0" style={{ fontSize: '0.9rem' }}>Change Password</p>
-              <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>Leave blank to keep current password</p>
+              <p className="pf-password-title">Change Password</p>
+              <p className="pf-password-hint">Leave blank to keep current password</p>
             </div>
 
             <div>
-              <label htmlFor="profile-password" className="form-label fw-medium text-muted small">New Password</label>
+              <label htmlFor="profile-password" className="pf-label">New Password</label>
               <input
                 id="profile-password"
-                className="form-control"
+                className="pf-input"
                 type="password"
                 placeholder="New password (optional)"
                 autoComplete="new-password"
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
               />
-              {errors.password && <p className="error" role="alert">{errors.password}</p>}
+              {errors.password && <p className="pf-error" role="alert">{errors.password}</p>}
             </div>
 
             <div>
-              <label htmlFor="profile-confirm-password" className="form-label fw-medium text-muted small">Confirm New Password</label>
+              <label htmlFor="profile-confirm-password" className="pf-label">Confirm New Password</label>
               <input
                 id="profile-confirm-password"
-                className="form-control"
+                className="pf-input"
                 type="password"
                 placeholder="Confirm new password"
                 autoComplete="new-password"
                 value={formData.confirmPassword}
                 onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
               />
-              {errors.confirmPassword && <p className="error" role="alert">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="pf-error" role="alert">{errors.confirmPassword}</p>}
             </div>
           </div>
 
           {/* ── Actions ─────────────────────── */}
-          <div className="d-flex gap-2">
-            <button
-              type="submit"
-              className="btn btn-dark flex-fill"
-              disabled={saving}
-            >
+          <div className="pf-actions">
+            <button type="submit" className="pf-btn-save" disabled={saving}>
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={() => navigate(-1)}
-            >
+            <button type="button" className="pf-btn-cancel" onClick={() => navigate(-1)}>
               Cancel
             </button>
           </div>
+
         </form>
       </main>
     </>

@@ -3,6 +3,7 @@ import "../App.css";
 import "./Header.css";
 import { useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
+import { MoonFill, SunFill } from "react-bootstrap-icons";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -119,11 +120,11 @@ const Header = () => {
               
               <button
                 onClick={changemode}
-                className="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center mx-3 mx-lg-0"
-                style={{ width: "42px", height: "42px", border: "1px solid #dee2e6" }}
-                title="Toggle Dark Mode"
+                className="header-dark-toggle mx-3 mx-lg-0"
+                title={darkmode ? "Light mode" : "Dark mode"}
+                aria-label={darkmode ? "Switch to light mode" : "Switch to dark mode"}
               >
-                {darkmode ? "🌙" : "☀️"}
+                {darkmode ? <SunFill size={16} /> : <MoonFill size={16} />}
               </button>
               
               <div className="position-relative w-100 px-2 px-lg-0">

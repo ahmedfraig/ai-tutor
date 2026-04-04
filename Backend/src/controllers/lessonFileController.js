@@ -360,6 +360,8 @@ const downloadFile = async (req, res) => {
 // ── streamFile — inline stream for <video> / <audio> playback ───────────────
 // Serves the file without Content-Disposition so the browser plays it inline.
 // Supports Range requests (required for video seeking / audio scrubbing).
+// Uses the authenticated Drive API client (OAuth2) — NOT a raw https.get —
+// so service-account-owned files are not rejected with 403.
 const streamFile = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -385,40 +387,81 @@ const streamFile = async (req, res) => {
         }
         if (!driveFileId) return res.status(400).json({ message: 'Cannot determine Drive file ID' });
 
-        const streamUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-
         // Content-Type by record type
         const contentTypes = { video: 'video/mp4', audio: 'audio/mpeg', upload: 'application/octet-stream' };
-        res.setHeader('Content-Type', contentTypes[record.type] || 'application/octet-stream');
+        const contentType = contentTypes[record.type] || 'application/octet-stream';
+
+        // Helper: race a Drive API promise against an 8-second timeout.
+        // On local dev the Drive API may hang indefinitely (ETIMEDOUT).
+        // Failing fast with 503 lets the browser try the next <source> immediately.
+        const withTimeout = (promise) =>
+            Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('DRIVE_TIMEOUT')), 8000)
+                ),
+            ]);
+
+        // ── Use authenticated Drive API to get file metadata (size) ──────────
+        let fileSize = null;
+        try {
+            const meta = await withTimeout(
+                drive.files.get({ fileId: driveFileId, fields: 'size' })
+            );
+            fileSize = parseInt(meta.data.size, 10);
+        } catch (_) {
+            fileSize = null; // size unknown — partial content won't be offered
+        }
+
+        res.setHeader('Content-Type', contentType);
         res.setHeader('Accept-Ranges', 'bytes');
 
+        // ── Range request (seeking) ───────────────────────────────────────────
         const rangeHeader = req.headers.range;
-        const reqOptions = rangeHeader ? { headers: { Range: rangeHeader } } : {};
+        if (rangeHeader && fileSize) {
+            const [startStr, endStr] = rangeHeader.replace(/bytes=/, '').split('-');
+            const start = parseInt(startStr, 10);
+            const end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+            const chunkSize = end - start + 1;
 
-        const doStream = (url, options) => {
-            https.get(url, options, (upstream) => {
-                if (upstream.statusCode === 301 || upstream.statusCode === 302) {
-                    return doStream(upstream.headers.location, options);
-                }
-                if (upstream.headers['content-length'])
-                    res.setHeader('Content-Length', upstream.headers['content-length']);
-                if (upstream.headers['content-range'])
-                    res.setHeader('Content-Range', upstream.headers['content-range']);
-                res.status(upstream.statusCode === 206 ? 206 : 200);
-                upstream.pipe(res);
-            }).on('error', (err) => {
-                console.error('Stream error:', err.message);
-                if (!res.headersSent) res.status(500).json({ message: 'Stream failed' });
-            });
-        };
+            res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+            res.setHeader('Content-Length', chunkSize);
+            res.status(206);
 
-        doStream(streamUrl, reqOptions);
+            const driveRes = await withTimeout(
+                drive.files.get(
+                    { fileId: driveFileId, alt: 'media' },
+                    { responseType: 'stream', headers: { Range: `bytes=${start}-${end}` } }
+                )
+            );
+            driveRes.data.pipe(res);
+            return;
+        }
+
+        // ── Full file stream ──────────────────────────────────────────────────
+        if (fileSize) res.setHeader('Content-Length', fileSize);
+
+        const driveRes = await withTimeout(
+            drive.files.get(
+                { fileId: driveFileId, alt: 'media' },
+                { responseType: 'stream' }
+            )
+        );
+        driveRes.data.pipe(res);
 
     } catch (error) {
-        console.error('Error in streamFile:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        console.error('Error in streamFile:', error.message);
+        if (!res.headersSent) {
+            const status = error.message === 'DRIVE_TIMEOUT' ? 503 : 500;
+            res.status(status).json({
+                message: error.message === 'DRIVE_TIMEOUT'
+                    ? 'Stream temporarily unavailable'
+                    : 'Internal Server Error'
+            });
+        }
     }
 };
+
 
 module.exports = {
     getFilesByLesson,

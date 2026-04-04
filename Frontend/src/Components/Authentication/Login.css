@@ -1,121 +1,251 @@
-body{
-     background-color: #fdfdfd; /* very soft off-white */
+/* ═════════════════════════════════════════════════════════════
+   Login.css — Sign In page, fully dark-mode aware
+   ═════════════════════════════════════════════════════════════ */
+
+/* ── Page layout ──────────────────────────────────────────── */
+body {
+  background-color: #f5f5f5;
+  margin: 0;
+  font-family: inherit;
 }
 
-.loginheader{
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    top: 20%;                 /* move top edge to 50% of viewport */
-    left: 50%;                /* move left edge to 50% of viewport */
-    transform: translate(-50%, -50%); 
+.loginheader {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
 }
 
-
-.loginheader div{
-    background-color: black;
-    color: white;
-    padding: 16px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-   border-radius: 12px;
-   margin-bottom: 10px;
-   font-size: 20px;
+.loginheader div {
+  background-color: #111;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-size: 20px;
 }
 
-.loginheader p{
-    color: darkgrey;
+.loginheader h2 {
+  margin: 0 0 4px 0;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: #111;
 }
 
-
-.loginmain{
-    position: absolute;
-      top: 30%; /* adjust so it appears below header */
-    left: 50%;
-    transform: translateX(-50%);
+.loginheader p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-.loginform{
-    padding:35px;
-    width: 35vw;;
-    background-color: white;
-     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* soft, gentle shadow */
-    border-radius: 10px;
+/* ── Form card ──────────────────────────────────────────────  */
+.loginmain {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.loginp1{
-    text-align: center;
-    font-size: 18px;
-}
-.loginform label{
-    font-weight: 500;
-    margin-top: 10px;
-    margin-bottom: 5px;
-}
-.loginform input{
-    display: block;
-    background-color: rgb(232, 231, 231);
-    border: none;
-    padding: 5px;
-    border-radius: 8px;
-    width: 90%;
-    padding-left: 17px;
+.loginform {
+  padding: 35px;
+  width: 35vw;
+  min-width: 320px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09);
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.loginform button{
-    background-color: black;
-    color: white;
-    width: 100%;
-    margin-top: 17px;
-    padding:6px;
-    border-radius: 12px;
+.loginp1 {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
 }
 
-.loginp2{
-    margin-top: 15px;
-    text-align: center;
-    color: grey;
-}
-.loginp2 a{
-    color: black;
-    text-decoration: none;
-    margin-left: 5px;
-}
-.loginp2 a:hover{
-   
-    text-decoration: underline;
-  
+/* ── Labels ──────────────────────────────────────────────── */
+.loginform label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  color: #374151;
 }
 
-.loginfooter{
-      position: absolute;
-      top: 85%; /* adjust so it appears below header */
-    left: 50%;
-    transform: translateX(-50%);
-    color: grey;
+/* ── Inputs ──────────────────────────────────────────────── */
+.loginform input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #f3f4f6;
+  border: 1px solid transparent;
+  padding: 10px 14px;
+  border-radius: 8px;
+  outline: none;
+  color: #111;
+  font-size: 0.93rem;
+  font-family: inherit;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+.loginform input:focus {
+  border-color: var(--color-accent, #ff6900);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.12);
+}
+
+.loginform input::placeholder {
+  color: #9ca3af;
+}
+
+/* ── Submit button ───────────────────────────────────────── */
+.loginform button {
+  background-color: #111;
+  color: white;
+  width: 100%;
+  margin-top: 20px;
+  padding: 11px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.97rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.18s ease, opacity 0.18s ease;
+}
+
+.loginform button:hover {
+  background-color: #333;
+}
+
+.loginform button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Sign up link ────────────────────────────────────────── */
+.loginp2 {
+  margin-top: 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.loginp2 a {
+  color: var(--color-accent, #ff6900);
+  text-decoration: none;
+  margin-left: 5px;
+  font-weight: 600;
+}
+
+.loginp2 a:hover {
+  text-decoration: underline;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.loginfooter {
+  position: absolute;
+  top: 85%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #9ca3af;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── Errors ──────────────────────────────────────────────── */
 .error {
-  color: red;
+  color: #ef4444;
   font-size: 12px;
   margin-top: 5px;
 }
 
-
-
-@media (max-width:769px) {
-   
-    .loginform{
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 769px) {
+  .loginform {
     width: 90vw;
     margin-bottom: 10px;
-    }
-    .loginfooter{
-        
-      top: 90%; /* adjust so it appears below header */
-   width: 100vw;
-   margin-left: 6px;
-   text-align: center;
-    }
+  }
+
+  .loginfooter {
+    top: 90%;
+    width: 100vw;
+    margin-left: 6px;
+    text-align: center;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   DARK MODE
+   ════════════════════════════════════════════════════════════ */
+
+body.darkmode {
+  background-color: #0d0d0d;
+}
+
+body.darkmode .loginheader h2 {
+  color: #f0f0f0;
+}
+
+body.darkmode .loginheader p {
+  color: #9ca3af;
+}
+
+body.darkmode .loginheader div {
+  background-color: #222;
+}
+
+body.darkmode .loginform {
+  background-color: #1a1a1a;
+  border-color: #2d2d2d;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.darkmode .loginp1 {
+  color: #f0f0f0;
+}
+
+body.darkmode .loginform label {
+  color: #9ca3af;
+}
+
+body.darkmode .loginform input {
+  background-color: #252525;
+  color: #f0f0f0;
+  border-color: #3d3d3d;
+}
+
+body.darkmode .loginform input:focus {
+  background-color: #2a2a2a;
+  border-color: var(--color-accent, #ff6900);
+  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.18);
+}
+
+body.darkmode .loginform input::placeholder {
+  color: #6b7280;
+}
+
+body.darkmode .loginform button {
+  background-color: #f0f0f0;
+  color: #111;
+}
+
+body.darkmode .loginform button:hover {
+  background-color: #fff;
+}
+
+body.darkmode .loginp2 {
+  color: #9ca3af;
+}
+
+body.darkmode .loginfooter {
+  color: #4b5563;
 }

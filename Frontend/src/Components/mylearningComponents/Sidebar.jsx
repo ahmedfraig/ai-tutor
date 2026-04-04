@@ -58,7 +58,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       const toSelect = firstVideo || firstFile;
       if (toSelect && activeId === null) {
         setActiveId(toSelect.id);
-        onSelectContent(toSelect.type, toSelect.name, toSelect.file_path);
+        onSelectContent(toSelect.type, toSelect.name, toSelect.file_path, toSelect.id);
         setOpenAccordion(toSelect.type === "video" ? "1" : toSelect.type === "audio" ? "2" : "0");
       }
     } catch (err) {
@@ -104,7 +104,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       const { data } = await apiClient.post("/lesson-files/upload", formData);
       setFiles((prev) => [...prev, data]);
       setActiveId(data.id);
-      onSelectContent("upload", data.name, data.file_path);
+      onSelectContent("upload", data.name, data.file_path, data.id);
       setOpenAccordion("0");
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
@@ -208,7 +208,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       setFiles((prev) => prev.filter((f) => f.id !== id));
       if (activeId === id) {
         setActiveId(null);
-        onSelectContent("video", "", null);
+        onSelectContent("video", "", null, null);
       }
     } catch (err) {
       console.error("Delete failed:", err);

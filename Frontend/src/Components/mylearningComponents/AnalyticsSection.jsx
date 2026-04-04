@@ -1,38 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, ProgressBar } from 'react-bootstrap';
 import './AnalyticsSection.css';
 import apiClient from '../../api/apiClient';
 
-const LearningProgressBar = ({ label, current, total }) => {
+/* ── Sub-component: animated progress bar row ───────────────────── */
+const ProgressRow = ({ label, current, total }) => {
   const [mounted, setMounted] = useState(false);
-  const percentage = total > 0 ? (current / total) * 100 : 0;
+  const pct = total > 0 ? Math.min((current / total) * 100, 100) : 0;
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 50);
+    const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);
 
   return (
-    <div className="mb-3">
-      <div className="d-flex justify-content-between align-items-center mb-1">
-        <small className="text-dark fw-bold">{label}</small>
-        <small className="text-dark fw-bold">{`${current}/${total}`}</small>
+    <div className="as-progress-row">
+      <div className="as-progress-meta">
+        <span className="as-progress-label">{label}</span>
+        <span className="as-progress-frac">{current}/{total}</span>
       </div>
-      
-      <div className="progress analytics-progress-track" style={{ height: '5px' }}>
-        <div
-          className="progress-bar analytics-progress-fill"
-          role="progressbar"
-          style={{ width: `${mounted ? percentage : 0}%`, borderRadius: '10px', backgroundColor: 'var(--color-accent, #ff6900)' }}
-          aria-valuenow={percentage}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        />
+      <div className="as-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div className="as-fill" style={{ width: `${mounted ? pct : 0}%` }} />
       </div>
     </div>
   );
 };
 
+/* ── Sub-component: stat card ───────────────────────────────────── */
+const StatCard = ({ icon, iconColor, label, value, progress, mounted }) => (
+  <div className="as-stat-card">
+    <div className="as-stat-header">
+      {icon && <span className="as-stat-icon" style={{ color: iconColor }}>{icon}</span>}
+      <span className="as-stat-label">{label}</span>
+    </div>
+    <div className="as-stat-value">{value}</div>
+    {progress !== undefined && (
+      <div className="as-track as-track--thin" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+        <div className="as-fill" style={{ width: `${mounted ? progress : 0}%`, transition: 'width 700ms cubic-bezier(0.25,1,0.5,1)' }} />
+      </div>
+    )}
+  </div>
+);
+
+/* ── Main component ─────────────────────────────────────────────── */
 const AnalyticsSection = ({ lessonId }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,127 +53,87 @@ const AnalyticsSection = ({ lessonId }) => {
   }, []);
 
   useEffect(() => {
-    if (!lessonId) {
-      setLoading(false);
-      return;
-    }
+    if (!lessonId) { setLoading(false); return; }
 
-    const fetchAnalytics = async () => {
+    const fetch_ = async () => {
       try {
         const res = await apiClient.get(`/user-lessons/${lessonId}`);
         setData(res.data);
       } catch (err) {
-        // 404 means the user hasn't started this lesson yet — show zeros
-        if (err.response?.status === 404) {
-          setData(null);
-        } else {
-          console.error("Failed to fetch analytics:", err);
+        if (err.response?.status !== 404) {
+          console.error('Failed to fetch analytics:', err);
         }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
+    fetch_();
   }, [lessonId]);
 
-  if (loading) return <div className="pt-3 text-muted">Loading analytics...</div>;
+  if (loading) {
+    return (
+      <div className="as-loading">
+        <div className="as-spinner" />
+        <span>Loading analytics…</span>
+      </div>
+    );
+  }
 
-  // Compute display values from real data (or zero defaults)
-  const timeSpentSec = Number(data?.time_spent) || 0;
-  const hours = Math.floor(timeSpentSec / 3600);
-  const minutes = Math.floor((timeSpentSec % 3600) / 60);
-  const timeSpentLabel = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  const timeSpentSec    = Number(data?.time_spent) || 0;
+  const hours           = Math.floor(timeSpentSec / 3600);
+  const minutes         = Math.floor((timeSpentSec % 3600) / 60);
+  const timeLabel       = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-  const videosWatched = Number(data?.videos_watched_count) || 0;
-  const quizScore = Number(data?.quiz_score) || 0;
-  const practiceCompleted = !!data?.practice_completed;
+  const videosWatched   = Number(data?.videos_watched_count) || 0;
+  const quizScore       = Number(data?.quiz_score) || 0;
+  const practiceOk      = !!data?.practice_completed;
 
-  // completion = weighted average of progress indicators (NaN-safe)
-  const rawCompletion =
+  const rawCompletion   =
     (Math.min(videosWatched, 2) / 2) * 0.4 +
-    (practiceCompleted ? 1 : 0) * 0.3 +
+    (practiceOk ? 1 : 0) * 0.3 +
     (quizScore / 100) * 0.3;
-  const completion = Number.isNaN(rawCompletion) ? 0 : Math.round(rawCompletion * 100);
+  const completion      = Number.isNaN(rawCompletion) ? 0 : Math.round(rawCompletion * 100);
 
   return (
-    <div className="analytics-content py-4">
-      <Row className="mb-4">
-        
-        <Col md={4} className="mb-3">
-          <Card className="shadow-sm border-0 h-100 analytics-card" style={{ borderLeft: '4px solid var(--color-accent, #ff6900)', borderRadius: '12px' }}>
-            <Card.Body>
-              <p className="text-muted">Completion</p>
-              <h3 className="fw-normal mb-3">{completion}%</h3>
-              <div className="progress analytics-progress-track" style={{ height: '3px' }}>
-                <div
-                  className="progress-bar"
-                  role="progressbar"
-                  style={{ width: `${mounted ? completion : 0}%`, borderRadius: '10px', backgroundColor: 'var(--color-accent, #ff6900)', transition: 'width 700ms cubic-bezier(0.25,1,0.5,1)' }}
-                  aria-valuenow={completion} aria-valuemin={0} aria-valuemax={100}
-                />
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
+    <div className="as-root">
 
-        <Col md={4} className="mb-3">
-          <Card className="shadow-sm border-0 h-100 analytics-card">
-            <Card.Body>
-              <div className="d-flex align-items-center gap-2 mb-1">
-                <i className="bi bi-patch-question" style={{ color: '#f59e0b', fontSize: '1rem' }}></i>
-                <p className="text-muted mb-0">Quiz Avg</p>
-              </div>
-              <h3 className="fw-normal mb-3">{quizScore}%</h3>
-              <div className="progress analytics-progress-track" style={{ height: '3px' }}>
-                <div
-                  className="progress-bar"
-                  role="progressbar"
-                  style={{ width: `${mounted ? quizScore : 0}%`, borderRadius: '10px', backgroundColor: 'var(--color-accent, #ff6900)', transition: 'width 700ms cubic-bezier(0.25,1,0.5,1)' }}
-                  aria-valuenow={quizScore} aria-valuemin={0} aria-valuemax={100}
-                />
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
+      {/* ── Stat cards row ── */}
+      <div className="as-cards-row">
+        <StatCard
+          label="Completion"
+          value={`${completion}%`}
+          progress={completion}
+          mounted={mounted}
+        />
+        <StatCard
+          icon={<i className="bi bi-patch-question" />}
+          iconColor="#f59e0b"
+          label="Quiz Avg"
+          value={`${quizScore}%`}
+          progress={quizScore}
+          mounted={mounted}
+        />
+        <StatCard
+          icon={<i className="bi bi-clock-fill" />}
+          iconColor="#22c55e"
+          label="Time Spent"
+          value={timeLabel}
+        />
+      </div>
 
-        <Col md={4} className="mb-3">
-          <Card className="shadow-sm border-0 h-100 analytics-card">
-            <Card.Body>
-              <div className="d-flex align-items-center gap-2 mb-1">
-                <i className="bi bi-clock-fill" style={{ color: '#22c55e', fontSize: '1rem' }}></i>
-                <p className="text-muted mb-0">Time Spent</p>
-              </div>
-              <h3 className="fw-normal mb-3">{timeSpentLabel}</h3>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {/* ── Learning Progress card ── */}
+      <div className="as-progress-card">
+        <div className="as-progress-card-header">
+          <i className="bi bi-bar-chart-fill" style={{ color: 'var(--color-accent, #ff6900)', fontSize: '1.1rem' }} />
+          <h4 className="as-progress-title">Learning Progress</h4>
+        </div>
 
-      <Card className="shadow-sm border-0 analytics-card">
-        <Card.Body>
-          <div className="d-flex align-items-center gap-2 mb-4">
-            <i className="bi bi-bar-chart-fill" style={{ color: 'var(--color-accent)', fontSize: '1.1rem' }}></i>
-            <h4 className="fw-bold mb-0">Learning Progress</h4>
-          </div>
-          
-          <LearningProgressBar 
-            label="Videos Watched" 
-            current={videosWatched} 
-            total={2} 
-          />
-          <LearningProgressBar
-            label="Audio Lessons"
-            current={0}
-            total={1}
-          />
-          <LearningProgressBar
-            label="Practice Quizzes"
-            current={data?.practice_completed ? 1 : 0}
-            total={3}
-          />
-        </Card.Body>
-      </Card>
+        <ProgressRow label="Videos Watched"  current={videosWatched} total={2} />
+        <ProgressRow label="Audio Lessons"   current={0}             total={1} />
+        <ProgressRow label="Practice Quizzes" current={practiceOk ? 1 : 0} total={3} />
+      </div>
+
     </div>
   );
 };

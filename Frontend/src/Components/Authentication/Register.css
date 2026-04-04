@@ -1,20 +1,20 @@
-body {
-  background-color: #fdfdfd;
-  margin: 0;
-  font-family: sans-serif; /* Ensure font matches your system */
-}
+/* ═════════════════════════════════════════════════════════════
+   Register.css — Sign Up page, fully dark-mode aware
+   ═════════════════════════════════════════════════════════════ */
 
-/* Wrapper to center everything vertically properly */
+/* ── Page layout ──────────────────────────────────────────── */
 .register-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
+  padding: 40px 16px;
+  background-color: #f5f5f5;
+  transition: background-color 0.2s ease;
 }
 
-/* --- Header --- */
+/* ── Header ──────────────────────────────────────────────── */
 .registerheader {
   text-align: center;
   margin-bottom: 20px;
@@ -24,7 +24,7 @@ body {
 }
 
 .logo-box {
-  background-color: black;
+  background-color: #111;
   color: white;
   padding: 10px 16px;
   border-radius: 12px;
@@ -35,40 +35,48 @@ body {
 
 .registerheader h2 {
   margin: 0 0 5px 0;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: #111;
 }
 
 .registerheader p {
-  color: darkgrey;
+  color: #6b7280;
   margin: 0;
+  font-size: 0.95rem;
 }
 
-/* --- Form Card --- */
+/* ── Form Card ───────────────────────────────────────────── */
 .registerform {
   padding: 35px;
   width: 35vw;
-  min-width: 350px; /* Prevents it from getting too small */
-  background-color: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
+  min-width: 350px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09);
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .register-title {
   text-align: center;
-  font-size: 18px;
+  font-size: 1.05rem;
   margin-top: 0;
   margin-bottom: 20px;
   font-weight: 600;
+  color: #1a1a1a;
 }
 
+/* ── Labels ──────────────────────────────────────────────── */
 .registerform label {
-  font-weight: bold;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 13px;
   margin-bottom: 5px;
   display: block;
   margin-top: 15px;
+  color: #374151;
 }
 
+/* ── Inputs ──────────────────────────────────────────────── */
 .input-wrapper {
   position: relative;
   width: 100%;
@@ -78,18 +86,27 @@ body {
 .registerform input[type="email"],
 .registerform input[type="password"] {
   display: block;
-  background-color: rgb(245, 245, 245);
+  background-color: #f3f4f6;
   border: 1px solid transparent;
   padding: 10px 10px 10px 35px;
   border-radius: 8px;
   width: 100%;
   box-sizing: border-box;
   outline: none;
+  color: #111;
+  font-size: 0.93rem;
+  font-family: inherit;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .registerform input:focus {
-  border: 1px solid #ddd;
-  background-color: white;
+  border-color: var(--color-accent, #ff6900);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.12);
+}
+
+.registerform input::placeholder {
+  color: #9ca3af;
 }
 
 .input-icon {
@@ -97,7 +114,7 @@ body {
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #888;
+  color: #9ca3af;
 }
 
 .password-toggle {
@@ -105,44 +122,94 @@ body {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #888;
+  color: #9ca3af;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
+.password-toggle:hover {
+  color: #555;
+}
+
+/* ── Terms checkbox ──────────────────────────────────────── */
 .terms-check {
   display: flex;
   align-items: flex-start;
+  gap: 8px;
   margin-top: 15px;
   font-size: 13px;
   color: #555;
 }
 
-.terms-check input {
-  margin-right: 8px;
-  margin-top: 3px;
+.terms-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.terms-check input[type="checkbox"]:checked {
+  background-color: var(--color-accent, #ff6900);
+  border-color: var(--color-accent, #ff6900);
+}
+
+.terms-check input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 5px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
 }
 
 .terms-check label {
   margin: 0;
   font-weight: 400;
+  color: #555;
+  cursor: pointer;
 }
 
+/* ── Submit button ───────────────────────────────────────── */
 .register-btn {
-  background-color: black;
+  background-color: #111;
   color: white;
   width: 100%;
   margin-top: 20px;
-  padding: 10px;
+  padding: 11px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 0.97rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.18s ease, opacity 0.18s ease;
 }
 
 .register-btn:hover {
-  opacity: 0.9;
+  background-color: #333;
 }
 
+.register-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Divider ─────────────────────────────────────────────── */
 .divider {
   margin: 20px 0;
   text-align: center;
@@ -156,28 +223,29 @@ body {
   left: 0;
   width: 100%;
   height: 1px;
-  background-color: #eee;
+  background-color: #e5e7eb;
   z-index: 1;
 }
 
 .divider span {
   background-color: white;
   padding: 0 10px;
-  color: #aaa;
+  color: #9ca3af;
   font-size: 12px;
   position: relative;
   z-index: 2;
 }
 
+/* ── Footer text ─────────────────────────────────────────── */
 .register-footer-text {
   text-align: center;
-  color: grey;
+  color: #6b7280;
   font-size: 14px;
   margin-bottom: 0;
 }
 
 .register-footer-text a {
-  color: black;
+  color: var(--color-accent, #ff6900);
   text-decoration: none;
   font-weight: 600;
 }
@@ -186,22 +254,127 @@ body {
   text-decoration: underline;
 }
 
+/* ── Errors ──────────────────────────────────────────────── */
 .error {
-  color: red;
+  color: #ef4444;
   font-size: 12px;
   margin: 4px 0 0 2px;
 }
 
+/* ── Footer note ─────────────────────────────────────────── */
 .registerfooter {
-  margin-top: 30px;
-  color: grey;
+  margin-top: 20px;
+  color: #9ca3af;
   font-size: 12px;
   text-align: center;
   width: 90%;
 }
 
+/* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 769px) {
   .registerform {
     width: 90vw;
   }
+}
+
+/* ════════════════════════════════════════════════════════════
+   DARK MODE
+   ════════════════════════════════════════════════════════════ */
+
+body.darkmode .register-container {
+  background-color: #0d0d0d;
+}
+
+body.darkmode .registerheader h2 {
+  color: #f0f0f0;
+}
+
+body.darkmode .registerheader p {
+  color: #9ca3af;
+}
+
+body.darkmode .logo-box {
+  background-color: #222;
+}
+
+body.darkmode .registerform {
+  background-color: #1a1a1a;
+  border-color: #2d2d2d;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.darkmode .register-title {
+  color: #f0f0f0;
+}
+
+body.darkmode .registerform label {
+  color: #9ca3af;
+}
+
+body.darkmode .registerform input[type="text"],
+body.darkmode .registerform input[type="email"],
+body.darkmode .registerform input[type="password"] {
+  background-color: #252525;
+  color: #f0f0f0;
+  border-color: #3d3d3d;
+}
+
+body.darkmode .registerform input:focus {
+  background-color: #2a2a2a;
+  border-color: var(--color-accent, #ff6900);
+  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.18);
+}
+
+body.darkmode .registerform input::placeholder {
+  color: #6b7280;
+}
+
+body.darkmode .input-icon,
+body.darkmode .password-toggle {
+  color: #6b7280;
+}
+
+/* Checkbox dark mode */
+body.darkmode .terms-check input[type="checkbox"] {
+  background: #252525;
+  border-color: #4d4d4d;
+}
+
+body.darkmode .terms-check input[type="checkbox"]:checked {
+  background-color: var(--color-accent, #ff6900);
+  border-color: var(--color-accent, #ff6900);
+}
+
+body.darkmode .terms-check label,
+body.darkmode .terms-check {
+  color: #9ca3af;
+}
+
+/* Button */
+body.darkmode .register-btn {
+  background-color: #f0f0f0;
+  color: #111;
+}
+
+body.darkmode .register-btn:hover {
+  background-color: #fff;
+}
+
+/* Divider */
+body.darkmode .divider::before {
+  background-color: #2d2d2d;
+}
+
+body.darkmode .divider span {
+  background-color: #1a1a1a;
+  color: #6b7280;
+}
+
+/* Footer */
+body.darkmode .register-footer-text {
+  color: #9ca3af;
+}
+
+body.darkmode .registerfooter {
+  color: #4b5563;
 }

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Register.css';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
+
 
 const Register = () => {
   const navigate = useNavigate();
@@ -19,6 +20,17 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Auto-apply saved dark mode preference (no toggle needed on auth pages)
+  useEffect(() => {
+    if (localStorage.getItem('darkmode') === 'true') {
+      document.body.classList.add('darkmode');
+    } else {
+      document.body.classList.remove('darkmode');
+    }
+  }, []);
+
+
 
   const validateForm = () => {
     const newErrors = {};

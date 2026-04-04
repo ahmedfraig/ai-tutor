@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Login.css";
 import { useNavigate, Link } from "react-router-dom";
 import toast from 'react-hot-toast';
@@ -12,6 +12,15 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Auto-apply saved dark mode preference (no toggle needed on auth pages)
+  useEffect(() => {
+    if (localStorage.getItem('darkmode') === 'true') {
+      document.body.classList.add('darkmode');
+    } else {
+      document.body.classList.remove('darkmode');
+    }
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Nav } from "react-bootstrap";
 import UploadedFile from "./UploadedFile";
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
@@ -9,6 +8,13 @@ import Quiz from "./Quiz";
 import "./LessonContent.css";
 import apiClient from "../../api/apiClient";
 import DomPurify from 'dompurify';
+
+const TABS = [
+  { key: "overview",   label: "Overview"   },
+  { key: "quiz",       label: "Quiz"       },
+  { key: "exam",       label: "Exam"       },
+  { key: "analytics",  label: "Analytics"  },
+];
 
 function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, currentFile, onFileUpload, lessonId, lessonTitle }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -28,11 +34,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           `/ai-generations/lesson/${lessonId}?type=summary`
         );
         const records = res.data;
-        if (records.length > 0) {
-          setSummarize(records[0].content || "");
-        } else {
-          setSummarize("");
-        }
+        setSummarize(records.length > 0 ? (records[0].content || "") : "");
       } catch (error) {
         console.error("Failed to fetch summary:", error);
         setSummarize("");
@@ -44,12 +46,17 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
     fetchSummary();
   }, [lessonId]);
 
-  return (
-    <div>
-      <h5>{selectedName}</h5>
+  const displayTitle = selectedName || lessonTitle || "";
 
-      {/* Media area */}
-      <div>
+  return (
+    <div className="lesson-content-root">
+      {/* ── Title ── */}
+      {displayTitle && (
+        <h1 className="lc-title">{displayTitle}</h1>
+      )}
+
+      {/* ── Media area ── */}
+      <div className="lc-media-wrap">
         {mode === "upload" && (
           <UploadedFile
             fileName={selectedName}
@@ -63,61 +70,74 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             onUpload={onFileUpload}
           />
         )}
-        {mode === "video" && <VideoPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />}
-        {mode === "audio" && <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />}
+        {mode === "video" && (
+          <VideoPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />
+        )}
+        {mode === "audio" && (
+          <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />
+        )}
       </div>
 
-      {/* Tab nav */}
-      <Nav
-        variant="tabs"
-        className="mt-3 lesson-tabs"
-        activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k)}
-      >
-        <Nav.Item>
-          <Nav.Link eventKey="overview">Overview</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link eventKey="quiz">Quiz</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link eventKey="exam">Exam</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link eventKey="analytics">Analytics</Nav.Link>
-        </Nav.Item>
-      </Nav>
+      {/* ── Custom Tab navigation ── */}
+      <div className="lc-tabs" role="tablist">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            className={`lc-tab${activeTab === tab.key ? " lc-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Tab panels — all kept mounted to prevent API re-fetch on tab switch.
-          Visibility controlled via CSS display:none. Active panel gets
-          tab-fade-in animation via CSS keyframe. */}
-      <div className="mt-3">
+      {/* ── Tab panels ── */}
+      <div className="lc-panel-wrap">
 
-        <div className={activeTab === "overview" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
-          <strong>Lesson Summary:</strong>
+        <div
+          className={activeTab === "overview" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
+          role="tabpanel"
+        >
+          <p className="lc-section-label">Lesson Summary</p>
           {loading ? (
-            <div className="d-flex align-items-center gap-2 text-muted mt-3">
-              <div className="spinner-border spinner-border-sm" role="status" aria-label="Loading summary" />
+            <div className="lc-loading">
+              <div className="lc-spinner" role="status" aria-label="Loading summary" />
               <span>Loading summary…</span>
             </div>
           ) : summarize ? (
-            <div dangerouslySetInnerHTML={{ __html: DomPurify.sanitize(summarize) }} />
+            <div
+              className="lc-summary-body"
+              dangerouslySetInnerHTML={{ __html: DomPurify.sanitize(summarize) }}
+            />
           ) : (
-            <div className="text-muted mt-2">
-              No summary available for this lesson yet.
+            <div className="lc-empty-state">
+              <span className="lc-empty-icon">📄</span>
+              <p>No summary available for this lesson yet.</p>
+              <p className="lc-empty-sub">The AI will generate a summary once content is added.</p>
             </div>
           )}
         </div>
 
-        <div className={activeTab === "quiz" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
+        <div
+          className={activeTab === "quiz" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
+          role="tabpanel"
+        >
           <Quiz lessonId={lessonId} lessonTitle={lessonTitle} />
         </div>
 
-        <div className={activeTab === "exam" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
+        <div
+          className={activeTab === "exam" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
+          role="tabpanel"
+        >
           <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} />
         </div>
 
-        <div className={activeTab === "analytics" ? "tab-panel tab-panel--active" : "tab-panel tab-panel--hidden"}>
+        <div
+          className={activeTab === "analytics" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
+          role="tabpanel"
+        >
           <AnalyticsSection lessonId={lessonId} />
         </div>
 
