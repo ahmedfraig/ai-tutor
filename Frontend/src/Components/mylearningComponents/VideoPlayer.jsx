@@ -95,6 +95,18 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
   const [isChecking, setIsChecking] = useState(false);
   const [checkMsg, setCheckMsg]     = useState("");
 
+  // Reliable mobile detection — uses matchMedia (same engine as CSS media queries)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    setIsMobile(mql.matches);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
   const label = title || "AI-Generated Video";
 
   // Sync local path when the parent selects a different video
@@ -188,15 +200,43 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
     );
   }
 
-  /* ── Case 4: Google Drive URL — embed with Drive viewer iframe */
+  /* ── Case 4: Google Drive URL ─────────────────────────────────────
+     Desktop → Drive /preview iframe (works fine at wide widths)
+     Mobile  → Native <video> via our backend stream proxy
+               (avoids Drive's broken iframe controls on mobile)
+     ──────────────────────────────────────────────────────────────── */
   if (driveId) {
-    // Use the Drive /preview embed — this is the reliable viewer that
-    // never errors with "temporarily unavailable" unlike the stream/direct URLs
     const driveEmbedUrl = `https://drive.google.com/file/d/${driveId}/preview`;
     const driveViewUrl  = `https://drive.google.com/file/d/${driveId}/view`;
+    // Our backend proxies the video through Drive API — handles auth + Range headers
+    // Native <video> can't send Authorization headers, so we pass the JWT in the URL
+    const authToken = localStorage.getItem('token');
+    const streamUrl = (fileId && authToken)
+      ? `${BASE_URL}/api/lesson-files/stream/${fileId}?token=${encodeURIComponent(authToken)}`
+      : null;
 
+    // ── Mobile: native <video> via backend stream proxy ──────────
+    if (isMobile && streamUrl) {
+      return (
+        <div className="vp-wrap vp-wrap--native">
+          <video
+            key={streamUrl}
+            className="vp-video"
+            controls
+            preload="metadata"
+            playsInline
+            aria-label={label}
+          >
+            <source src={streamUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+    }
+
+    // ── Desktop: Drive /preview iframe (controls work fine at wide widths) ──
     return (
-      <div className="vp-wrap">
+      <div className="vp-wrap vp-wrap--drive">
         {!iframeLoaded && !iframeError && <LoadingOverlay />}
         {iframeError ? (
           <StateBox
@@ -228,20 +268,21 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
             }
           />
         ) : (
-          <iframe
-            key={driveEmbedUrl}
-            className="vp-iframe"
-            src={driveEmbedUrl}
-            title={label}
-            scrolling="no"
-            allow="autoplay"
-            allowFullScreen
-            onLoad={() => setIframeLoaded(true)}
-            onError={() => setIframeError(true)}
-            style={{ opacity: iframeLoaded ? 1 : 0 }}
-          />
+          <div className="vp-drive-container">
+            <iframe
+              key={driveEmbedUrl}
+              className="vp-drive-iframe"
+              src={driveEmbedUrl}
+              title={label}
+              scrolling="no"
+              allow="autoplay"
+              allowFullScreen
+              onLoad={() => setIframeLoaded(true)}
+              onError={() => setIframeError(true)}
+              style={{ opacity: iframeLoaded ? 1 : 0 }}
+            />
+          </div>
         )}
-        {/* External link shown on hover */}
         {!iframeError && (
           <a
             className="vp-external-link"

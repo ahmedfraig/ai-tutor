@@ -6,22 +6,24 @@
   <video> element controls its own height via aspect-ratio.
 */
 
-/* ── Outer shell — visual only, NO explicit height ────────────── */
+/* ── Outer shell ──────────────────────────────────────────────── */
 .vp-wrap {
   position: relative;
   width: 100%;
   background: #000;
   border-radius: 14px;
+  /* overflow:hidden clips Drive's leaking chrome (white strip at bottom)
+     and prevents black corner gaps from border-radius on the iframe */
   overflow: hidden;
   line-height: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
-/* On small screens: allow the iframe player controls to fully render
-   without being clipped by overflow:hidden ─────────────────────── */
 @media (max-width: 600px) {
   .vp-wrap {
-    overflow: visible;
+    /* Keep overflow:hidden on mobile too — prevents the white strip leak.
+       The extra iframe height below gives Drive enough room so nothing
+       needs to overflow. */
     border-radius: 10px;
   }
 }
@@ -36,34 +38,67 @@
   max-height: 70vh;
   object-fit: contain;
   background: #000;
-  border-radius: 14px;
+  border-radius: inherit;
   transition: opacity 0.3s ease;
 }
 
-/* ── Embedded iframe (YouTube / Drive preview) ───────────────── */
+/* When using native <video>, DON'T clip overflow — otherwise Chrome
+   adds a secondary thin progress bar when its controls get clipped */
+.vp-wrap--native {
+  overflow: visible;
+}
+
+@media (max-width: 768px) {
+  .vp-wrap--native .vp-video {
+    max-height: none; /* parent scrolls, so no cap needed */
+    border-radius: 10px;
+  }
+}
+
+/* ── Embedded iframe — YouTube (uses direct sizing) ─────────── */
 .vp-iframe {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  /* Drive's player controls need at least 310px height to render correctly.
-     Below this, the progress bar floats to the top and buttons misalign. */
-  min-height: 310px;
+  min-height: 340px;
   max-height: 70vh;
   border: none;
-  border-radius: 14px;
+  border-radius: inherit;
   background: #000;
   transition: opacity 0.3s ease;
 }
 
-/* Small screens: use a fixed height formula instead of min-height alone.
-   max(310px, 56.25vw) = whichever is bigger — ensures enough space. */
 @media (max-width: 600px) {
   .vp-iframe {
     aspect-ratio: unset;
-    height: max(310px, 56.25vw);
-    min-height: 310px;
-    border-radius: 10px;
+    height: max(300px, 56.25vw);
+    min-height: 300px;
+    max-height: none;
+    border-radius: inherit;
   }
+}
+
+/* ── Google Drive embed — padding-bottom responsive wrapper ──── */
+
+.vp-drive-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 */
+  overflow: hidden;
+  border-radius: inherit;
+  background: #000;
+}
+
+.vp-drive-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: inherit;
+  transition: opacity 0.3s ease;
 }
 
 

@@ -4,28 +4,29 @@ const jwt = require('jsonwebtoken');
 const protect = (req, res, next) => {
     let token;
 
-    // 1. Check if the Authorization header exists and starts with "Bearer"
+    // 1. Check Authorization header (normal API calls via Axios)
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            // 2. Extract the token (Header format is "Bearer <token_string>")
-            token = req.headers.authorization.split(' ')[1];
+        token = req.headers.authorization.split(' ')[1];
+    }
 
-            // 3. Verify the token using your secret key
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-
-            // 4. Attach the decoded user ID to the request object so the controller can use it
-            req.user = decoded; 
-
-            // 5. Let the request pass to the next function (the controller)
-            next();
-        } catch (error) {
-            console.error("Token verification failed:", error.message);
-            res.status(401).json({ message: "Not authorized, token failed" });
-        }
+    // 2. Fallback: check ?token= query parameter
+    //    Native <video>/<audio> elements can't send Authorization headers,
+    //    so the frontend passes the JWT as a query parameter for stream URLs.
+    if (!token && req.query.token) {
+        token = req.query.token;
     }
 
     if (!token) {
-        res.status(401).json({ message: "Not authorized, no token provided" });
+        return res.status(401).json({ message: "Not authorized, no token provided" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
+        req.user = decoded;
+        next();
+    } catch (error) {
+        console.error("Token verification failed:", error.message);
+        res.status(401).json({ message: "Not authorized, token failed" });
     }
 };
 
