@@ -137,7 +137,7 @@ function Lesson() {
             lessonId={lessonId}
             lessonTitle={lessonTitle}
           />
-          <AITutorPanel lessonTitle={lessonTitle} />
+          <AITutorPanel lessonId={lessonId} lessonTitle={lessonTitle} />
         </main>
       </div>
 

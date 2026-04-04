@@ -44,6 +44,7 @@ const StatCard = ({ icon, iconColor, label, value, progress, mounted }) => (
 /* ── Main component ─────────────────────────────────────────────── */
 const AnalyticsSection = ({ lessonId }) => {
   const [data, setData] = useState(null);
+  const [fileCounts, setFileCounts] = useState({ videos: 0, audios: 0, quizzes: 0 });
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -55,20 +56,39 @@ const AnalyticsSection = ({ lessonId }) => {
   useEffect(() => {
     if (!lessonId) { setLoading(false); return; }
 
-    const fetch_ = async () => {
+    const fetchAll = async () => {
       try {
-        const res = await apiClient.get(`/user-lessons/${lessonId}`);
-        setData(res.data);
+        // Fetch user-lesson tracking + lesson files in parallel
+        const [trackingRes, filesRes, genRes] = await Promise.all([
+          apiClient.get(`/user-lessons/${lessonId}`).catch(() => ({ data: null })),
+          apiClient.get(`/lesson-files/${lessonId}`).catch(() => ({ data: [] })),
+          apiClient.get(`/ai-generations/lesson/${lessonId}`).catch(() => ({ data: [] })),
+        ]);
+
+        setData(trackingRes.data);
+
+        // Count files by type dynamically
+        const files = filesRes.data || [];
+        const videoCount = files.filter(f => f.type === 'video').length;
+        const audioCount = files.filter(f => f.type === 'audio').length;
+
+        // Count quiz/exam generations
+        const gens = genRes.data || [];
+        const quizCount = gens.filter(g => g.type === 'quiz').length;
+
+        setFileCounts({
+          videos: videoCount,
+          audios: audioCount,
+          quizzes: quizCount,
+        });
       } catch (err) {
-        if (err.response?.status !== 404) {
-          console.error('Failed to fetch analytics:', err);
-        }
+        console.error('Failed to fetch analytics:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetch_();
+    fetchAll();
   }, [lessonId]);
 
   if (loading) {
@@ -87,13 +107,21 @@ const AnalyticsSection = ({ lessonId }) => {
 
   const videosWatched   = Number(data?.videos_watched_count) || 0;
   const quizScore       = Number(data?.quiz_score) || 0;
+  const examScore       = Number(data?.exam_score) || 0;
   const practiceOk      = !!data?.practice_completed;
 
-  const rawCompletion   =
-    (Math.min(videosWatched, 2) / 2) * 0.4 +
-    (practiceOk ? 1 : 0) * 0.3 +
-    (quizScore / 100) * 0.3;
-  const completion      = Number.isNaN(rawCompletion) ? 0 : Math.round(rawCompletion * 100);
+  // Dynamic totals from actual lesson files
+  const totalVideos     = Math.max(fileCounts.videos, 1); // min 1 to avoid /0
+  const totalAudios     = Math.max(fileCounts.audios, 1);
+  const totalQuizzes    = Math.max(fileCounts.quizzes, 1);
+
+  // Weighted completion: 30% videos, 25% quiz, 25% exam, 20% practice
+  const vPct = Math.min(videosWatched / totalVideos, 1) * 30;
+  const qPct = (quizScore / 100) * 25;
+  const ePct = (examScore / 100) * 25;
+  const pPct = practiceOk ? 20 : 0;
+  const rawCompletion = vPct + qPct + ePct + pPct;
+  const completion = Number.isNaN(rawCompletion) ? 0 : Math.round(rawCompletion);
 
   return (
     <div className="as-root">
@@ -129,9 +157,9 @@ const AnalyticsSection = ({ lessonId }) => {
           <h4 className="as-progress-title">Learning Progress</h4>
         </div>
 
-        <ProgressRow label="Videos Watched"  current={videosWatched} total={2} />
-        <ProgressRow label="Audio Lessons"   current={0}             total={1} />
-        <ProgressRow label="Practice Quizzes" current={practiceOk ? 1 : 0} total={3} />
+        <ProgressRow label="Videos Watched"   current={videosWatched}       total={totalVideos} />
+        <ProgressRow label="Audio Lessons"    current={0}                    total={totalAudios} />
+        <ProgressRow label="Practice Quizzes" current={practiceOk ? 1 : 0}  total={totalQuizzes} />
       </div>
 
     </div>

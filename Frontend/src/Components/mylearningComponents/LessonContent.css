@@ -234,3 +234,155 @@
     padding: 4px;
   }
 }
+
+/* ── Section header (label + action buttons) ──────────────────── */
+.lc-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lc-section-header .lc-section-label {
+  margin: 0;
+}
+
+/* ── Generate / Regenerate button ─────────────────────────────── */
+.lc-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-accent, #ff6900);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, opacity 0.2s;
+}
+
+.lc-generate-btn:hover:not(:disabled) {
+  background: #e55d00;
+  transform: translateY(-1px);
+}
+
+.lc-generate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lc-generate-btn--small {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-accent, #ff6900);
+  border: 1px solid var(--color-accent, #ff6900);
+}
+
+.lc-generate-btn--small:hover:not(:disabled) {
+  background: var(--color-accent, #ff6900);
+  color: #fff;
+}
+
+/* ── Quiz generate text link ──────────────────────────────────── */
+.quiz-cta-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.quiz-generate-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-accent, #ff6900);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.quiz-generate-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Dark mode adjustments ────────────────────────────────────── */
+body.darkmode .lc-generate-btn--small {
+  color: #ff8533;
+  border-color: #ff8533;
+}
+
+body.darkmode .quiz-generate-link {
+  color: #ff8533;
+}
+
+/* ── Inline error toast ───────────────────────────────────────── */
+.lc-error-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  color: #991b1b;
+  animation: lc-toast-in 0.3s ease-out;
+}
+
+@keyframes lc-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lc-error-toast__icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.lc-error-toast__msg {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.lc-error-toast__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #991b1b;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.lc-error-toast__close:hover {
+  background: rgba(153, 27, 27, 0.1);
+}
+
+/* Dark mode toast */
+body.darkmode .lc-error-toast {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #fca5a5;
+}
+
+body.darkmode .lc-error-toast__close {
+  color: #fca5a5;
+}
+
+body.darkmode .lc-error-toast__close:hover {
+  background: rgba(252, 165, 165, 0.12);
+}

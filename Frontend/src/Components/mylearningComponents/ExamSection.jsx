@@ -6,7 +6,7 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import { PiMedalDuotone } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 
-const ExamSection = ({ lessonId, lessonTitle }) => {
+const ExamSection = ({ lessonId, lessonTitle, onGenerate, generating }) => {
   const navigate = useNavigate();
 
   return (
@@ -36,20 +36,31 @@ const ExamSection = ({ lessonId, lessonTitle }) => {
             </span>
           </div>
 
-          <Button
-            className="w-100 fw-bold py-1 exam-start-btn"
-            style={{
-              backgroundColor: 'var(--color-accent, #ff6900)',
-              borderColor: 'var(--color-accent, #ff6900)',
-              color: '#fff',
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/examstart", { state: { lessonId, lessonTitle } });
-            }}
-          >
-            Start Exam
-          </Button>
+          <div className="d-flex flex-column align-items-center gap-2">
+            <Button
+              className="w-100 fw-bold py-1 exam-start-btn"
+              style={{
+                backgroundColor: 'var(--color-accent, #ff6900)',
+                borderColor: 'var(--color-accent, #ff6900)',
+                color: '#fff',
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/examstart", { state: { lessonId, lessonTitle } });
+              }}
+            >
+              Start Exam
+            </Button>
+            {onGenerate && (
+              <button
+                className="quiz-generate-link"
+                onClick={onGenerate}
+                disabled={!!generating}
+              >
+                {generating === 'exam' ? '⏳ Generating…' : '✨ Generate New Exam'}
+              </button>
+            )}
+          </div>
         </Card.Body>
       </Card>
     </Container>

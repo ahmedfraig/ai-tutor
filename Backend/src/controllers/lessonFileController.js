@@ -171,6 +171,53 @@ const uploadFile = async (req, res) => {
         );
 
         res.status(201).json(result.rows[0]);
+
+        // ── Option C: Auto-generate summary in the background ────────
+        // Fire-and-forget — don't block the upload response
+        const aiService = require('../services/aiService');
+        (async () => {
+            try {
+                const aiReady = await aiService.isAvailable();
+                if (!aiReady) {
+                    console.log('[auto-summary] AI service not available, skipping.');
+                    return;
+                }
+
+                // Check if summary already exists for this lesson
+                const existingSummary = await db.query(
+                    `SELECT id FROM ai_generations
+                     WHERE user_id = $1 AND lesson_id = $2 AND type = 'summary'`,
+                    [userId, lesson_id]
+                );
+
+                // Call AI to generate/regenerate summary
+                const summary = await aiService.callSummarize('', String(userId), String(lesson_id));
+                if (!summary) {
+                    console.log('[auto-summary] AI returned no summary.');
+                    return;
+                }
+
+                const summaryText = typeof summary === 'string' ? summary : JSON.stringify(summary);
+
+                if (existingSummary.rows.length > 0) {
+                    await db.query(
+                        `UPDATE ai_generations SET content = $1 WHERE id = $2`,
+                        [summaryText, existingSummary.rows[0].id]
+                    );
+                    console.log(`[auto-summary] Updated summary for lesson ${lesson_id}`);
+                } else {
+                    await db.query(
+                        `INSERT INTO ai_generations (user_id, lesson_id, type, content)
+                         VALUES ($1, $2, 'summary', $3)`,
+                        [userId, lesson_id, summaryText]
+                    );
+                    console.log(`[auto-summary] Created summary for lesson ${lesson_id}`);
+                }
+            } catch (err) {
+                console.error('[auto-summary] Background generation failed:', err.message);
+            }
+        })();
+
     } catch (error) {
         console.error('Error in uploadFile:', error);
         res.status(500).json({ message: 'Internal Server Error' });

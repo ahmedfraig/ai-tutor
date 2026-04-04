@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import "./Home.css";
 import apiClient from "../api/apiClient";
 
 const Home = () => {
-  // Read user from localStorage (saved at login)
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user")) || {};
   const username = user.full_name || "User";
 
@@ -27,13 +28,21 @@ const Home = () => {
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const studyTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
+        // Calculate streak from unique days with last_entered
+        const uniqueDays = new Set(
+          records
+            .filter(r => r.last_entered)
+            .map(r => new Date(r.last_entered).toDateString())
+        );
+        const streak = uniqueDays.size;
+
         // Find the most recently accessed lesson
         const sorted = [...records].sort((a, b) =>
           new Date(b.last_entered || 0) - new Date(a.last_entered || 0)
         );
         const recent = sorted[0] || null;
 
-        setStats({ studyTime: studyTime || '0m', sessions, streak: sessions });
+        setStats({ studyTime: studyTime || '0m', sessions, streak });
         setLastLesson(recent);
       } catch (err) {
         console.error("Failed to fetch stats:", err);
@@ -44,6 +53,39 @@ const Home = () => {
 
     fetchStats();
   }, []);
+
+  // ── Calculate dynamic progress ──
+  const getProgressPercent = () => {
+    if (!lastLesson) return 0;
+    const videosWatched = Number(lastLesson.videos_watched_count) || 0;
+    const quizScore = Number(lastLesson.quiz_score) || 0;
+    const examScore = Number(lastLesson.exam_score) || 0;
+    const practiceOk = !!lastLesson.practice_completed;
+
+    // Weighted: 30% videos, 25% quiz, 25% exam, 20% practice
+    const vPct = Math.min(videosWatched / 2, 1) * 30;
+    const qPct = (quizScore / 100) * 25;
+    const ePct = (examScore / 100) * 25;
+    const pPct = practiceOk ? 20 : 0;
+
+    return Math.round(vPct + qPct + ePct + pPct);
+  };
+
+  const progress = getProgressPercent();
+  const progressLabel = progress >= 100 ? "Completed" : progress > 0 ? "In Progress" : "Not Started";
+
+  const handleContinue = () => {
+    if (lastLesson) {
+      navigate("/lesson", {
+        state: {
+          lessonId: lastLesson.lesson_id,
+          lessonTitle: lastLesson.lesson_title,
+        },
+      });
+    } else {
+      navigate("/mylearning");
+    }
+  };
 
   return (
     <>
@@ -66,11 +108,11 @@ const Home = () => {
                     
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <span className="text-muted">Progress</span>
-                      <span className="text-muted">{lastLesson ? (lastLesson.practice_completed ? "100%" : "In Progress") : "0%"}</span>
+                      <span className="text-muted">{progressLabel}</span>
                     </div>
                     
                     <div className="progress mb-3" style={{ height: '10px', borderRadius: '5px', backgroundColor: 'rgba(128,128,128,0.2)' }}>
-                      <div className="progress-bar rounded" style={{ width: lastLesson ? (lastLesson.practice_completed ? '100%' : '50%') : '0%', backgroundColor: 'var(--color-accent, #ff6900)' }}></div>
+                      <div className="progress-bar rounded" style={{ width: `${progress}%`, backgroundColor: 'var(--color-accent, #ff6900)' }}></div>
                     </div>
                     
                     <p className="text-muted mb-0" style={{ fontSize: '0.95rem' }}>
@@ -80,7 +122,11 @@ const Home = () => {
                 </div>
 
                 <div className="d-flex justify-content-start justify-content-md-end align-items-center mt-3 mt-md-0 ms-md-4">
-                  <button className="btn btn-accent rounded-3 px-4 py-3 d-flex align-items-center hover-scale" style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.1rem' }}>
+                  <button
+                    className="btn btn-accent rounded-3 px-4 py-3 d-flex align-items-center hover-scale"
+                    style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.1rem' }}
+                    onClick={handleContinue}
+                  >
                     <i className="bi bi-caret-right fs-5 me-2"></i> Continue
                   </button>
                 </div>

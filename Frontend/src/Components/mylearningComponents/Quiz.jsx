@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Quiz.css';
 
-function Quiz({ lessonId, lessonTitle }) {
+function Quiz({ lessonId, lessonTitle, onGenerate, generating }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,17 +20,28 @@ function Quiz({ lessonId, lessonTitle }) {
         <p className="quiz-cta-desc">
           Take a flashcard quiz to reinforce what you've learned in this lesson.
         </p>
-        <button
-          className="quiz-start-btn"
-          onClick={() => navigate("/flashcardquiz", {
-            state: { ...(location.state || {}), lessonId, lessonTitle }
-          })}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Start Quiz
-        </button>
+        <div className="quiz-cta-actions">
+          <button
+            className="quiz-start-btn"
+            onClick={() => navigate("/flashcardquiz", {
+              state: { ...(location.state || {}), lessonId, lessonTitle }
+            })}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Start Quiz
+          </button>
+          {onGenerate && (
+            <button
+              className="quiz-generate-link"
+              onClick={onGenerate}
+              disabled={!!generating}
+            >
+              {generating === 'quiz' ? '⏳ Generating…' : '✨ Generate New Quiz'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

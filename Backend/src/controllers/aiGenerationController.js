@@ -193,6 +193,195 @@ const deleteAiGeneration = async (req, res) => {
     }
 };
 
+// ── AI Generation Trigger ─────────────────────────────────────────
+// POST /api/ai-generations/trigger
+// Orchestrates: fetch source text → call FastAPI → store results
+const aiService = require('../services/aiService');
+const drive = require('../config/googleDrive');
+
+/**
+ * Extract the Google Drive file ID from a stored URL.
+ */
+function extractDriveFileId(url) {
+    if (!url) return null;
+    try {
+        const idParam = new URL(url).searchParams.get('id');
+        if (idParam) return idParam;
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Download text content from a Google Drive file.
+ * For PDFs/images, the AI team's OCR will handle extraction.
+ * For text files, we read directly.
+ */
+async function getFileTextFromDrive(driveFileId) {
+    try {
+        const res = await drive.files.get(
+            { fileId: driveFileId, alt: 'media' },
+            { responseType: 'arraybuffer', timeout: 30000 }
+        );
+        // Return as buffer — caller decides how to use it
+        return Buffer.from(res.data);
+    } catch (err) {
+        console.error('[trigger] Failed to download file from Drive:', err.message);
+        return null;
+    }
+}
+
+const triggerAiGeneration = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { lesson_id, types, source_file_ids } = req.body;
+
+        // Validation
+        if (!lesson_id) {
+            return res.status(400).json({ message: 'lesson_id is required' });
+        }
+
+        const validTypes = ['summary', 'quiz', 'exam'];
+        const requestedTypes = Array.isArray(types) ? types.filter(t => validTypes.includes(t)) : ['summary'];
+
+        if (requestedTypes.length === 0) {
+            return res.status(400).json({ message: `types must include at least one of: ${validTypes.join(', ')}` });
+        }
+
+        // Check if AI service is available
+        const aiReady = await aiService.isAvailable();
+        if (!aiReady) {
+            return res.status(503).json({
+                message: 'AI service is not available. Please try again later.',
+                hint: `Expected at ${aiService.AI_API_URL}`,
+            });
+        }
+
+        // Get source files from DB
+        let sourceText = '';
+
+        if (source_file_ids && source_file_ids.length > 0) {
+            // Specific files selected by user
+            const placeholders = source_file_ids.map((_, i) => `$${i + 3}`).join(',');
+            const filesResult = await db.query(
+                `SELECT * FROM lesson_files
+                 WHERE lesson_id = $1 AND user_id = $2 AND id IN (${placeholders})
+                 ORDER BY created_at ASC`,
+                [lesson_id, userId, ...source_file_ids]
+            );
+
+            // For now, we send the file IDs to the AI service
+            // The AI team's OCR has already processed these files
+            // and stored the text in their vector DB.
+            // We just need to tell the AI which lesson to use.
+            for (const file of filesResult.rows) {
+                const driveId = extractDriveFileId(file.file_path);
+                if (driveId) {
+                    // The AI team's vector DB already has OCR text for this lesson
+                    // We just need any text to pass — the vector DB handles retrieval
+                }
+            }
+        }
+
+        // Call AI service for each requested type and store results
+        const results = {};
+
+        for (const type of requestedTypes) {
+            // Check if already generated (skip if exists)
+            const existing = await db.query(
+                `SELECT id FROM ai_generations
+                 WHERE user_id = $1 AND lesson_id = $2 AND type = $3`,
+                [userId, lesson_id, type]
+            );
+
+            let content = null;
+
+            if (type === 'summary') {
+                const result = await aiService.callSummarize(sourceText, String(userId), String(lesson_id));
+                content = typeof result === 'string' ? result : JSON.stringify(result);
+            } else if (type === 'quiz') {
+                const result = await aiService.callFlipCards(sourceText, String(userId), String(lesson_id));
+                content = result ? JSON.stringify(result) : null;
+            } else if (type === 'exam') {
+                const result = await aiService.callQuestions(sourceText, String(userId), String(lesson_id));
+                content = result ? JSON.stringify(result) : null;
+            }
+
+            if (content) {
+                if (existing.rows.length > 0) {
+                    // Update existing record
+                    await db.query(
+                        `UPDATE ai_generations SET content = $1 WHERE id = $2`,
+                        [content, existing.rows[0].id]
+                    );
+                    results[type] = { status: 'updated', id: existing.rows[0].id };
+                } else {
+                    // Insert new record
+                    const insertResult = await db.query(
+                        `INSERT INTO ai_generations (user_id, lesson_id, type, content)
+                         VALUES ($1, $2, $3, $4) RETURNING id`,
+                        [userId, lesson_id, type, content]
+                    );
+                    results[type] = { status: 'created', id: insertResult.rows[0].id };
+                }
+            } else {
+                results[type] = { status: 'failed', error: 'AI service returned no content' };
+            }
+        }
+
+        res.status(200).json({
+            message: 'AI generation complete',
+            results,
+        });
+
+    } catch (error) {
+        console.error('Error in triggerAiGeneration:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// GET /api/ai-generations/status/:lessonId
+// Returns which content types exist for a lesson
+const getAiGenerationStatus = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { lessonId } = req.params;
+
+        const result = await db.query(
+            `SELECT type, id, created_at FROM ai_generations
+             WHERE user_id = $1 AND lesson_id = $2
+             ORDER BY type ASC`,
+            [userId, lessonId]
+        );
+
+        const status = {
+            summary: null,
+            quiz: null,
+            exam: null,
+        };
+
+        for (const row of result.rows) {
+            status[row.type] = {
+                id: row.id,
+                generated_at: row.created_at,
+            };
+        }
+
+        // Check if AI service is reachable
+        const aiAvailable = await aiService.isAvailable();
+
+        res.status(200).json({
+            ...status,
+            ai_service_available: aiAvailable,
+        });
+    } catch (error) {
+        console.error('Error in getAiGenerationStatus:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     getAiGenerations,
     getAiGenerationsByLesson,
@@ -200,4 +389,6 @@ module.exports = {
     createAiGeneration,
     updateAiGeneration,
     deleteAiGeneration,
+    triggerAiGeneration,
+    getAiGenerationStatus,
 };

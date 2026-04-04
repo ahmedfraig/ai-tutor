@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import UploadedFile from "./UploadedFile";
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
@@ -20,6 +20,9 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
   const [activeTab, setActiveTab] = useState("overview");
   const [summarize, setSummarize] = useState("");
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(null); // which type is being generated
+  const [errorToast, setErrorToast] = useState(null);
+  const toastTimerRef = useRef(null);
 
   useEffect(() => {
     if (!lessonId) {
@@ -45,6 +48,34 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
 
     fetchSummary();
   }, [lessonId]);
+
+  // ── Trigger AI generation for a specific type ──────────────────
+  const triggerGeneration = useCallback(async (type) => {
+    if (!lessonId || generating) return;
+    setGenerating(type);
+    try {
+      await apiClient.post('/ai-generations/trigger', {
+        lesson_id: lessonId,
+        types: [type],
+      });
+      // Refresh summary if that's what was generated
+      if (type === 'summary') {
+        const res = await apiClient.get(
+          `/ai-generations/lesson/${lessonId}?type=summary`
+        );
+        const records = res.data;
+        setSummarize(records.length > 0 ? (records[0].content || "") : "");
+      }
+    } catch (error) {
+      console.error(`Failed to generate ${type}:`, error);
+      const msg = error.response?.data?.message || 'Generation failed';
+      setErrorToast(msg);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setErrorToast(null), 5000);
+    } finally {
+      setGenerating(null);
+    }
+  }, [lessonId, generating]);
 
   const displayTitle = selectedName || lessonTitle || "";
 
@@ -100,11 +131,27 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           className={activeTab === "overview" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
         >
-          <p className="lc-section-label">Lesson Summary</p>
+          <div className="lc-section-header">
+            <p className="lc-section-label">Lesson Summary</p>
+            {summarize && !loading && (
+              <button
+                className="lc-generate-btn lc-generate-btn--small"
+                onClick={() => triggerGeneration('summary')}
+                disabled={!!generating}
+              >
+                {generating === 'summary' ? '⏳ Regenerating…' : '🔄 Regenerate'}
+              </button>
+            )}
+          </div>
           {loading ? (
             <div className="lc-loading">
               <div className="lc-spinner" role="status" aria-label="Loading summary" />
               <span>Loading summary…</span>
+            </div>
+          ) : generating === 'summary' ? (
+            <div className="lc-loading">
+              <div className="lc-spinner" role="status" aria-label="Generating summary" />
+              <span>AI is generating your summary…</span>
             </div>
           ) : summarize ? (
             <div
@@ -115,7 +162,14 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             <div className="lc-empty-state">
               <span className="lc-empty-icon">📄</span>
               <p>No summary available for this lesson yet.</p>
-              <p className="lc-empty-sub">The AI will generate a summary once content is added.</p>
+              <button
+                className="lc-generate-btn"
+                onClick={() => triggerGeneration('summary')}
+                disabled={!!generating}
+              >
+                {generating === 'summary' ? '⏳ Generating…' : '✨ Generate Summary'}
+              </button>
+              <p className="lc-empty-sub">Upload files first, then generate a summary with AI.</p>
             </div>
           )}
         </div>
@@ -124,14 +178,14 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           className={activeTab === "quiz" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
         >
-          <Quiz lessonId={lessonId} lessonTitle={lessonTitle} />
+          <Quiz lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={() => triggerGeneration('quiz')} generating={generating} />
         </div>
 
         <div
           className={activeTab === "exam" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
         >
-          <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} />
+          <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={() => triggerGeneration('exam')} generating={generating} />
         </div>
 
         <div
@@ -142,6 +196,15 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
         </div>
 
       </div>
+
+      {/* ── Inline error toast ── */}
+      {errorToast && (
+        <div className="lc-error-toast">
+          <span className="lc-error-toast__icon">⚠️</span>
+          <span className="lc-error-toast__msg">{errorToast}</span>
+          <button className="lc-error-toast__close" onClick={() => setErrorToast(null)} aria-label="Dismiss">✕</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,22 +4,23 @@ import { LuSend } from 'react-icons/lu';
 import { BsX } from "react-icons/bs";
 import { BsRobot } from 'react-icons/bs';
 import { motion, AnimatePresence } from "framer-motion";
+import apiClient from "../../api/apiClient";
 
 const EASE_OUT_QUART = [0.25, 1, 0.5, 1];
 
-const AITutorPanel = () => {
+const AITutorPanel = ({ lessonId, lessonTitle }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm your AI Tutor. Ask me anything about Newton's Second Law!",
+      text: "Hi! I'm your AI Tutor. Ask me anything about this lesson!",
       sender: "tutor",
     },
   ]);
   const [inputValue, setInputValue] = useState("");
-  const [isSending, setIsSending] = useState(false); // prevents double-send
+  const [isSending, setIsSending] = useState(false);
   const bodyRef = useRef(null);
-  const timerRef = useRef(null); // tracks pending reply timer for cleanup
+  const abortRef = useRef(null); // AbortController for pending request
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -28,38 +29,76 @@ const AITutorPanel = () => {
     }
   }, [messages]);
 
-  // Cancel any pending reply timer on unmount (prevents memory leak)
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (abortRef.current) abortRef.current.abort();
     };
   }, []);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (inputValue.trim() === "" || isSending) return;
 
-    const newMessage = {
+    const userMessage = {
       id: Date.now(),
       text: inputValue.trim(),
       sender: "user",
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
-    setIsSending(true); // block further sends until reply arrives
+    setIsSending(true);
 
-    // -- Demo auto-reply ---
-    timerRef.current = setTimeout(() => {
+    // Show typing indicator
+    const typingId = Date.now() + 1;
+    setMessages((prev) => [...prev, { id: typingId, text: "Thinking…", sender: "tutor", isTyping: true }]);
+
+    try {
+      // Try calling the AI chat endpoint
+      abortRef.current = new AbortController();
+      const res = await apiClient.post('/ai-generations/chat', {
+        lesson_id: lessonId,
+        message: userMessage.text,
+      }, { signal: abortRef.current.signal });
+
+      // Remove typing indicator and add real response
       setMessages((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== typingId),
         {
-          id: Date.now() + 1,
-          text: "That's a great question! Newton's Second Law is represented by the formula F = ma.",
+          id: Date.now() + 2,
+          text: res.data?.reply || res.data?.message || "I received your question!",
           sender: "tutor",
         },
       ]);
-      setIsSending(false); // unblock sends after reply
-    }, 1000);
+    } catch (error) {
+      // Remove typing indicator
+      setMessages((prev) => prev.filter((m) => m.id !== typingId));
+
+      if (error.name === 'CanceledError') return;
+
+      // If endpoint doesn't exist yet (404), show demo response
+      if (error.response?.status === 404 || error.response?.status === 503) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 2,
+            text: "🚧 The AI chat feature is coming soon! The AI team is working on connecting the chat endpoint.",
+            sender: "tutor",
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 2,
+            text: "Sorry, I couldn't process that. Please try again.",
+            sender: "tutor",
+          },
+        ]);
+      }
+    } finally {
+      setIsSending(false);
+    }
   };
 
 
@@ -99,7 +138,7 @@ const AITutorPanel = () => {
           <div className="ai-icon">🤖</div>
           <div className="ai-header-text">
             <div className="fw-bold">Ask AI Tutor</div>
-            <small className="text-muted">Always here to help</small>
+            <small className="text-muted">{lessonTitle || 'Always here to help'}</small>
           </div>
           <button
             className="btn ai-close-btn"
@@ -124,7 +163,7 @@ const AITutorPanel = () => {
               key={msg.id}
               className={`ai-bubble mb-2 ${
                 msg.sender === "user" ? "user-bubble ms-auto" : "ai-bubble-msg me-auto"
-              }`}
+              } ${msg.isTyping ? "typing-indicator" : ""}`}
             >
               {msg.text}
             </div>
@@ -160,7 +199,7 @@ const AITutorPanel = () => {
 
         {/* Note */}
         <div className="text-center text-muted ai-note mt-1 mb-2">
-          AI responses are generated for demonstration
+          AI responses are powered by your lesson content
         </div>
       </div>
     </>
