@@ -95,18 +95,6 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
   const [isChecking, setIsChecking] = useState(false);
   const [checkMsg, setCheckMsg]     = useState("");
 
-  // Reliable mobile detection — uses matchMedia (same engine as CSS media queries)
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
-  );
-  useEffect(() => {
-    const mql = window.matchMedia('(max-width: 768px)');
-    const handler = (e) => setIsMobile(e.matches);
-    mql.addEventListener('change', handler);
-    setIsMobile(mql.matches);
-    return () => mql.removeEventListener('change', handler);
-  }, []);
-
   const label = title || "AI-Generated Video";
 
   // Sync local path when the parent selects a different video
@@ -201,22 +189,20 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
   }
 
   /* ── Case 4: Google Drive URL ─────────────────────────────────────
-     Desktop → Drive /preview iframe (works fine at wide widths)
-     Mobile  → Native <video> via our backend stream proxy
-               (avoids Drive's broken iframe controls on mobile)
+     Always use native <video> via our backend stream proxy.
+     The Drive /preview iframe is unreliable — Google throttles and
+     blocks playback with 403s. Our backend proxies via Drive API
+     (service account auth) which is never rate-limited the same way.
      ──────────────────────────────────────────────────────────────── */
   if (driveId) {
-    const driveEmbedUrl = `https://drive.google.com/file/d/${driveId}/preview`;
-    const driveViewUrl  = `https://drive.google.com/file/d/${driveId}/view`;
-    // Our backend proxies the video through Drive API — handles auth + Range headers
+    const driveViewUrl = `https://drive.google.com/file/d/${driveId}/view`;
     // Native <video> can't send Authorization headers, so we pass the JWT in the URL
     const authToken = localStorage.getItem('token');
     const streamUrl = (fileId && authToken)
       ? `${BASE_URL}/api/lesson-files/stream/${fileId}?token=${encodeURIComponent(authToken)}`
       : null;
 
-    // ── Mobile: native <video> via backend stream proxy ──────────
-    if (isMobile && streamUrl) {
+    if (streamUrl) {
       return (
         <div className="vp-wrap vp-wrap--native">
           <video
@@ -234,68 +220,27 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
       );
     }
 
-    // ── Desktop: Drive /preview iframe (controls work fine at wide widths) ──
+    // Fallback: no fileId or no auth — link to Google Drive directly
     return (
-      <div className="vp-wrap vp-wrap--drive">
-        {!iframeLoaded && !iframeError && <LoadingOverlay />}
-        {iframeError ? (
-          <StateBox
-            variant="error"
-            icon={<ErrorIcon />}
-            label="Couldn't load the video"
-            sub="The file may be unavailable. Try opening it directly in Google Drive."
-            actions={
-              <>
-                <a
-                  className="vp-watch-btn"
-                  href={driveViewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                  Watch on Google Drive
-                </a>
-                <button
-                  className="vp-retry-btn"
-                  type="button"
-                  onClick={() => { setIframeError(false); setIframeLoaded(false); }}
-                >
-                  Try again
-                </button>
-              </>
-            }
-          />
-        ) : (
-          <div className="vp-drive-container">
-            <iframe
-              key={driveEmbedUrl}
-              className="vp-drive-iframe"
-              src={driveEmbedUrl}
-              title={label}
-              scrolling="no"
-              allow="autoplay"
-              allowFullScreen
-              onLoad={() => setIframeLoaded(true)}
-              onError={() => setIframeError(true)}
-              style={{ opacity: iframeLoaded ? 1 : 0 }}
-            />
-          </div>
-        )}
-        {!iframeError && (
+      <StateBox
+        variant="error"
+        icon={<ErrorIcon />}
+        label="Video available on Google Drive"
+        sub="Open the video directly in Google Drive to watch it."
+        actions={
           <a
-            className="vp-external-link"
+            className="vp-watch-btn"
             href={driveViewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="Open in Google Drive"
-            aria-label="Open video in Google Drive"
           >
-            &#x2197;
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Watch on Google Drive
           </a>
-        )}
-      </div>
+        }
+      />
     );
   }
 
