@@ -16,6 +16,20 @@
   gap: 10px;
 }
 
+body.darkmode .quiz-cta-card {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+body.darkmode .quiz-cta-title {
+  color: #f0f0f0;
+}
+
+body.darkmode .quiz-cta-desc {
+  color: #9ca3af;
+}
+
 .quiz-cta-icon {
   width: 56px;
   height: 56px;

@@ -299,16 +299,20 @@
 .quiz-generate-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  font-size: 0.82rem;
-  font-weight: 500;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--color-accent, #ff6900);
   background: none;
-  border: none;
+  border: 1.5px solid var(--color-accent, #ff6900);
+  border-radius: 10px;
   cursor: pointer;
-  opacity: 0.85;
   transition: opacity 0.15s;
+}
+
+.quiz-generate-link:hover:not(:disabled) {
+  opacity: 0.8;
 }
 
 .quiz-generate-link:disabled {
@@ -324,6 +328,7 @@ body.darkmode .lc-generate-btn--small {
 
 body.darkmode .quiz-generate-link {
   color: #ff8533;
+  border-color: #ff8533;
 }
 
 /* ── Inline error toast ───────────────────────────────────────── */
