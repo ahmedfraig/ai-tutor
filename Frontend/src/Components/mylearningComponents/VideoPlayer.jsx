@@ -87,33 +87,68 @@ const ErrorIcon = () => (
 
 /* ─── Main Component ─────────────────────────────────────────────── */
 
-function VideoPlayer({ title, filePath, fileId }) {
+function VideoPlayer({ title, filePath, fileId, lessonId }) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeError, setIframeError] = useState(false);
+  // Local override: if refresh finds the file is ready, store it here
+  const [localFilePath, setLocalFilePath] = useState(filePath);
+  const [isChecking, setIsChecking] = useState(false);
+  const [checkMsg, setCheckMsg]     = useState("");
 
   const label = title || "AI-Generated Video";
 
-  // Reset state whenever the selected video changes
+  // Sync local path when the parent selects a different video
   useEffect(() => {
+    setLocalFilePath(filePath);
     setIframeLoaded(false);
     setIframeError(false);
+    setCheckMsg("");
   }, [fileId, filePath]);
 
+  // ── Soft refresh: re-fetch only this file record from the API ─────
+  const handleRefreshCheck = async () => {
+    if (isChecking) return;
+    setIsChecking(true);
+    setCheckMsg("");
+    try {
+      const res = await apiClient.get(`/lesson-files/${lessonId}`);
+      const record = res.data.find((f) => f.id === fileId);
+      if (record && record.file_path) {
+        // Video is ready — update local state, no page reload needed
+        setLocalFilePath(record.file_path);
+      } else {
+        setCheckMsg("Still processing… try again in a moment.");
+      }
+    } catch {
+      setCheckMsg("Could not check status. Please try again.");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  // Use localFilePath for all URL detection so refresh works without prop change
+  const activeFilePath = localFilePath;
+
   // ── Detect URL type ───────────────────────────────────────────────
-  const youtubeId = getYouTubeId(filePath);
-  const driveId   = getDriveFileId(filePath);
+  const youtubeId = getYouTubeId(activeFilePath);
+  const driveId   = getDriveFileId(activeFilePath);
 
   /* ── Case 1: DB record exists but file not ready yet (AI still generating) */
-  if (fileId && !filePath) {
+  if (fileId && !activeFilePath) {
     return (
       <StateBox
         variant="generating"
         icon={<SpinnerIcon />}
         label="Generating your video…"
-        sub="The AI is still processing your content. Check back in a few minutes."
+        sub={checkMsg || "The AI is still processing your content. Check back in a few minutes."}
         actions={
-          <button className="vp-retry-btn vp-retry-btn--accent" type="button" onClick={() => window.location.reload()}>
-            Refresh to check
+          <button
+            className="vp-retry-btn vp-retry-btn--accent"
+            type="button"
+            onClick={handleRefreshCheck}
+            disabled={isChecking}
+          >
+            {isChecking ? "Checking…" : "Refresh to check"}
           </button>
         }
       />
@@ -121,7 +156,7 @@ function VideoPlayer({ title, filePath, fileId }) {
   }
 
   /* ── Case 2: No file selected at all */
-  if (!fileId && !filePath) {
+  if (!fileId && !activeFilePath) {
     return (
       <StateBox
         variant="placeholder"
@@ -224,7 +259,7 @@ function VideoPlayer({ title, filePath, fileId }) {
   }
 
   /* ── Case 5: Backend stream URL or other direct URL */
-  if (fileId && filePath) {
+  if (fileId && activeFilePath) {
     const streamSrc = `${BASE_URL}/api/lesson-files/stream/${fileId}`;
     return (
       <div className="vp-wrap">

@@ -303,3 +303,46 @@
   .vp-video { transition: none; }
   .vp-watch-btn:hover { transform: none; }
 }
+
+/* ── Desktop: larger state boxes, bigger text & icons ────────
+   Mobile keeps the compact sizes defined above.
+   Everything below only applies on screens ≥ 769px.         */
+@media (min-width: 769px) {
+  .vp-state {
+    padding: 40px 36px;
+    gap: 16px;
+  }
+
+  .vp-icon-wrap {
+    width: 88px;
+    height: 88px;
+    min-width: 88px;
+  }
+
+  /* Bigger SVG icons inside the wrapper */
+  .vp-icon-wrap svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .vp-label {
+    font-size: 1.25rem;
+  }
+
+  .vp-sub {
+    font-size: 0.95rem;
+    max-width: 380px;
+  }
+
+  .vp-watch-btn,
+  .vp-retry-btn {
+    padding: 11px 28px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+  }
+
+  .vp-error-actions {
+    gap: 14px;
+    margin-top: 6px;
+  }
+}

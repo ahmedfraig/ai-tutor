@@ -112,9 +112,14 @@ body.darkmode .header1 {
 }
 
 
-body.darkmode .navbar-toggler{
-  background-color: white !important;
-  color: black !important;
+body.darkmode .navbar-toggler {
+  /* Transparent background — blends with dark navbar instead of showing white box */
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+/* Make the hamburger lines visible on dark background */
+body.darkmode .navbar-toggler-icon {
+  filter: invert(1);
 }
 body.darkmode .headernameanddiv {
   background-color: transparent;
@@ -270,6 +275,42 @@ body.darkmode .learnmain .div button{
 body.darkmode .remindertable{
   background-color: rgb(35, 35, 35);
     box-shadow: 0 4px 12px rgba(252, 252, 252, 0.15); 
+}
+
+/* ── Reminder table — override Bootstrap's own CSS variables so the
+   table cells actually pick up the dark background ──────────────── */
+body.darkmode .reminder-table-card {
+  background-color: #141414 !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+body.darkmode .reminder-table-card .table {
+  /* Reset Bootstrap's table CSS variables to dark-mode values */
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+  --bs-table-border-color: rgba(255, 255, 255, 0.06);
+  color: #d0d0d0;
+}
+body.darkmode .reminder-table-card td,
+body.darkmode .reminder-table-card th {
+  background-color: transparent !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: inherit;
+}
+body.darkmode .reminder-thead {
+  background-color: #1e1e1e !important;
+}
+body.darkmode .reminder-th {
+  color: #888 !important;
+}
+body.darkmode .reminder-date-main {
+  color: #e0e0e0 !important;
+}
+body.darkmode .reminder-notes {
+  color: #d0d0d0 !important;
+}
+body.darkmode .reminder-row {
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════

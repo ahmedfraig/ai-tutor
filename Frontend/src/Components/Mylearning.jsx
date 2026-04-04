@@ -91,10 +91,10 @@ const Mylearning = () => {
             <p className="text-muted mb-0" style={{ fontSize: '1.05rem' }}>Continue your learning journey</p>
           </div>
           <button
-            className="btn btn-dark rounded-3 px-4 py-2 d-flex align-items-center justify-content-center hover-scale shadow-sm"
+            className="btn btn-accent rounded-3 px-4 py-2 d-flex align-items-center justify-content-center hover-scale shadow-sm"
             data-bs-toggle="modal"
             data-bs-target="#exampleModal"
-            style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.05rem' }}
+            style={{ whiteSpace: 'nowrap', fontSize: '1.05rem' }}
           >
             <i className="bi bi-plus-lg me-2"></i>Start a New Lesson
           </button>
@@ -187,23 +187,17 @@ const Mylearning = () => {
                       <i className="bi bi-play-circle me-2"></i> Resume
                     </button>
                     
-                    <div className="d-flex justify-content-between align-items-center">
+                    <div className="d-flex align-items-center" style={{ gap: '8px' }}>
                       <button 
-                        className="btn btn-light btn-sm text-secondary rounded-pill px-3 d-flex align-items-center hover-scale" 
-                        style={{ transition: 'all 0.2s', backgroundColor: '#f8f9fa' }}
+                        className="btn edit-btn btn-sm rounded-pill px-3 d-flex align-items-center" 
                         onClick={() => startEdit(item)}
-                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e9ecef'; e.currentTarget.style.color = '#212529' }}
-                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; e.currentTarget.style.color = '#6c757d' }}
                       >
                         <i className="bi bi-pencil me-1"></i> Edit
                       </button>
                       
                       <button 
-                        className="btn btn-light btn-sm text-danger rounded-pill px-3 d-flex align-items-center hover-scale" 
-                        style={{ transition: 'all 0.2s', backgroundColor: '#f8f9fa' }}
+                        className="btn delete-btn btn-sm rounded-pill px-3 d-flex align-items-center" 
                         onClick={() => deleteLesson(item.id)}
-                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; }}
                       >
                         <i className="bi bi-trash me-1"></i> Delete
                       </button>

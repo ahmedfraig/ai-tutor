@@ -86,12 +86,11 @@ const Reminder = () => {
       <main className="container pt-4 pb-5" style={{ maxWidth: '1000px' }}>
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
           <div>
-            <h3 className="mb-1" style={{ fontWeight: '400', color: '#1a1a1a' }}>Reminders</h3>
+            <h3 className="mb-1 page-heading reminder-heading">Reminders</h3>
             <p className="text-muted mb-0">{reminders.length} reminder{reminders.length !== 1 ? 's' : ''} scheduled</p>
           </div>
           <button
-            className="btn btn-dark rounded-pill px-4 py-2 d-flex align-items-center justify-content-center shadow-sm hover-scale"
-            style={{ transition: 'transform 0.2s' }}
+            className="btn btn-accent rounded-pill px-4 py-2 d-flex align-items-center justify-content-center shadow-sm hover-scale"
             onClick={() => setShowForm(!showForm)}>
             <i className="bi bi-plus-lg me-2"></i>Add Reminder
           </button>
@@ -99,24 +98,24 @@ const Reminder = () => {
 
         {/* Add Reminder Form */}
         {showForm && (
-          <div className="card shadow-sm border-0 bg-light rounded-4 mb-4">
+          <div className="reminder-form-card card shadow-sm border-0 rounded-4 mb-4">
             <div className="card-body p-4">
               <div className="row g-3 align-items-end">
                 <div className="col-12 col-md-auto">
-                  <label className="form-label fw-medium text-muted mb-1" style={{ fontSize: '0.9rem' }}>Date</label>
+                  <label className="form-label fw-medium text-muted mb-1 reminder-label">Date</label>
                   <input
                     type="date"
-                    className="form-control border-0 shadow-sm"
+                    className="form-control reminder-input border-0 shadow-sm"
                     value={newDate}
                     onChange={e => setNewDate(e.target.value)}
                     style={{ minWidth: '160px' }}
                   />
                 </div>
                 <div className="col-12 col-md">
-                  <label className="form-label fw-medium text-muted mb-1" style={{ fontSize: '0.9rem' }}>Notes</label>
+                  <label className="form-label fw-medium text-muted mb-1 reminder-label">Notes</label>
                   <input
                     type="text"
-                    className="form-control border-0 shadow-sm"
+                    className="form-control reminder-input border-0 shadow-sm"
                     placeholder="What do you need to remember?"
                     value={newNotes}
                     onChange={e => setNewNotes(e.target.value)}
@@ -124,10 +123,10 @@ const Reminder = () => {
                   />
                 </div>
                 <div className="col-12 col-md-auto d-flex gap-2 mt-3 mt-md-0">
-                  <button className="btn btn-dark px-4 flex-grow-1 flex-md-grow-0 shadow-sm" onClick={handleAdd} disabled={creating}>
+                  <button className="btn btn-accent px-4 flex-grow-1 flex-md-grow-0 shadow-sm" onClick={handleAdd} disabled={creating}>
                     {creating ? 'Saving...' : 'Save'}
                   </button>
-                  <button className="btn btn-outline-secondary px-4 flex-grow-1 flex-md-grow-0 bg-white" onClick={() => setShowForm(false)}>
+                  <button className="btn reminder-cancel-btn px-4 flex-grow-1 flex-md-grow-0" onClick={() => setShowForm(false)}>
                     Cancel
                   </button>
                 </div>
@@ -138,26 +137,26 @@ const Reminder = () => {
 
         <div className="mb-5 d-flex justify-content-start">
           <div className="position-relative w-100" style={{ maxWidth: '400px' }}>
-            <i className="bi bi-search position-absolute text-muted" style={{ top: '50%', transform: 'translateY(-50%)', left: '16px' }}></i>
+            <i className="bi bi-search position-absolute reminder-search-icon" style={{ top: '50%', transform: 'translateY(-50%)', left: '16px' }}></i>
             <input
               type="search"
               placeholder="Search reminders..."
-              className="form-control rounded-pill py-2 border-0 shadow-sm"
+              className="reminder-search form-control rounded-pill py-2 border-0 shadow-sm"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ backgroundColor: '#f8f9fa', paddingLeft: '40px' }}
+              style={{ paddingLeft: '40px' }}
             />
           </div>
         </div>
 
-        <div className="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+        <div className="reminder-table-card card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
           <div className="table-responsive">
             <table className="table table-hover mb-0 align-middle">
-              <thead className="table-light">
+              <thead className="reminder-thead">
                 <tr>
-                  <th className="px-4 py-3 text-muted fw-semibold border-0" style={{ minWidth: '150px' }}>Date</th>
-                  <th className="px-4 py-3 text-muted fw-semibold border-0 w-100">Reminder</th>
-                  <th className="px-4 py-3 text-muted fw-semibold border-0 text-center">Action</th>
+                  <th className="px-4 py-3 fw-semibold border-0 reminder-th" style={{ minWidth: '140px' }}>Date</th>
+                  <th className="px-4 py-3 fw-semibold border-0 reminder-th w-100">Reminder</th>
+                  <th className="px-4 py-3 fw-semibold border-0 reminder-th text-center">Action</th>
                 </tr>
               </thead>
               <tbody style={{ borderTop: 'none' }}>
@@ -171,24 +170,24 @@ const Reminder = () => {
                   const { day, month, year } = formatDate(r.remind_date);
                   const dateNum = new Date(r.remind_date).getUTCDate();
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} className="reminder-row">
                       <td className="px-4 py-3 text-nowrap">
-                        <span className="fw-medium text-dark">{day}, {month} {dateNum}</span>
+                        <span className="fw-medium reminder-date-main">{day}, {month} {dateNum}</span>
                         <div className="text-muted small">{year}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <ul className="mb-0 ps-3" style={{ listStyleType: 'circle' }}>
+                        <ul className="mb-0 ps-3 reminder-notes" style={{ listStyleType: 'circle' }}>
                           {r.notes.split('\n').map((line, i) => (
-                            <li key={i} className="text-dark">{line}</li>
+                            <li key={i}>{line}</li>
                           ))}
                         </ul>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button 
+                        <button
                           onClick={() => handleDelete(r.id)}
-                          className="btn btn-sm btn-light text-danger border-0 rounded-circle reminder-delete-btn"
+                          className="reminder-delete-btn btn btn-sm border-0 rounded-circle"
                           style={{ width: '44px', height: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          aria-label={`Delete reminder: ${r.subject}`}
+                          aria-label={`Delete reminder`}
                           title="Delete Reminder"
                         >
                           <i className="bi bi-trash" aria-hidden="true"></i>

@@ -71,7 +71,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           />
         )}
         {mode === "video" && (
-          <VideoPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />
+          <VideoPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} lessonId={lessonId} />
         )}
         {mode === "audio" && (
           <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />
