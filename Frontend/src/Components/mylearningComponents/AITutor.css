@@ -40,16 +40,19 @@
   top: 0;
   right: -400px;
   width: 400px;
+  /* svh = smallest viewport height = excludes browser chrome (address bar).
+     This guarantees footer is always on screen even when address bar is visible. */
   height: 100vh;
-  height: 100dvh; /* use dynamic viewport height on mobile (avoids browser chrome overlap) */
+  height: 100svh;
   background: #fff;
   box-shadow: -3px 0 12px rgba(0, 0, 0, 0.1);
   transition: right 0.3s ease-in-out;
   z-index: 1002;
   display: flex;
   flex-direction: column;
-  padding-top: 60px !important;
-  overflow: hidden; /* prevent the panel shell from scrolling */
+  padding-top: 60px;
+  /* flex handles internal overflow — don't let the shell itself scroll */
+  overflow: hidden;
 }
 
 .ai-tutor-panel.open {

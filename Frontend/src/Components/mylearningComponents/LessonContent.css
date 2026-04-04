@@ -71,11 +71,16 @@
   color: var(--color-accent, #ff6900);
 }
 
-.lc-tab--active {
+.lc-tab--active,
+.lc-tab--active:focus,
+.lc-tab--active:focus-visible,
+.lc-tab--active:hover,
+.lc-tab--active:active {
   background: #ffffff;
-  color: var(--color-accent, #ff6900);
+  color: var(--color-accent, #ff6900) !important;
   font-weight: 600;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  outline: none;
 }
 
 /* ── Tab panels ─────────────────────────────────────────────── */

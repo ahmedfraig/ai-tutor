@@ -425,10 +425,15 @@ body.darkmode .lc-tab:hover {
   color: #e0e0e0 !important;
 }
 
-body.darkmode .lc-tab--active {
+body.darkmode .lc-tab--active,
+body.darkmode .lc-tab--active:focus,
+body.darkmode .lc-tab--active:focus-visible,
+body.darkmode .lc-tab--active:hover,
+body.darkmode .lc-tab--active:active {
   background: #222 !important;
   color: var(--color-accent, #ff6900) !important;
   box-shadow: 0 1px 6px rgba(0,0,0,0.4) !important;
+  outline: none !important;
 }
 
 /* ── LessonContent panel area ── */

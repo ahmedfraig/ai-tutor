@@ -117,7 +117,7 @@
   opacity: 1;
 }
 
-/* ── Shared state box (placeholder + error) ─────────────────── */
+/* ── Shared state box (placeholder + error + generating) ─────── */
 .vp-state {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -127,11 +127,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 6px;
   text-align: center;
-  padding: 32px 24px;
+  /* Tighter padding so content can never exceed the box */
+  padding: 20px 16px;
   border-radius: 14px;
   box-sizing: border-box;
+  /* Clip anything (icon, button) that exceeds the box */
+  overflow: hidden;
 }
 
 /* ── Placeholder variant ──────────────────────────────────── */
@@ -176,7 +179,14 @@
 .vp-icon-wrap--generating {
   background: rgba(99, 102, 241, 0.12);
   color: #818cf8;
+  /* The wrapper itself pulses (opacity) */
   animation: vp-pulse 2s ease-in-out infinite;
+}
+
+/* Spin the SVG icon INSIDE the generating wrapper */
+.vp-icon-wrap--generating svg {
+  animation: vp-spin 1.5s linear infinite;
+  transform-origin: center;
 }
 
 @keyframes vp-pulse {

@@ -141,7 +141,14 @@ function Lesson() {
         </main>
       </div>
 
-      <ToastContainer position="bottom-end" className="p-3">
+      {/* Toast — rendered OUTSIDE lesson-layout so it is never inside a
+          scrollable container. The explicit style ensures it stays fixed
+          to the viewport on all browsers including mobile Chrome/Safari. */}
+      <ToastContainer
+        position="bottom-end"
+        className="p-3"
+        style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}
+      >
         <Toast
           show={toast.show}
           onClose={() => setToast({ ...toast, show: false })}
