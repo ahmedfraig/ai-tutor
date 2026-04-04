@@ -41,6 +41,7 @@
   right: -400px;
   width: 400px;
   height: 100vh;
+  height: 100dvh; /* use dynamic viewport height on mobile (avoids browser chrome overlap) */
   background: #fff;
   box-shadow: -3px 0 12px rgba(0, 0, 0, 0.1);
   transition: right 0.3s ease-in-out;
@@ -48,6 +49,7 @@
   display: flex;
   flex-direction: column;
   padding-top: 60px !important;
+  overflow: hidden; /* prevent the panel shell from scrolling */
 }
 
 .ai-tutor-panel.open {
@@ -123,12 +125,18 @@
 }
 
 
-/* Body */
+/* Body — scrolls messages, MUST NOT propagate scroll to main page */
 .ai-body {
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #fafafa;
   padding: 1rem;
+  /* Stop scroll from bleeding through to the page behind on mobile */
+  overscroll-behavior: contain;
+  /* Tell browser this element handles vertical touch scrolling */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch; /* smooth inertia scroll on iOS */
 }
 
 /* Chat Bubbles */

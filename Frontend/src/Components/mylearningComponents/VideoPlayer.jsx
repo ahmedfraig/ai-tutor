@@ -143,6 +143,7 @@ function VideoPlayer({ title, filePath, fileId }) {
           className="vp-iframe"
           src={embedUrl}
           title={label}
+          scrolling="no"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onLoad={() => setIframeLoaded(true)}
@@ -197,6 +198,7 @@ function VideoPlayer({ title, filePath, fileId }) {
             className="vp-iframe"
             src={driveEmbedUrl}
             title={label}
+            scrolling="no"
             allow="autoplay"
             allowFullScreen
             onLoad={() => setIframeLoaded(true)}

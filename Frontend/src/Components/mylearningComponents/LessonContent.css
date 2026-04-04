@@ -51,11 +51,24 @@
   white-space: nowrap;
   text-align: center;
   line-height: 1.2;
+  /* Removes the 300ms tap delay on mobile browsers.
+     Without this, the first touch shows a white :hover flash
+     before the JavaScript onClick fires and turns text orange. */
+  touch-action: manipulation;
+  /* Stop WebKit from showing its own grey touch highlight */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .lc-tab:hover {
   background: rgba(255, 255, 255, 0.7);
   color: #222;
+}
+
+/* Instant visual feedback on touch — fires before JS state update */
+.lc-tab:active {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-accent, #ff6900);
 }
 
 .lc-tab--active {

@@ -17,6 +17,15 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
+/* On small screens: allow the iframe player controls to fully render
+   without being clipped by overflow:hidden ─────────────────────── */
+@media (max-width: 600px) {
+  .vp-wrap {
+    overflow: visible;
+    border-radius: 10px;
+  }
+}
+
 /* ── Native <video> — fluid 16:9 with mobile floor ─────────── */
 .vp-video {
   display: block;
@@ -36,12 +45,25 @@
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  min-height: 200px;
+  /* Drive's player controls need at least 310px height to render correctly.
+     Below this, the progress bar floats to the top and buttons misalign. */
+  min-height: 310px;
   max-height: 70vh;
   border: none;
   border-radius: 14px;
   background: #000;
   transition: opacity 0.3s ease;
+}
+
+/* Small screens: use a fixed height formula instead of min-height alone.
+   max(310px, 56.25vw) = whichever is bigger — ensures enough space. */
+@media (max-width: 600px) {
+  .vp-iframe {
+    aspect-ratio: unset;
+    height: max(310px, 56.25vw);
+    min-height: 310px;
+    border-radius: 10px;
+  }
 }
 
 
