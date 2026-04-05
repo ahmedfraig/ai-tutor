@@ -36,6 +36,18 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
     };
   }, []);
 
+  // Lock body scroll on mobile when panel is open
+  useEffect(() => {
+    const html = document.documentElement;
+    if (isOpen) {
+      html.classList.add('ai-panel-open');
+    } else {
+      html.classList.remove('ai-panel-open');
+    }
+    // Always clean up on unmount
+    return () => html.classList.remove('ai-panel-open');
+  }, [isOpen]);
+
   const handleSend = async () => {
     if (inputValue.trim() === "" || isSending) return;
 

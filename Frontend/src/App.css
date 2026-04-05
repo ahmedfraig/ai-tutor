@@ -180,16 +180,60 @@ body.darkmode .home-label-muted {
 
 /* Eyebrow stays accent in both modes (already a token) */
 
-/* Skeleton shimmer — adapts naturally via rgba transparency */
-body.darkmode .stat-skeleton {
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0.06) 25%,
-    rgba(255,255,255,0.12) 50%,
-    rgba(255,255,255,0.06) 75%
+/* Skeleton shimmer — dark mode: darker base + brighter highlight overlay */
+body.darkmode .stat-skeleton,
+body.darkmode .stat-icon-skel {
+  background: rgba(255, 255, 255, 0.06); /* darker base fill */
+}
+body.darkmode .stat-skeleton::after,
+body.darkmode .stat-icon-skel::after {
+  background: linear-gradient(
+    105deg,
+    transparent           30%,
+    rgba(255,255,255,0.15) 50%,
+    transparent           70%
   );
-  background-size: 200% 100%;
 }
 
+
+/* ── CREATE LESSON MODAL — Dark Mode ─────────────────────────── */
+/* .input-themed replaces bg-light so the input adapts to dark mode */
+.input-themed {
+  background-color: #f8f9fa;
+}
+body.darkmode .modal-themed {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+body.darkmode .modal-themed .modal-title,
+body.darkmode .modal-themed label {
+  color: var(--color-text);
+}
+body.darkmode .modal-themed .text-muted {
+  color: var(--color-text-muted) !important;
+}
+body.darkmode .modal-themed .input-themed {
+  background-color: #2a2a2a;
+  color: var(--color-text);
+}
+body.darkmode .modal-themed .input-themed::placeholder {
+  color: var(--color-text-muted);
+}
+.btn-cancel-themed {
+  background-color: #f0f0f0;
+  color: #222;
+  border: none;
+}
+body.darkmode .btn-cancel-themed {
+  background-color: #3a3a3a;
+  color: var(--color-text);
+}
+body.darkmode .btn-cancel-themed:hover {
+  background-color: #444;
+}
+body.darkmode .btn-close-themed {
+  filter: invert(1) grayscale(1);
+}
 
 body.darkmode  .maindueout{
   background-color:rgb(35, 35, 35)

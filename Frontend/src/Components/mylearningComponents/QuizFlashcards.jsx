@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import Button from 'react-bootstrap/Button';
-import { easeInOut, motion } from "framer-motion";
+import { motion, easeInOut } from "framer-motion";
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
+import './QuizFlashcards.css';
 
 const QuizFlashcards = () => {
   const MotionDiv = motion.div;
@@ -76,86 +76,89 @@ const QuizFlashcards = () => {
     setshowanswers(prev => (prev === 2 ? 0 : prev + 1));
   };
 
-  if (loading) return <div className="p-5 text-muted text-center">Loading quiz...</div>;
+  if (loading) return <div className="qf-root"><p className="qf-section-label">Loading quiz…</p></div>;
   if (error) return (
-    <div className="p-5 text-center">
+    <div className="qf-root">
       <div className="alert alert-warning">{error}</div>
-      <Button variant="secondary" onClick={() => navigate("/lesson", { state: location.state })}>
+      <button className="qf-return-btn" onClick={() => navigate("/lesson", { state: location.state })}>
         Return to Session
-      </Button>
+      </button>
     </div>
   );
   if (quiz.length === 0) return (
-    <div className="p-5 text-center">
+    <div className="qf-root">
       <p>No questions available.</p>
-      <Button variant="secondary" onClick={() => navigate("/lesson", { state: location.state })}>
+      <button className="qf-return-btn" onClick={() => navigate("/lesson", { state: location.state })}>
         Return to Session
-      </Button>
+      </button>
     </div>
   );
 
   return (
     <>
-      <div className='root'>
+      <div className="qf-root">
         <MotionDiv
-          className='quizheader'
+          className="qf-card"
           animate={showanswers > 0 ? { rotate: [0, 360, 0] } : { rotate: 0 }}
           transition={{ duration: 1, ease: easeInOut }}
           onClick={rotation}
           key={showanswers}
+          role="button"
+          aria-label="Click to flip card and reveal answer"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && rotation()}
         >
-          <div className='div1'>
-            <div className='icondq'><i className="bi bi-lightbulb iconq"></i></div>
-            <p className='div1pq'>QUESTION</p>
-          </div>
-          <div>
-            <h3 className='quizh3'>{quiz[questionnumber].question}</h3>
-            <div className='btndiv'>
-              <Button variant="secondary" className='showflashbtn prev' onClick={(e) => { e.stopPropagation(); getprevquestion(); }}>
-                Previous Question
-              </Button>
-              <Button variant="secondary" className='showflashbtn next' onClick={(e) => { e.stopPropagation(); getnextquestion(); }}>
-                Next Question
-              </Button>
-            </div>
+          {/* Question header */}
+          <div className="qf-card-header">
+            <div className="qf-icon-wrap"><i className="bi bi-lightbulb" aria-hidden="true"></i></div>
+            <span className="qf-section-label">Question {questionnumber + 1} of {quiz.length}</span>
           </div>
 
+          <h3 className="qf-question">{quiz[questionnumber].question}</h3>
+
+          <div className="qf-btn-row">
+            <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getprevquestion(); }}>
+              ← Previous
+            </button>
+            <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getnextquestion(); }}>
+              Next →
+            </button>
+          </div>
+
+          {/* Answer */}
           {showanswers === 1 && (
-            <div className='bodyq'>
-              <div className='div1'>
-                <div className='icondq part2a'>✔</div>
-                <p className='div1pq part3'>Answer</p>
+            <div className="qf-answer-section">
+              <div className="qf-card-header" style={{marginTop: '16px', marginBottom: '4px'}}>
+                <div className="qf-icon-wrap"><i className="bi bi-check-circle" aria-hidden="true" style={{color: 'var(--color-success)'}}></i></div>
+                <span className="qf-section-label">Answer</span>
               </div>
-              <p className='answerp'>{quiz[questionnumber].answer}</p>
-              <br />
-              <div className='div1'>
-                <div className='icondq part2a blue'>✔</div>
-                <p className='div1pq part3'>WHY THIS IS CORRECT</p>
+              <p className="qf-answer-text">{quiz[questionnumber].answer}</p>
+              <div className="qf-card-header" style={{marginBottom: '4px'}}>
+                <div className="qf-icon-wrap"><i className="bi bi-check2-all" aria-hidden="true" style={{color: 'var(--color-success)'}}></i></div>
+                <span className="qf-section-label">Why This Is Correct</span>
               </div>
-              <p className='answerp'>{quiz[questionnumber].why_correct}</p>
-              <br />
+              <p className="qf-answer-text">{quiz[questionnumber].why_correct}</p>
             </div>
           )}
 
+          {/* Common mistakes */}
           {showanswers === 2 && (
-            <>
-              <div className='div1'>
-                <div className='icondq part2a'><i className="bi bi-exclamation-triangle icccc"></i></div>
-                <p className='div1pq part3'>COMMON MISTAKES</p>
+            <div className="qf-answer-section">
+              <div className="qf-card-header" style={{marginTop: '16px', marginBottom: '4px'}}>
+                <div className="qf-icon-wrap"><i className="bi bi-exclamation-triangle" aria-hidden="true" style={{color: 'var(--color-error)'}}></i></div>
+                <span className="qf-section-label">Common Mistakes</span>
               </div>
-              <p className='answerp'>{quiz[questionnumber].common_mistake}</p>
-              <br />
-            </>
+              <p className="qf-mistake-text">{quiz[questionnumber].common_mistake}</p>
+            </div>
           )}
         </MotionDiv>
 
-        <Button
-          variant="secondary"
-          className='showflashbtn next return'
+        <button
+          className="qf-return-btn"
           onClick={() => navigate("/lesson", { state: location.state })}
         >
-          Return To Session
-        </Button>
+          ← Return to Session
+        </button>
       </div>
     </>
   );

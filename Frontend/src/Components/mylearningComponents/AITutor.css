@@ -38,12 +38,12 @@
 .ai-tutor-panel {
   position: fixed;
   top: 0;
+  bottom: 0;           /* anchors to visible bottom — shrinks when keyboard opens */
   right: -400px;
   width: 400px;
-  /* svh = smallest viewport height = excludes browser chrome (address bar).
-     This guarantees footer is always on screen even when address bar is visible. */
-  height: 100vh;
-  height: 100svh;
+  /* height is derived from top+bottom, not set explicitly.
+     This means when the virtual keyboard pushes the viewport up,
+     the panel shrinks naturally instead of leaving dead space. */
   background: #fff;
   box-shadow: -3px 0 12px rgba(0, 0, 0, 0.1);
   transition: right 0.3s ease-in-out;
@@ -216,6 +216,17 @@
   .ai-float-btn {
     bottom: 15px;
     right: 15px;
+  }
+}
+
+/* ── Scroll lock: applied to <html> when panel is open on mobile ── */
+/* This prevents the main page from scrolling behind the panel.      */
+@media (max-width: 576px) {
+  html.ai-panel-open,
+  html.ai-panel-open body {
+    overflow: hidden;
+    /* Prevent layout shift from scrollbar disappearing on desktop */
+    position: relative;
   }
 }
 

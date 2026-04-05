@@ -47,7 +47,8 @@
 
 /* ── Continue Learning card ─────────────────────────────────── */
 .continue-card {
-  background: linear-gradient(135deg, #fff7ed 0%, #fafafa 100%);
+  /* Uses existing tokens: --color-accent-muted (rgba orange tint) + --color-surface-subtle */
+  background: linear-gradient(135deg, var(--color-accent-muted) 0%, var(--color-surface-subtle) 100%);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s ease;
 }
@@ -151,24 +152,46 @@
   min-height: 100px;
 }
 
-/* ── Skeleton loaders — shimmer base ───────────────────────── */
-/* Shared shimmer keyframe — referenced by all skeleton elements */
+/* ── Skeleton loaders — GPU-composited shimmer ──────────────── */
+/*
+ * Technique: static background on the skeleton block + a ::after overlay
+ * that slides via translateX. Animating transform runs on the compositor
+ * thread — zero repaints, 60fps on low-end devices.
+ */
+
+/* Shared base — static muted fill */
+.stat-skeleton,
+.stat-icon-skel {
+  position: relative;
+  overflow: hidden;
+  /* Static background — no animation here */
+  background: rgba(128, 128, 128, 0.12);
+}
+
+/* The shimmering highlight — composited translateX */
+.stat-skeleton::after,
+.stat-icon-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent        30%,
+    rgba(255,255,255,0.35) 50%,
+    transparent        70%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  will-change: transform;
+}
+
 @keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  to { transform: translateX(200%); }
 }
 
 /* Base skeleton block */
 .stat-skeleton {
   display: inline-block;
-  background: linear-gradient(
-    105deg,
-    rgba(128, 128, 128, 0.08) 25%,
-    rgba(128, 128, 128, 0.22) 50%,
-    rgba(128, 128, 128, 0.08) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-sm);
   width: 48px;
   height: 1.5rem;
@@ -178,31 +201,24 @@
 /* Value size variants */
 .stat-skeleton--lg    { width: 80px;  height: 1.75rem; }
 .stat-skeleton--label { width: 64px;  height: 0.8rem;  display: block; margin-bottom: 6px; }
+.stat-skeleton--label + .stat-skeleton { margin-top: 6px; } /* gap after label skeleton */
 
 /* Icon circle placeholder */
 .stat-icon-skel {
   display: inline-flex;
   flex-shrink: 0;
   border-radius: 50%;
-  background: linear-gradient(
-    105deg,
-    rgba(128, 128, 128, 0.08) 25%,
-    rgba(128, 128, 128, 0.2)  50%,
-    rgba(128, 128, 128, 0.08) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
 .stat-icon-skel--lg { width: 36px; height: 36px; } /* study time icon */
 .stat-icon-skel--md { width: 24px; height: 24px; } /* lessons / streak */
 
 /* ── Stagger — each card shimmers at a different phase ─────── */
-.stats-grid > :nth-child(1) .stat-skeleton,
-.stats-grid > :nth-child(1) .stat-icon-skel  { animation-delay: 0ms;   }
-.stats-grid > :nth-child(2) .stat-skeleton,
-.stats-grid > :nth-child(2) .stat-icon-skel  { animation-delay: 180ms; }
-.stats-grid > :nth-child(3) .stat-skeleton,
-.stats-grid > :nth-child(3) .stat-icon-skel  { animation-delay: 360ms; }
+.stats-grid > :nth-child(1) .stat-skeleton::after,
+.stats-grid > :nth-child(1) .stat-icon-skel::after { animation-delay: 0ms;   }
+.stats-grid > :nth-child(2) .stat-skeleton::after,
+.stats-grid > :nth-child(2) .stat-icon-skel::after { animation-delay: 180ms; }
+.stats-grid > :nth-child(3) .stat-skeleton::after,
+.stats-grid > :nth-child(3) .stat-icon-skel::after { animation-delay: 360ms; }
 
 /* ── Reveal — content fades up when real data arrives ─────── */
 @keyframes stat-reveal {
@@ -217,12 +233,15 @@
 .stats-grid > :nth-child(2) .stat-content { animation-delay: 60ms;  }
 .stats-grid > :nth-child(3) .stat-content { animation-delay: 120ms; }
 
-/* ── Cards global hover ─────────────────────────────────────── */
-.card {
+
+/* ── Cards hover — scoped to home page only ─────────────────── */
+/* NOTE: .card is a Bootstrap utility used app-wide. Scoping to
+   .home-container prevents this rule leaking to other pages. */
+.home-container .card {
   transition: box-shadow 0.2s ease-in-out;
 }
-.card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+.home-container .card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
 }
 
 /* ── Asymmetric stats grid ──────────────────────────────────── */

@@ -30,7 +30,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-surface-subtle, rgba(0, 0, 0, 0.05));
   border-radius: 12px;
   padding: 5px;
   margin-bottom: 20px;
@@ -42,7 +42,7 @@
   font-size: 0.875rem;
   font-weight: 500;
   font-family: inherit;
-  color: #555;
+  color: var(--color-text-muted, #555);
   background: transparent;
   border: none;
   border-radius: 9px;
@@ -51,36 +51,37 @@
   white-space: nowrap;
   text-align: center;
   line-height: 1.2;
-  /* Removes the 300ms tap delay on mobile browsers.
-     Without this, the first touch shows a white :hover flash
-     before the JavaScript onClick fires and turns text orange. */
   touch-action: manipulation;
-  /* Stop WebKit from showing its own grey touch highlight */
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
 .lc-tab:hover {
-  background: rgba(255, 255, 255, 0.7);
-  color: #222;
+  background: var(--color-surface, rgba(255, 255, 255, 0.7));
+  color: var(--color-text, #222);
 }
 
 /* Instant visual feedback on touch — fires before JS state update */
 .lc-tab:active {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--color-surface, rgba(255, 255, 255, 0.9));
   color: var(--color-accent, #ff6900);
 }
 
 .lc-tab--active,
-.lc-tab--active:focus,
-.lc-tab--active:focus-visible,
 .lc-tab--active:hover,
 .lc-tab--active:active {
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
   color: var(--color-accent, #ff6900) !important;
   font-weight: 600;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+}
+/* Suppress focus ring for mouse; preserve for keyboard */
+.lc-tab:focus:not(:focus-visible) {
   outline: none;
+}
+.lc-tab:focus-visible {
+  outline: 2px solid var(--color-accent, #ff6900);
+  outline-offset: 2px;
 }
 
 /* ── Tab panels ─────────────────────────────────────────────── */
@@ -112,7 +113,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #888;
+  color: var(--color-text-muted, #888);
   margin: 0 0 12px 0;
 }
 
@@ -144,7 +145,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #888;
+  color: var(--color-text-muted, #888);
   font-size: 0.875rem;
   padding: 16px 0;
 }
@@ -152,7 +153,7 @@
 .lc-spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(128, 128, 128, 0.2);
   border-top-color: var(--color-accent, #ff6900);
   border-radius: 50%;
   animation: lc-spin 0.7s linear infinite;
@@ -171,7 +172,7 @@
   justify-content: center;
   text-align: center;
   padding: 24px 16px;
-  color: #888;
+  color: var(--color-text-muted, #888);
   gap: 6px;
 }
 
@@ -188,34 +189,8 @@
 
 .lc-empty-sub {
   font-size: 0.8rem !important;
-  color: #aaa;
-}
-
-/* ── Mylearning card hover (referenced by Mylearning.jsx) ──── */
-.lesson-card-hover:hover {
-  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.12) !important;
-  transform: translateY(-2px);
-}
-
-.edit-btn {
-  color: #6c757d;
-  background-color: #f8f9fa;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.edit-btn:hover {
-  background-color: #e9ecef !important;
-  color: #212529 !important;
-}
-
-.delete-btn {
-  color: #dc3545;
-  background-color: #f8f9fa;
-  transition: background-color 0.15s;
-}
-
-.delete-btn:hover {
-  background-color: #fee2e2 !important;
+  color: var(--color-text-muted, #aaa);
+  opacity: 0.8;
 }
 
 /* ── Mobile: tighten up ──────────────────────────────────────── */
@@ -265,7 +240,7 @@
 }
 
 .lc-generate-btn:hover:not(:disabled) {
-  background: #e55d00;
+  filter: brightness(0.88);
   transform: translateY(-1px);
 }
 
@@ -321,6 +296,27 @@
 }
 
 /* ── Dark mode adjustments ────────────────────────────────────── */
+/* Tab bar */
+body.darkmode .lc-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+body.darkmode .lc-tab {
+  color: var(--color-text-muted);
+}
+body.darkmode .lc-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+body.darkmode .lc-tab--active {
+  background: var(--color-surface, #2a2a2a);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Spinner track */
+body.darkmode .lc-spinner {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Small generate button outline */
 body.darkmode .lc-generate-btn--small {
   color: #ff8533;
   border-color: #ff8533;
@@ -331,18 +327,18 @@ body.darkmode .quiz-generate-link {
   border-color: #ff8533;
 }
 
-/* ── Inline error toast ───────────────────────────────────────── */
+/* ── Inline error toast ────────────────────────────────────── */
 .lc-error-toast {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 16px;
   padding: 12px 16px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
   border-radius: 12px;
   font-size: 0.88rem;
-  color: #991b1b;
+  color: var(--color-error);
   animation: lc-toast-in 0.3s ease-out;
 }
 
@@ -366,7 +362,7 @@ body.darkmode .quiz-generate-link {
   background: none;
   border: none;
   font-size: 1rem;
-  color: #991b1b;
+  color: var(--color-error);
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 6px;

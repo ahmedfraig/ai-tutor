@@ -9,7 +9,8 @@
   --color-accent:        #ff6900;    /* Primary orange — CTAs, active, AI highlights */
   --color-accent-hover:  #e05e00;    /* Pressed / hover state */
   --color-accent-muted:  rgba(255, 105, 0, 0.12); /* Soft tint for bg highlights */
-  --color-accent-ring:   rgba(255, 105, 0, 0.35); /* Focus ring */
+  --color-accent-ring:   rgba(255, 105, 0, 0.35); /* Focus ring / resting shadow */
+  --color-accent-ring-strong: rgba(255, 105, 0, 0.45); /* Hover shadow */
 
   /* ── Neutrals ──────────────────────────────────────────── */
   --color-bg:            #f4f4f5;    /* Page background */
@@ -25,7 +26,9 @@
 
   /* ── Semantic States ───────────────────────────────────── */
   --color-success:       #22c55e;
-  --color-error:         #ef4444;
+  --color-error:         #991b1b;    /* Error text — deep red, AA contrast on light */
+  --color-error-bg:      #fef2f2;    /* Error surface background */
+  --color-error-border:  #fecaca;    /* Error surface border */
   --color-warning:       #f59e0b;
 
   /* ── Typography ────────────────────────────────────────── */

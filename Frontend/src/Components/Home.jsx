@@ -218,15 +218,15 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Lessons */}
+            {/* Lessons — shows dot indicators for lesson count */}
             <div className="card border-0 rounded-4">
               <div className="card-body p-4 d-flex flex-column justify-content-between stat-card-inner">
                 {loadingStats ? (
                   <>
                     <span className="stat-icon-skel stat-icon-skel--md" aria-hidden="true" />
                     <div className="mt-3">
-                      <span className="stat-skeleton" aria-label="Loading lesson count" />
-                      <span className="stat-skeleton stat-skeleton--label" style={{ marginTop: 6 }} />
+                      <span className="stat-skeleton stat-skeleton--label" aria-label="Loading lesson count" />
+                      <span className="stat-skeleton" />
                     </div>
                   </>
                 ) : (
@@ -241,15 +241,15 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Streak */}
+            {/* Streak — icon pulses when streak is active */}
             <div className="card border-0 rounded-4">
               <div className="card-body p-4 d-flex flex-column justify-content-between stat-card-inner">
                 {loadingStats ? (
                   <>
                     <span className="stat-icon-skel stat-icon-skel--md" aria-hidden="true" />
                     <div className="mt-3">
-                      <span className="stat-skeleton" aria-label="Loading streak" />
-                      <span className="stat-skeleton stat-skeleton--label" style={{ marginTop: 6 }} />
+                      <span className="stat-skeleton stat-skeleton--label" aria-label="Loading streak" />
+                      <span className="stat-skeleton" />
                     </div>
                   </>
                 ) : (
@@ -258,6 +258,11 @@ const Home = () => {
                     <div className="stat-content mt-3">
                       <div className="stat-value-md" aria-live="polite">{stats.streak}</div>
                       <div className="home-label-muted home-label-sm mt-1">Day streak</div>
+                      {stats.streak > 0 && (
+                        <p className="streak-encouragement home-label-muted home-label-xs mt-1 mb-0" aria-hidden="true">
+                          {stats.streak >= 7 ? '🔥 Keep it up!' : 'Come back tomorrow!'}
+                        </p>
+                      )}
                     </div>
                   </>
                 )}

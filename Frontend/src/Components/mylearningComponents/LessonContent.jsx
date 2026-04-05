@@ -24,6 +24,9 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
   const [errorToast, setErrorToast] = useState(null);
   const toastTimerRef = useRef(null);
 
+  // Clear timer on unmount to prevent state update on dead component
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
+
   useEffect(() => {
     if (!lessonId) {
       setLoading(false);
@@ -120,8 +123,10 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
         {TABS.map((tab) => (
           <button
             key={tab.key}
+            id={`lc-tab-${tab.key}`}
             role="tab"
             aria-selected={activeTab === tab.key}
+            aria-controls={`lc-panel-${tab.key}`}
             className={`lc-tab${activeTab === tab.key ? " lc-tab--active" : ""}`}
             onClick={() => setActiveTab(tab.key)}
           >
@@ -134,8 +139,11 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
       <div className="lc-panel-wrap">
 
         <div
+          id={`lc-panel-overview`}
           className={activeTab === "overview" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
+          aria-labelledby="lc-tab-overview"
+          hidden={activeTab !== "overview" ? true : undefined}
         >
           <div className="lc-section-header">
             <p className="lc-section-label">Lesson Summary</p>
@@ -144,8 +152,10 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
                 className="lc-generate-btn lc-generate-btn--small"
                 onClick={() => triggerGeneration('summary')}
                 disabled={!!generating}
+                aria-label={generating === 'summary' ? 'Regenerating summary' : 'Regenerate summary'}
               >
-                {generating === 'summary' ? '⏳ Regenerating…' : '🔄 Regenerate'}
+                <span aria-hidden="true">{generating === 'summary' ? '⏳' : '🔄'}</span>
+                {generating === 'summary' ? ' Regenerating…' : ' Regenerate'}
               </button>
             )}
           </div>
@@ -166,14 +176,16 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             />
           ) : (
             <div className="lc-empty-state">
-              <span className="lc-empty-icon">📄</span>
+              <span className="lc-empty-icon" aria-hidden="true">📄</span>
               <p>No summary available for this lesson yet.</p>
               <button
                 className="lc-generate-btn"
                 onClick={() => triggerGeneration('summary')}
                 disabled={!!generating}
+                aria-label={generating === 'summary' ? 'Generating summary' : 'Generate summary with AI'}
               >
-                {generating === 'summary' ? '⏳ Generating…' : '✨ Generate Summary'}
+                <span aria-hidden="true">{generating === 'summary' ? '⏳' : '✨'}</span>
+                {generating === 'summary' ? ' Generating…' : ' Generate Summary'}
               </button>
               <p className="lc-empty-sub">Upload files first, then generate a summary with AI.</p>
             </div>
@@ -181,22 +193,31 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
         </div>
 
         <div
+          id="lc-panel-quiz"
           className={activeTab === "quiz" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
+          aria-labelledby="lc-tab-quiz"
+          hidden={activeTab !== "quiz" ? true : undefined}
         >
           <Quiz lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={() => triggerGeneration('quiz')} generating={generating} />
         </div>
 
         <div
+          id="lc-panel-exam"
           className={activeTab === "exam" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
+          aria-labelledby="lc-tab-exam"
+          hidden={activeTab !== "exam" ? true : undefined}
         >
           <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={() => triggerGeneration('exam')} generating={generating} />
         </div>
 
         <div
+          id="lc-panel-analytics"
           className={activeTab === "analytics" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
+          aria-labelledby="lc-tab-analytics"
+          hidden={activeTab !== "analytics" ? true : undefined}
         >
           <AnalyticsSection lessonId={lessonId} analyticsKey={analyticsKey} />
         </div>

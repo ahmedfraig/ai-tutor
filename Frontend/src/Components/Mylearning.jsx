@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "./Header";
 import { useNavigate } from "react-router-dom";
 import "./Mylearning.css";
@@ -35,6 +35,7 @@ const Mylearning = () => {
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const navigate = useNavigate();
+  const modalCloseRef = useRef(null); // used to close the Bootstrap modal reliably
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -83,9 +84,7 @@ const Mylearning = () => {
       setLessons((prev) => [res.data, ...prev]);
       setLessonTitle("");
       toast.success("Lesson created!");
-      const modalEl = document.getElementById('exampleModal');
-      const modal = window.bootstrap?.Modal?.getInstance(modalEl);
-      if (modal) modal.hide();
+      modalCloseRef.current?.click(); // triggers Bootstrap's own data-bs-dismiss
     } catch (err) {
       console.error("Failed to create lesson:", err);
       toast.error("Could not create lesson.");
@@ -148,10 +147,13 @@ const Mylearning = () => {
         {/* Modal */}
         <div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content border-0 shadow rounded-4 p-3">
+            <div className="modal-content border-0 shadow rounded-4 p-3 modal-themed">
               <div className="modal-header border-0 pb-0">
                 <h5 className="modal-title fw-semibold" id="exampleModalLabel">Start a New Lesson</h5>
-                <button type="button" className="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                {/* Visible close button */}
+                <button type="button" className="btn-close btn-close-themed shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                {/* Hidden close button — clicked programmatically after lesson creation */}
+                <button ref={modalCloseRef} type="button" data-bs-dismiss="modal" aria-hidden="true" style={{ display: 'none' }} />
               </div>
               <div className="modal-body pb-0">
                 <p className="text-muted mb-4">Create a new learning session</p>
@@ -159,7 +161,7 @@ const Mylearning = () => {
                   <label className="form-label fw-medium text-muted small">Lesson Title</label>
                   <input
                     type="text"
-                    className="form-control form-control-lg bg-light border-0 shadow-sm"
+                    className="form-control form-control-lg input-themed border-0 shadow-sm"
                     placeholder="Enter Lesson Name"
                     value={lessonTitle}
                     onChange={(e) => setLessonTitle(e.target.value)}
@@ -169,8 +171,8 @@ const Mylearning = () => {
                 </div>
               </div>
               <div className="modal-footer border-0 pt-0 d-flex gap-2">
-                <button type="button" className="btn btn-light px-4 flex-grow-1" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" className="btn btn-dark px-4 flex-grow-1" onClick={createLesson} disabled={creating}>
+                <button type="button" className="btn btn-cancel-themed px-4 flex-grow-1" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" className="btn btn-accent px-4 flex-grow-1" onClick={createLesson} disabled={creating}>
                   {creating ? "Creating..." : "Create Lesson"}
                 </button>
               </div>
