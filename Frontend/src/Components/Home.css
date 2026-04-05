@@ -1,23 +1,231 @@
-/* Home specific utility classes */
+/* ═══════════════════════════════════════════════════════════
+   HOME PAGE — Design-system-aligned styles
+   All colors reference design tokens from index.css
+   ═══════════════════════════════════════════════════════════ */
 
-.hover-scale {
-  transition: transform 0.2s ease-in-out;
+/* ── Utility ────────────────────────────────────────────────── */
+.min-w-0 { min-width: 0; } /* allows flex child to shrink below content size */
+
+/* ── Container ─────────────────────────────────────────────── */
+.home-container {
+  max-width: 1000px;
 }
 
-.hover-scale:hover {
-  transform: scale(1.03);
+/* ── Welcome heading ────────────────────────────────────────── */
+.home-welcome-heading {
+  font-weight: 400;
 }
 
-/* Optional: Add a subtle shadow on hover for cards */
+/* Truncate very long names (> 60 chars) with ellipsis */
+.home-username {
+  display: inline-block;
+  max-width: 60ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* ── Eyebrow label ("THIS WEEK") ────────────────────────────── */
+.home-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+}
+
+/* ── Shared muted label ─────────────────────────────────────── */
+.home-label-muted {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+/* Modifiers: chain with base class for correct specificity */
+.home-label-muted.home-label-sm { font-size: 0.875rem; }
+.home-label-muted.home-label-xs { font-size: 0.8rem;   }
+
+/* ── Continue Learning card ─────────────────────────────────── */
+.continue-card {
+  background: linear-gradient(135deg, #fff7ed 0%, #fafafa 100%);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+.continue-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.continue-card-title {
+  font-weight: 500;
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+.continue-card-subtitle {
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0;
+}
+
+/* Clamp long lesson titles to 2 lines with ellipsis */
+.continue-card-lesson-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* standard property */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* Progress bar track */
+.home-progress-track {
+  height: 10px;
+  border-radius: 5px;
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+/* Progress % label */
+.home-progress-pct {
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Continue button */
+.home-continue-btn {
+  white-space: nowrap;
+  font-size: 1.05rem;
+  transition: transform 0.18s var(--ease-out-quart, ease),
+              background-color 0.18s ease;
+}
+.home-continue-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Caret icon inside accent button — always white regardless of theme */
+.home-caret-icon {
+  color: #fff;
+}
+
+/* Progress bar — accent fill */
+.home-progress-bar {
+  background-color: var(--color-accent);
+}
+
+/* Retry link — inline size + baseline alignment */
+.home-retry-btn {
+  color: var(--color-text-muted);
+  font-size: inherit;
+  vertical-align: baseline;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.home-retry-btn:hover {
+  color: var(--color-accent);
+}
+
+/* ── Stat icons — use design token colors ───────────────────── */
+.stat-icon {
+  flex-shrink: 0;
+}
+.stat-icon--warning { color: var(--color-warning); }
+.stat-icon--success { color: var(--color-success); }
+.stat-icon--accent  { color: var(--color-accent);  font-size: 1.25rem; }
+
+/* ── Stat value sizes ───────────────────────────────────────── */
+.stat-value-lg {
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.1;
+  color: var(--color-text);
+  min-width: 60px; /* prevent layout shift */
+}
+.stat-value-md {
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+/* Stat card inner — ensures consistent min-height */
+.stat-card-inner {
+  min-height: 100px;
+}
+
+/* ── Skeleton loaders — shimmer base ───────────────────────── */
+/* Shared shimmer keyframe — referenced by all skeleton elements */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Base skeleton block */
+.stat-skeleton {
+  display: inline-block;
+  background: linear-gradient(
+    105deg,
+    rgba(128, 128, 128, 0.08) 25%,
+    rgba(128, 128, 128, 0.22) 50%,
+    rgba(128, 128, 128, 0.08) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+  width: 48px;
+  height: 1.5rem;
+  vertical-align: middle;
+}
+
+/* Value size variants */
+.stat-skeleton--lg    { width: 80px;  height: 1.75rem; }
+.stat-skeleton--label { width: 64px;  height: 0.8rem;  display: block; margin-bottom: 6px; }
+
+/* Icon circle placeholder */
+.stat-icon-skel {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    105deg,
+    rgba(128, 128, 128, 0.08) 25%,
+    rgba(128, 128, 128, 0.2)  50%,
+    rgba(128, 128, 128, 0.08) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.stat-icon-skel--lg { width: 36px; height: 36px; } /* study time icon */
+.stat-icon-skel--md { width: 24px; height: 24px; } /* lessons / streak */
+
+/* ── Stagger — each card shimmers at a different phase ─────── */
+.stats-grid > :nth-child(1) .stat-skeleton,
+.stats-grid > :nth-child(1) .stat-icon-skel  { animation-delay: 0ms;   }
+.stats-grid > :nth-child(2) .stat-skeleton,
+.stats-grid > :nth-child(2) .stat-icon-skel  { animation-delay: 180ms; }
+.stats-grid > :nth-child(3) .stat-skeleton,
+.stats-grid > :nth-child(3) .stat-icon-skel  { animation-delay: 360ms; }
+
+/* ── Reveal — content fades up when real data arrives ─────── */
+@keyframes stat-reveal {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.stat-content {
+  animation: stat-reveal 0.35s var(--ease-out-quart, ease) both;
+}
+/* Stagger the reveal per card column */
+.stats-grid > :nth-child(1) .stat-content { animation-delay: 0ms;   }
+.stats-grid > :nth-child(2) .stat-content { animation-delay: 60ms;  }
+.stats-grid > :nth-child(3) .stat-content { animation-delay: 120ms; }
+
+/* ── Cards global hover ─────────────────────────────────────── */
 .card {
   transition: box-shadow 0.2s ease-in-out;
 }
-
 .card:hover {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
 }
 
-/* ── Asymmetric stats grid ──────────────────────────────── */
+/* ── Asymmetric stats grid ──────────────────────────────────── */
 .stats-grid {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
@@ -26,8 +234,8 @@
 
 /* Primary metric card — left accent border in brand orange */
 .stats-card-primary {
-  border-left: 4px solid var(--color-accent, #ff6900) !important;
-  border-radius: 12px !important;
+  border-left: 4px solid var(--color-accent) !important;
+  border-radius: var(--radius-lg) !important;
 }
 
 /* Tablet: collapse to 1fr + 1fr + 1fr */
@@ -36,7 +244,7 @@
     grid-template-columns: 1fr 1fr;
   }
   .stats-card-primary {
-    grid-column: 1 / -1; /* span full row */
+    grid-column: 1 / -1;
   }
 }
 
@@ -47,5 +255,9 @@
   }
   .stats-card-primary {
     grid-column: auto;
+  }
+  .home-continue-btn {
+    width: 100%;
+    justify-content: center;
   }
 }

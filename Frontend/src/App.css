@@ -149,56 +149,45 @@ body.darkmode .ldiv:hover{
 
 
 
-body.darkmode .homeheader {
-  color: #f5f5f5;
+/* ── HOME PAGE — Dark Mode Token Classes ─────────────────── */
+/* Continue Learning card */
+body.darkmode .continue-card {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+body.darkmode .continue-card-title {
+  color: var(--color-text) !important;
+}
+body.darkmode .continue-card-subtitle {
+  color: var(--color-text-muted) !important;
 }
 
-body.darkmode .homeheaderp {
-  color: rgb(180, 180, 180);
+/* Stat icon token colors — preserved in dark mode via semantic tokens */
+body.darkmode .stat-icon--warning { color: var(--color-warning) !important; }
+body.darkmode .stat-icon--success { color: var(--color-success) !important; }
+body.darkmode .stat-icon--accent  { color: var(--color-accent)  !important; }
+
+/* Stat values */
+body.darkmode .stat-value-lg,
+body.darkmode .stat-value-md {
+  color: var(--color-text) !important;
 }
 
-body.darkmode .homeheaderouterdiv {
-  background-color: rgb(35, 35, 35);
-  border: 1px solid rgb(90, 90, 90);
+/* Muted labels */
+body.darkmode .home-label-muted {
+  color: var(--color-text-muted) !important;
 }
 
-body.darkmode .icond {
-  color: rgb(255, 214, 94);
-}
+/* Eyebrow stays accent in both modes (already a token) */
 
-body.darkmode .indiv1p1 {
-  color: #ffffff;
-}
-
-body.darkmode .indiv1p2 {
-  color: rgb(180, 180, 180);
-}
-
-body.darkmode .progress {
-  background-color: rgb(70, 70, 70);
-}
-
-body.darkmode .bar {
-  background-color: rgb(255, 255, 255);
-}
-
-body.darkmode .hlabel,
-body.darkmode .label2,
-body.darkmode .labelp {
-  color: rgb(180, 180, 180);
-}
-
-body.darkmode .homebtn {
-  background-color: #f5f5f5;
-  color: #000;
-}
-
-body.darkmode .homebtn:hover {
-  background-color: #e0e0e0;
-}
-
-body.darkmode .bi-caret-right {
-  color: #000;
+/* Skeleton shimmer — adapts naturally via rgba transparency */
+body.darkmode .stat-skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.06) 25%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.06) 75%
+  );
+  background-size: 200% 100%;
 }
 
 
