@@ -9,40 +9,34 @@ const Home = () => {
   const user = JSON.parse(localStorage.getItem("user")) || {};
   const username = user.full_name || "User";
 
-  const [stats, setStats] = useState({ studyTime: "0m", sessions: 0, streak: 0 });
+  const [stats, setStats] = useState({ studyTime: "0m", lessons: 0, streak: 0 });
   const [lastLesson, setLastLesson] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await apiClient.get('/user-lessons');
-        const records = res.data;
+        // Fetch real stats + lesson data in parallel
+        const [statsRes, lessonsRes] = await Promise.all([
+          apiClient.get('/study-days/stats'),
+          apiClient.get('/user-lessons'),
+        ]);
 
-        // Compute stats from user-lesson tracking records
-        const totalSeconds = records.reduce((sum, r) => sum + (r.time_spent || 0), 0);
-        const sessions = records.length;
+        const { studyTimeSeconds, lessonCount, streak } = statsRes.data;
 
         // Format study time
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const hours = Math.floor(studyTimeSeconds / 3600);
+        const minutes = Math.floor((studyTimeSeconds % 3600) / 60);
         const studyTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-        // Calculate streak from unique days with last_entered
-        const uniqueDays = new Set(
-          records
-            .filter(r => r.last_entered)
-            .map(r => new Date(r.last_entered).toDateString())
-        );
-        const streak = uniqueDays.size;
-
         // Find the most recently accessed lesson
+        const records = lessonsRes.data;
         const sorted = [...records].sort((a, b) =>
           new Date(b.last_entered || 0) - new Date(a.last_entered || 0)
         );
         const recent = sorted[0] || null;
 
-        setStats({ studyTime: studyTime || '0m', sessions, streak });
+        setStats({ studyTime: studyTime || '0m', lessons: lessonCount, streak });
         setLastLesson(recent);
       } catch (err) {
         console.error("Failed to fetch stats:", err);
@@ -108,7 +102,7 @@ const Home = () => {
                     
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <span className="text-muted">Progress</span>
-                      <span className="text-muted">{progressLabel}</span>
+                      <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>{progress}%</span>
                     </div>
                     
                     <div className="progress mb-3" style={{ height: '10px', borderRadius: '5px', backgroundColor: 'rgba(128,128,128,0.2)' }}>
@@ -127,7 +121,7 @@ const Home = () => {
                     style={{ transition: 'transform 0.2s', whiteSpace: 'nowrap', fontSize: '1.1rem' }}
                     onClick={handleContinue}
                   >
-                    <i className="bi bi-caret-right fs-5 me-2"></i> Continue
+                    <i className="bi bi-caret-right fs-5 me-2" style={{ color: 'white' }}></i> Continue
                   </button>
                 </div>
                 
@@ -157,15 +151,15 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Sessions */}
+            {/* Lessons */}
             <div className="card shadow-sm border-0 rounded-4">
               <div className="card-body p-4 d-flex flex-column justify-content-between" style={{ minHeight: '100px' }}>
-                <i className="bi bi-play-circle-fill" style={{ color: '#22c55e', fontSize: '1.25rem' }}></i>
+                <i className="bi bi-book-fill" style={{ color: '#22c55e', fontSize: '1.25rem' }}></i>
                 <div className="mt-3">
                   <div className="fw-bold" style={{ fontSize: '1.5rem', lineHeight: 1 }}>
-                    {loadingStats ? '—' : stats.sessions}
+                    {loadingStats ? '—' : stats.lessons}
                   </div>
-                  <div className="text-muted small mt-1">Sessions</div>
+                  <div className="text-muted small mt-1">Lessons</div>
                 </div>
               </div>
             </div>

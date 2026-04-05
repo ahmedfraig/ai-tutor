@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button, ToastContainer, Toast } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
 import LearningHeader from "./mylearningComponents/LearningHeader";
@@ -19,49 +19,83 @@ function Lesson() {
   const [selectedFileId, setSelectedFileId] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
   const [lessonFiles, setLessonFiles] = useState({});
+  const [analyticsKey, setAnalyticsKey] = useState(0);
+
+  // Called by Sidebar when files are added/deleted → refresh analytics
+  const handleFilesChanged = () => setAnalyticsKey(k => k + 1);
+
+  // Called by VideoPlayer when a video ends → count as watched
+  const handleVideoCompleted = () => {
+    if (!lessonId) return;
+    apiClient.put(`/user-lessons/${lessonId}`, {
+      videos_watched_count: 1,
+    }).catch(() => {});
+    setAnalyticsKey(k => k + 1);
+  };
 
   const showToast = (message) => setToast({ show: true, message });
 
-  // --- Progress Tracking ---
+  const hasStartedRef = useRef(false);
+  const entryTimeRef = useRef(null); // tracks entry time on every mount
+
+  // --- Progress Tracking + Study Day Logging ---
   useEffect(() => {
     if (!lessonId) return;
 
-    const entryTime = Date.now();
+    // Always record entry time — even on StrictMode re-mount
+    entryTimeRef.current = Date.now();
 
-    // Init or update the tracking record when the lesson opens
-    const initTracking = async () => {
-      try {
-        // Try to update existing record first (most common case)
-        await apiClient.put(`/user-lessons/${lessonId}`, {
-          last_entered: new Date().toISOString(),
-        });
-      } catch (err) {
-        // 404 = no record yet, create it
-        if (err.response?.status === 404) {
-          try {
-            await apiClient.post(`/user-lessons/${lessonId}`, {
-              last_entered: new Date().toISOString(),
-            });
-          } catch {/* silent */}
+    // Only call APIs once (guard against StrictMode double-mount)
+    if (!hasStartedRef.current) {
+      hasStartedRef.current = true;
+
+      // Init or update user_lesson tracking record
+      const initTracking = async () => {
+        try {
+          await apiClient.put(`/user-lessons/${lessonId}`, {
+            last_entered: new Date().toISOString(),
+          });
+        } catch (err) {
+          if (err.response?.status === 404) {
+            try {
+              await apiClient.post(`/user-lessons/${lessonId}`, {
+                last_entered: new Date().toISOString(),
+              });
+            } catch {/* silent */}
+          }
         }
-      }
-    };
+      };
 
-    initTracking();
+      // Mark today as a study day (idempotent)
+      const startStudyDay = async () => {
+        try {
+          await apiClient.post('/study-days/start');
+        } catch {/* silent */}
+      };
 
-    // On unmount: save total time spent in this session (seconds)
+      initTracking();
+      startStudyDay();
+    }
+
+    // Cleanup always runs on EVERY unmount (including real navigation away)
     return () => {
-      const secondsSpent = Math.floor((Date.now() - entryTime) / 1000);
-      if (secondsSpent < 2) return; // ignore accidental page flashes
-      // Fire-and-forget: save time spent
+      const secondsSpent = Math.floor((Date.now() - entryTimeRef.current) / 1000);
+      if (secondsSpent < 5) return; // ignore accidental flashes
+
+      // Update user_lesson cumulative time (for per-lesson analytics)
       apiClient.put(`/user-lessons/${lessonId}`, {
         time_spent: secondsSpent,
         last_entered: new Date().toISOString(),
-      }).catch(() => {/* silent */});
+      }).catch(() => {});
+
+      // Add duration to today's study_days row
+      apiClient.put('/study-days/end', {
+        duration: secondsSpent,
+      }).catch(() => {});
     };
   }, [lessonId]);
 
-  // Track videos watched when content is selected
+  // Select content from sidebar — no longer counts as watched on click
   const handleSelectContent = (type, name, filePath = null, fileId = null) => {
     setMode(type);
     setSelectedName(name);
@@ -71,12 +105,6 @@ function Lesson() {
       type === "video" ? `🎬 Opened ${name}` :
       type === "audio" ? `🎧 Playing ${name}` : `📄 Opened ${name}`
     );
-    // Increment videos_watched_count when a video is opened
-    if (type === "video" && lessonId) {
-      apiClient.put(`/user-lessons/${lessonId}`, {
-        videos_watched_count: 1,
-      }).catch(() => {});
-    }
   };
 
   const handleGenerate = (type) => {
@@ -113,6 +141,7 @@ function Lesson() {
           <Sidebar
             onCloseSidebar={() => setShowSidebar(false)}
             onSelectContent={handleSelectContent}
+            onFilesChanged={handleFilesChanged}
             lessonId={lessonId}
           />
         </aside>
@@ -134,8 +163,10 @@ function Lesson() {
             selectedFileId={selectedFileId}
             currentFile={lessonFiles[selectedName]}
             onFileUpload={handleFileUpdate}
+            onVideoCompleted={handleVideoCompleted}
             lessonId={lessonId}
             lessonTitle={lessonTitle}
+            analyticsKey={analyticsKey}
           />
           <AITutorPanel lessonId={lessonId} lessonTitle={lessonTitle} />
         </main>

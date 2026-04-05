@@ -509,9 +509,28 @@ const streamFile = async (req, res) => {
     }
 };
 
+// GET /api/lesson-files/all — all files for the user across all lessons
+const getAllFiles = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const result = await db.query(
+            `SELECT id, lesson_id, type, name, file_path, created_at
+             FROM lesson_files
+             WHERE user_id = $1
+             ORDER BY created_at DESC`,
+            [userId]
+        );
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error in getAllFiles:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 
 module.exports = {
     getFilesByLesson,
+    getAllFiles,
     uploadFile,
     createRecord,
     renameFile,

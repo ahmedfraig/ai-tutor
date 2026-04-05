@@ -56,3 +56,18 @@ CREATE TABLE lesson_files (
     file_path TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Session Log Table
+-- Records every individual study session for accurate stats
+CREATE TABLE session_log (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    lesson_id   INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
+    started_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    duration    INTEGER NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_session_log_user_started
+    ON session_log (user_id, started_at DESC);
+

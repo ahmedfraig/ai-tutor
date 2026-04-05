@@ -12,6 +12,23 @@
   background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
+/* ── Nav link hover — light mode ───────────────────────────── */
+.nav-link {
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.nav-link:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  color: #111 !important;
+}
+
+/* ── Nav link hover — dark mode ────────────────────────────── */
+.darkmode .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+
 /* Ensure the darkmode toggle icon is centered properly */
 .btn-outline-secondary {
   border-color: #dee2e6;

@@ -16,7 +16,7 @@ const TABS = [
   { key: "analytics",  label: "Analytics"  },
 ];
 
-function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, currentFile, onFileUpload, lessonId, lessonTitle }) {
+function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, currentFile, onFileUpload, onVideoCompleted, lessonId, lessonTitle, analyticsKey }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [summarize, setSummarize] = useState("");
   const [loading, setLoading] = useState(true);
@@ -102,7 +102,13 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           />
         )}
         {mode === "video" && (
-          <VideoPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} lessonId={lessonId} />
+          <VideoPlayer
+            title={selectedName}
+            filePath={selectedFilePath}
+            fileId={selectedFileId}
+            lessonId={lessonId}
+            onVideoCompleted={onVideoCompleted}
+          />
         )}
         {mode === "audio" && (
           <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />
@@ -192,7 +198,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           className={activeTab === "analytics" ? "lc-panel lc-panel--active" : "lc-panel lc-panel--hidden"}
           role="tabpanel"
         >
-          <AnalyticsSection lessonId={lessonId} />
+          <AnalyticsSection lessonId={lessonId} analyticsKey={analyticsKey} />
         </div>
 
       </div>

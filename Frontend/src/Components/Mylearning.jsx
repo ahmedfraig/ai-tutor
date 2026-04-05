@@ -5,21 +5,66 @@ import "./Mylearning.css";
 import apiClient from "../api/apiClient";
 import toast from "react-hot-toast";
 
+// Compute completion % using same formula as AnalyticsSection
+function computeCompletion(tracking) {
+  if (!tracking) return 0;
+  const vPct = tracking.total_videos > 0
+    ? (Math.min(tracking.videos_watched_count || 0, tracking.total_videos) / tracking.total_videos) * 30
+    : 0;
+  const qPct = ((tracking.quiz_score || 0) / 100) * 25;
+  const ePct = ((tracking.exam_score || 0) / 100) * 25;
+  const pPct = tracking.practice_completed ? 20 : 0;
+  return Math.round(vPct + qPct + ePct + pPct);
+}
+
+function formatTime(seconds) {
+  if (!seconds || seconds === 0) return null;
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 const Mylearning = () => {
   const [lessons, setLessons] = useState([]);
+  const [trackingMap, setTrackingMap] = useState({});
   const [lessonTitle, setLessonTitle] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  // editingId: which lesson card is in rename mode
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchLessons = async () => {
+    const fetchAll = async () => {
       try {
-        const res = await apiClient.get('/lessons');
-        setLessons(res.data);
+        const [lessonsRes, trackingRes, filesRes] = await Promise.all([
+          apiClient.get('/lessons'),
+          apiClient.get('/user-lessons').catch(() => ({ data: [] })),
+          apiClient.get('/lesson-files/all').catch(() => ({ data: [] })),
+        ]);
+
+        setLessons(lessonsRes.data);
+
+        // Count videos per lesson
+        const videosPerLesson = {};
+        (filesRes.data || []).forEach(f => {
+          if (f.type === 'video') {
+            videosPerLesson[f.lesson_id] = (videosPerLesson[f.lesson_id] || 0) + 1;
+          }
+        });
+
+        // Build map: lessonId → tracking + total_videos
+        const map = {};
+        (trackingRes.data || []).forEach(record => {
+          map[record.lesson_id] = {
+            ...record,
+            total_videos: videosPerLesson[record.lesson_id] || 0,
+          };
+        });
+
+        setTrackingMap(map);
       } catch (err) {
         console.error("Failed to fetch lessons:", err);
         toast.error("Could not load lessons.");
@@ -27,7 +72,7 @@ const Mylearning = () => {
         setLoading(false);
       }
     };
-    fetchLessons();
+    fetchAll();
   }, []);
 
   const createLesson = async () => {
@@ -100,7 +145,7 @@ const Mylearning = () => {
           </button>
         </div>
 
-        {/* Modal definition */}
+        {/* Modal */}
         <div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content border-0 shadow rounded-4 p-3">
@@ -146,68 +191,81 @@ const Mylearning = () => {
         )}
 
         <div className="row g-4">
-          {lessons.map((item, index) => (
-            <div className="col-12 col-md-6 col-lg-4" key={item.id || index}>
-              <div className="card shadow-sm border-light rounded-4 h-100 lesson-card-hover">
-                <div className="card-body p-4 d-flex flex-column">
-                  
-                  {editingId === item.id ? (
-                    <div className="d-flex gap-2 mb-3">
-                      <input
-                        className="form-control form-control-sm border-secondary"
-                        value={editTitle}
-                        onChange={e => setEditTitle(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
-                        autoFocus
-                      />
-                      <button className="btn btn-sm btn-dark px-3" onClick={() => saveEdit(item.id)}>✓</button>
-                      <button className="btn btn-sm btn-light px-3" onClick={() => setEditingId(null)}>✕</button>
-                    </div>
-                  ) : (
-                    <h5 className="mb-4 fw-medium text-truncate lesson-card-title" title={item.title}>{item.title}</h5>
-                  )}
+          {lessons.map((item, index) => {
+            const tracking = trackingMap[item.id] || null;
+            const completion = computeCompletion(tracking);
+            const timeLabel = formatTime(tracking?.time_spent);
 
-                  <div className="mb-4">
-                    <span className="text-muted small d-block mb-2">Progress</span>
-                    <div className="progress" style={{ height: '6px', borderRadius: '4px', backgroundColor: 'rgba(128,128,128,0.2)' }}>
-                      <div className="progress-bar" style={{ width: "25%", borderRadius: '4px', backgroundColor: 'var(--color-accent)' }}></div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-muted small mb-4">
-                    <i className="bi bi-clock me-1"></i> Total 24 minutes
-                  </p>
-                  
-                  <div className="mt-auto d-flex flex-column gap-3">
-                    <button
-                      className="btn btn-dark w-100 rounded-pill py-2 hover-scale d-flex align-items-center justify-content-center"
-                      style={{ transition: 'transform 0.2s', fontWeight: '500' }}
-                      onClick={() => navigate("/lesson", { state: { lessonId: item.id, lessonTitle: item.title } })}
-                    >
-                      <i className="bi bi-play-circle me-2"></i> Resume
-                    </button>
-                    
-                    <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                      <button 
-                        className="btn edit-btn btn-sm rounded-pill px-3 d-flex align-items-center" 
-                        onClick={() => startEdit(item)}
-                      >
-                        <i className="bi bi-pencil me-1"></i> Edit
-                      </button>
-                      
-                      <button 
-                        className="btn delete-btn btn-sm rounded-pill px-3 d-flex align-items-center" 
-                        onClick={() => deleteLesson(item.id)}
-                      >
-                        <i className="bi bi-trash me-1"></i> Delete
-                      </button>
-                    </div>
-                  </div>
+            return (
+              <div className="col-12 col-md-6 col-lg-4" key={item.id || index}>
+                <div className="card shadow-sm border-light rounded-4 h-100 lesson-card-hover">
+                  <div className="card-body p-4 d-flex flex-column">
 
+                    {editingId === item.id ? (
+                      <div className="d-flex gap-2 mb-3">
+                        <input
+                          className="form-control form-control-sm border-secondary"
+                          value={editTitle}
+                          onChange={e => setEditTitle(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
+                          autoFocus
+                        />
+                        <button className="btn btn-sm btn-dark px-3" onClick={() => saveEdit(item.id)}>✓</button>
+                        <button className="btn btn-sm btn-light px-3" onClick={() => setEditingId(null)}>✕</button>
+                      </div>
+                    ) : (
+                      <h5 className="mb-4 fw-medium text-truncate lesson-card-title" title={item.title}>{item.title}</h5>
+                    )}
+
+                    <div className="mb-2">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-muted small">Progress</span>
+                        <span className="small fw-semibold" style={{ color: 'var(--color-accent)' }}>{completion}%</span>
+                      </div>
+                      <div className="progress" style={{ height: '6px', borderRadius: '4px', backgroundColor: 'rgba(128,128,128,0.2)' }}>
+                        <div
+                          className="progress-bar"
+                          style={{ width: `${completion}%`, borderRadius: '4px', backgroundColor: 'var(--color-accent)', transition: 'width 0.6s ease' }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <p className="text-muted small mb-4">
+                      <i className="bi bi-clock me-1"></i>
+                      {timeLabel ? `Total ${timeLabel}` : 'Not started yet'}
+                    </p>
+
+                    <div className="mt-auto d-flex flex-column gap-3">
+                      <button
+                        className="btn btn-dark w-100 rounded-pill py-2 hover-scale d-flex align-items-center justify-content-center"
+                        style={{ transition: 'transform 0.2s', fontWeight: '500' }}
+                        onClick={() => navigate("/lesson", { state: { lessonId: item.id, lessonTitle: item.title } })}
+                      >
+                        <i className="bi bi-play-circle me-2"></i> Resume
+                      </button>
+
+                      <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                        <button
+                          className="btn edit-btn btn-sm rounded-pill px-3 d-flex align-items-center"
+                          onClick={() => startEdit(item)}
+                        >
+                          <i className="bi bi-pencil me-1"></i> Edit
+                        </button>
+
+                        <button
+                          className="btn delete-btn btn-sm rounded-pill px-3 d-flex align-items-center"
+                          onClick={() => deleteLesson(item.id)}
+                        >
+                          <i className="bi bi-trash me-1"></i> Delete
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
     </>

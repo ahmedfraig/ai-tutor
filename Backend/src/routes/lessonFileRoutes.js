@@ -5,6 +5,7 @@ const multer = require('multer');
 const { protect } = require('../middleware/authMiddleware');
 const {
     getFilesByLesson,
+    getAllFiles,
     uploadFile,
     createRecord,
     renameFile,
@@ -29,6 +30,9 @@ router.get('/download/:id', downloadFile);
 
 // GET  /api/lesson-files/stream/:id   — inline stream for <video>/<audio> playback
 router.get('/stream/:id', streamFile);
+
+// GET  /api/lesson-files/all       — all files for the user (all lessons)
+router.get('/all', getAllFiles);
 
 // GET  /api/lesson-files/:lessonId  — list files for a lesson
 router.get('/:lessonId', getFilesByLesson);

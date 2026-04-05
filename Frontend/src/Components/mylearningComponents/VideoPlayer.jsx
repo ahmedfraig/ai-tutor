@@ -87,7 +87,7 @@ const ErrorIcon = () => (
 
 /* ─── Main Component ─────────────────────────────────────────────── */
 
-function VideoPlayer({ title, filePath, fileId, lessonId }) {
+function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeError, setIframeError] = useState(false);
   // Local override: if refresh finds the file is ready, store it here
@@ -212,6 +212,7 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
             preload="metadata"
             playsInline
             aria-label={label}
+            onEnded={onVideoCompleted}
           >
             <source src={streamUrl} type="video/mp4" />
             Your browser does not support the video tag.
@@ -255,6 +256,7 @@ function VideoPlayer({ title, filePath, fileId, lessonId }) {
           controls
           preload="metadata"
           aria-label={label}
+          onEnded={onVideoCompleted}
         >
           <source src={streamSrc} type="video/mp4" />
           Your browser does not support the video tag.

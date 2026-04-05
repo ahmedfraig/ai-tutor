@@ -38,6 +38,9 @@ app.use('/api/reminders', reminderRoutes);
 const lessonFileRoutes = require('./routes/lessonFileRoutes');
 app.use('/api/lesson-files', lessonFileRoutes);
 
+const studyDaysRoutes = require('./routes/studyDaysRoutes');
+app.use('/api/study-days', studyDaysRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 

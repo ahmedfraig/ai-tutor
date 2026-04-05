@@ -42,7 +42,7 @@ const StatCard = ({ icon, iconColor, label, value, progress, mounted }) => (
 );
 
 /* ── Main component ─────────────────────────────────────────────── */
-const AnalyticsSection = ({ lessonId }) => {
+const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
   const [data, setData] = useState(null);
   const [fileCounts, setFileCounts] = useState({ videos: 0, audios: 0, quizzes: 0 });
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ const AnalyticsSection = ({ lessonId }) => {
 
     const fetchAll = async () => {
       try {
-        // Fetch user-lesson tracking + lesson files in parallel
+        // Fetch all data in parallel
         const [trackingRes, filesRes, genRes] = await Promise.all([
           apiClient.get(`/user-lessons/${lessonId}`).catch(() => ({ data: null })),
           apiClient.get(`/lesson-files/${lessonId}`).catch(() => ({ data: [] })),
@@ -67,12 +67,12 @@ const AnalyticsSection = ({ lessonId }) => {
 
         setData(trackingRes.data);
 
-        // Count files by type dynamically
+        // Count files by type
         const files = filesRes.data || [];
         const videoCount = files.filter(f => f.type === 'video').length;
         const audioCount = files.filter(f => f.type === 'audio').length;
 
-        // Count quiz/exam generations
+        // Count quiz generations
         const gens = genRes.data || [];
         const quizCount = gens.filter(g => g.type === 'quiz').length;
 
@@ -89,7 +89,7 @@ const AnalyticsSection = ({ lessonId }) => {
     };
 
     fetchAll();
-  }, [lessonId]);
+  }, [lessonId, analyticsKey]);
 
   if (loading) {
     return (
@@ -100,28 +100,44 @@ const AnalyticsSection = ({ lessonId }) => {
     );
   }
 
+  // Time spent from user_lesson.time_spent (cumulative per-lesson total)
   const timeSpentSec    = Number(data?.time_spent) || 0;
   const hours           = Math.floor(timeSpentSec / 3600);
   const minutes         = Math.floor((timeSpentSec % 3600) / 60);
   const timeLabel       = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-  const videosWatched   = Number(data?.videos_watched_count) || 0;
+  // Videos watched: capped at total (can't watch more unique videos than exist)
+  const rawWatched      = Number(data?.videos_watched_count) || 0;
+  const totalVideos     = fileCounts.videos;
+  const videosWatched   = Math.min(rawWatched, totalVideos); // cap at total
+
   const quizScore       = Number(data?.quiz_score) || 0;
   const examScore       = Number(data?.exam_score) || 0;
   const practiceOk      = !!data?.practice_completed;
 
-  // Dynamic totals from actual lesson files
-  const totalVideos     = Math.max(fileCounts.videos, 1); // min 1 to avoid /0
-  const totalAudios     = Math.max(fileCounts.audios, 1);
-  const totalQuizzes    = Math.max(fileCounts.quizzes, 1);
+  const totalAudios     = fileCounts.audios;
+  const totalQuizzes    = fileCounts.quizzes;
 
-  // Weighted completion: 30% videos, 25% quiz, 25% exam, 20% practice
-  const vPct = Math.min(videosWatched / totalVideos, 1) * 30;
+  // Completion: weighted across all components
+  // 30% videos, 25% quiz score, 25% exam score, 20% practice
+  const vPct = totalVideos > 0 ? (videosWatched / totalVideos) * 30 : 0;
   const qPct = (quizScore / 100) * 25;
   const ePct = (examScore / 100) * 25;
   const pPct = practiceOk ? 20 : 0;
+
+  // If no content exists yet, show 0% instead of NaN
   const rawCompletion = vPct + qPct + ePct + pPct;
   const completion = Number.isNaN(rawCompletion) ? 0 : Math.round(rawCompletion);
+
+  // Quiz average (combine quiz + exam if both exist)
+  let quizAvg = 0;
+  if (quizScore > 0 && examScore > 0) {
+    quizAvg = Math.round((quizScore + examScore) / 2);
+  } else if (quizScore > 0) {
+    quizAvg = Math.round(quizScore);
+  } else if (examScore > 0) {
+    quizAvg = Math.round(examScore);
+  }
 
   return (
     <div className="as-root">
@@ -138,8 +154,8 @@ const AnalyticsSection = ({ lessonId }) => {
           icon={<i className="bi bi-patch-question" />}
           iconColor="#f59e0b"
           label="Quiz Avg"
-          value={`${quizScore}%`}
-          progress={quizScore}
+          value={`${quizAvg}%`}
+          progress={quizAvg}
           mounted={mounted}
         />
         <StatCard

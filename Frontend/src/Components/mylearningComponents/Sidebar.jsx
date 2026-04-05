@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import apiClient from "../../api/apiClient";
 import "./Sidebar.css";
 
-function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
+function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(null);
@@ -106,6 +106,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       setActiveId(data.id);
       onSelectContent("upload", data.name, data.file_path, data.id);
       setOpenAccordion("0");
+      if (onFilesChanged) onFilesChanged(); // refresh analytics
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Upload failed:", err);
@@ -146,6 +147,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
       setActiveId(data.id);
       onSelectContent(type, data.name, data.file_path, data.id);
       setOpenAccordion(type === "video" ? "1" : "2");
+      if (onFilesChanged) onFilesChanged(); // refresh analytics
       if (onCloseSidebar) onCloseSidebar();
     } catch (err) {
       console.error("Generate failed:", err);
@@ -206,6 +208,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, lessonId }) {
     try {
       await apiClient.delete(`/lesson-files/${id}`);
       setFiles((prev) => prev.filter((f) => f.id !== id));
+      if (onFilesChanged) onFilesChanged(); // refresh analytics
       if (activeId === id) {
         setActiveId(null);
         onSelectContent("video", "", null, null);
