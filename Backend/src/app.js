@@ -84,8 +84,24 @@ app.use(cors({
 // MED-2/3: Explicit JSON body size limit
 app.use(express.json({ limit: '1mb' }));
 
-// Serve uploaded files as static assets
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+
+// ── P3-2: Validate numeric route params globally ──────────────────────────
+// app.param() fires whenever ANY route contains the named parameter.
+// This prevents non-integer IDs from reaching PostgreSQL and causing
+// confusing 500 errors instead of proper 400 Bad Request responses.
+function requirePositiveInt(paramName) {
+    return (req, res, next, value) => {
+        const parsed = parseInt(value, 10);
+        if (isNaN(parsed) || parsed <= 0 || String(parsed) !== String(value)) {
+            return res.status(400).json({ message: `Invalid ${paramName}: must be a positive integer` });
+        }
+        req.params[paramName] = parsed;
+        next();
+    };
+}
+app.param('id',       requirePositiveInt('id'));
+app.param('lessonId', requirePositiveInt('lessonId'));
 
 // ── Routes ────────────────────────────────────────────────────────────────
 // Apply the strict limiter to auth before registering the routes

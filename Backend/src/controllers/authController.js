@@ -5,6 +5,13 @@ const db = require('../config/db');
 const { validateString, validateEmail, firstError } = require('../middleware/validateInput');
 const { logError } = require('../utils/logger');
 
+// P3-3: Pre-computed dummy hash to prevent login timing oracle.
+// By always running ONE bcrypt.compare (against this when user not found),
+// both the 'user not found' and 'wrong password' paths take the same time.
+// Generated once at startup — zero per-request overhead.
+let DUMMY_HASH;
+(async () => { DUMMY_HASH = await bcrypt.hash('__timing_guard__', 10); })();
+
 // MED-3: HttpOnly cookie options — JS cannot read this cookie at all.
 // Production (Vercel → Render cross-origin):
 //   - secure: true   → only sent over HTTPS
@@ -37,9 +44,11 @@ const registerUser = async (req, res) => {
         }
 
         // 3. Check if user already exists
-        const userExists = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const userExists = await db.query('SELECT id FROM users WHERE email = $1', [email]);
         if (userExists.rows.length > 0) {
-            return res.status(400).json({ message: 'User with this email already exists' });
+            // Email enumeration is mitigated by the auth rate limiter (10 req/15min).
+            // Without an email verification flow, a clear message is the better UX tradeoff.
+            return res.status(400).json({ message: 'An account with this email already exists. Please sign in.' });
         }
 
         // 4. Hash the password
@@ -91,17 +100,17 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ message: validationError });
         }
 
-        // 3. Find the user
+        // 3. Look up user by email
         const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (result.rows.length === 0) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
+        const user = result.rows.length > 0 ? result.rows[0] : null;
 
-        const user = result.rows[0];
+        // P3-3: Always run bcrypt.compare — even if user not found.
+        // This ensures 'invalid email' and 'wrong password' paths take identical time,
+        // preventing attackers from enumerating valid emails via response timing.
+        const hashToCheck = user ? user.password_hash : DUMMY_HASH;
+        const isMatch = await bcrypt.compare(password, hashToCheck);
 
-        // 4. Compare password
-        const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) {
+        if (!user || !isMatch) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 

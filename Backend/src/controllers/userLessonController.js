@@ -61,8 +61,11 @@ const createUserLesson = async (req, res) => {
             exam_score,
         } = req.body;
 
-        // Check lesson exists
-        const lessonCheck = await db.query('SELECT id FROM lessons WHERE id = $1', [lessonId]);
+        // P2-2: verify lesson exists AND belongs to this user (prevents cross-user tracking)
+        const lessonCheck = await db.query(
+            'SELECT id FROM lessons WHERE id = $1 AND user_id = $2',
+            [lessonId, userId]
+        );
         if (lessonCheck.rows.length === 0) {
             return res.status(404).json({ message: 'Lesson not found' });
         }
@@ -86,12 +89,13 @@ const createUserLesson = async (req, res) => {
             [
                 userId,
                 lessonId,
-                time_spent ?? 0,
-                videos_watched_count ?? 0,
+                // P3-2: cap numeric fields to sane ranges
+                Math.min(Math.max(time_spent ?? 0, 0), 86400),          // 0–24h seconds
+                Math.min(Math.max(videos_watched_count ?? 0, 0), 10000), // 0–10000
                 practice_completed ?? false,
                 last_entered ?? null,
-                quiz_score ?? null,
-                exam_score ?? null,
+                quiz_score != null ? Math.min(Math.max(quiz_score, 0), 100) : null,   // 0–100
+                exam_score  != null ? Math.min(Math.max(exam_score, 0), 100)  : null, // 0–100
             ]
         );
 
@@ -123,19 +127,20 @@ const updateUserLesson = async (req, res) => {
         let paramIndex = 1;
 
         if (time_spent !== undefined) {
-            // Add to existing time_spent rather than overwrite
+            // P3-2: cap time_spent increment at 24h
+            const safeDuration = Math.min(Math.max(time_spent, 0), 86400);
             fields.push(`time_spent = time_spent + $${paramIndex++}`);
-            values.push(time_spent);
+            values.push(safeDuration);
         }
         if (videos_watched_count !== undefined) {
-            // Increment count
+            const safeCount = Math.min(Math.max(videos_watched_count, 0), 10000);
             fields.push(`videos_watched_count = videos_watched_count + $${paramIndex++}`);
-            values.push(videos_watched_count);
+            values.push(safeCount);
         }
         if (practice_completed !== undefined) { fields.push(`practice_completed = $${paramIndex++}`); values.push(practice_completed); }
         if (last_entered !== undefined) { fields.push(`last_entered = $${paramIndex++}`); values.push(last_entered); }
-        if (quiz_score !== undefined) { fields.push(`quiz_score = $${paramIndex++}`); values.push(quiz_score); }
-        if (exam_score !== undefined) { fields.push(`exam_score = $${paramIndex++}`); values.push(exam_score); }
+        if (quiz_score !== undefined) { fields.push(`quiz_score = $${paramIndex++}`); values.push(Math.min(Math.max(quiz_score, 0), 100)); }
+        if (exam_score !== undefined) { fields.push(`exam_score = $${paramIndex++}`); values.push(Math.min(Math.max(exam_score, 0), 100)); }
 
         if (fields.length === 0) {
             return res.status(400).json({ message: 'No fields provided to update' });

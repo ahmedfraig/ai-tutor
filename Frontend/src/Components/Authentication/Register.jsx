@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Register.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 
@@ -45,7 +45,7 @@ const Register = () => {
     }
 
     if (!formData.password) newErrors.password = "Password is required";
-    else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    else if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters";
 
     if (!formData.confirmPassword) newErrors.confirmPassword = "Confirm your password";
     else if (formData.password !== formData.confirmPassword)
@@ -181,7 +181,7 @@ const Register = () => {
           <div className="divider"><span>OR</span></div>
 
           <p className='register-footer-text'>
-            Already have an account? <a href="/login">Sign in</a>
+            Already have an account? <Link to="/login">Sign in</Link>
           </p>
         </form>
       </main>

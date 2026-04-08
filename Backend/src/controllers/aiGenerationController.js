@@ -101,8 +101,11 @@ const createAiGeneration = async (req, res) => {
             return res.status(400).json({ message: `type must be one of: ${validTypes.join(', ')}` });
         }
 
-        // Check lesson exists
-        const lessonCheck = await db.query('SELECT id FROM lessons WHERE id = $1', [lesson_id]);
+        // P2-1: verify lesson exists AND belongs to this user (prevents cross-user linking)
+        const lessonCheck = await db.query(
+            'SELECT id FROM lessons WHERE id = $1 AND user_id = $2',
+            [lesson_id, userId]
+        );
         if (lessonCheck.rows.length === 0) {
             return res.status(404).json({ message: 'Lesson not found' });
         }
@@ -244,7 +247,10 @@ const triggerAiGeneration = async (req, res) => {
         }
 
         const validTypes = ['summary', 'quiz', 'exam'];
-        const requestedTypes = Array.isArray(types) ? types.filter(t => validTypes.includes(t)) : ['summary'];
+        // P3-1: deduplicate so ['summary','summary','summary'] only triggers one AI call
+        const requestedTypes = [...new Set(
+            Array.isArray(types) ? types.filter(t => validTypes.includes(t)) : ['summary']
+        )];
 
         if (requestedTypes.length === 0) {
             return res.status(400).json({ message: `types must include at least one of: ${validTypes.join(', ')}` });
@@ -265,13 +271,14 @@ const triggerAiGeneration = async (req, res) => {
         let sourceText = '';
 
         if (source_file_ids && source_file_ids.length > 0) {
-            // Specific files selected by user
-            const placeholders = source_file_ids.map((_, i) => `$${i + 3}`).join(',');
+            // P3-2: cap the array to prevent huge SQL IN clauses (DoS via large arrays)
+            const safeIds = source_file_ids.slice(0, 50);
+            const placeholders = safeIds.map((_, i) => `$${i + 3}`).join(',');
             const filesResult = await db.query(
                 `SELECT * FROM lesson_files
                  WHERE lesson_id = $1 AND user_id = $2 AND id IN (${placeholders})
                  ORDER BY created_at ASC`,
-                [lesson_id, userId, ...source_file_ids]
+                [lesson_id, userId, ...safeIds]
             );
 
             // For now, we send the file IDs to the AI service

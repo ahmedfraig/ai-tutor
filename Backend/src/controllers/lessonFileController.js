@@ -120,11 +120,15 @@ const uploadFile = async (req, res) => {
             return res.status(400).json({ message: 'lesson_id is required' });
         }
 
-        // ── Resolve user name + lesson title for folder naming ──────────
+        // P2-1: verify lesson EXISTS and belongs to this user before uploading
         const [userRow, lessonRow] = await Promise.all([
             db.query('SELECT full_name FROM users WHERE id = $1', [userId]),
-            db.query('SELECT title FROM lessons WHERE id = $1', [lesson_id]),
+            db.query('SELECT title FROM lessons WHERE id = $1 AND user_id = $2', [lesson_id, userId]),
         ]);
+
+        if (lessonRow.rows.length === 0) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
 
         const userName   = userRow.rows[0]?.full_name  || `user_${userId}`;
         const lessonTitle = lessonRow.rows[0]?.title    || `lesson_${lesson_id}`;
@@ -234,6 +238,25 @@ const createRecord = async (req, res) => {
 
         if (!lesson_id || !type || !name) {
             return res.status(400).json({ message: 'lesson_id, type, and name are required' });
+        }
+
+        // P3-2: allowlist valid types
+        const VALID_RECORD_TYPES = ['video', 'audio'];
+        if (!VALID_RECORD_TYPES.includes(type)) {
+            return res.status(400).json({ message: `type must be one of: ${VALID_RECORD_TYPES.join(', ')}` });
+        }
+
+        // P3-1: enforce name length
+        const nameErr = validateString(name, 'File name', { min: 1, max: 200 });
+        if (nameErr) return res.status(400).json({ message: nameErr });
+
+        // P2-1: verify lesson exists AND belongs to this user
+        const lessonOwnership = await db.query(
+            'SELECT id FROM lessons WHERE id = $1 AND user_id = $2',
+            [lesson_id, userId]
+        );
+        if (lessonOwnership.rows.length === 0) {
+            return res.status(404).json({ message: 'Lesson not found' });
         }
 
         // ── Resolve the target Drive subfolder for this record ───────────
@@ -375,12 +398,15 @@ const downloadFile = async (req, res) => {
             return res.status(404).json({ message: 'No file available' });
         }
 
-        // For Google Drive URLs: use export=download for forced download
-        let downloadUrl = record.file_path;
+        // P2-2: SSRF guard — only fetch from Google Drive URLs.
+        // If file_path is not a Drive URL (e.g. an arbitrary URL written via createRecord),
+        // reject immediately instead of making a server-side request to it.
         const driveFileId = extractDriveFileId(record.file_path);
-        if (driveFileId) {
-            downloadUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+        if (!driveFileId) {
+            return res.status(404).json({ message: 'File is not available for download' });
         }
+
+        const downloadUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
 
         const filename = record.name || 'download';
         const safeFilename = encodeURIComponent(filename);
