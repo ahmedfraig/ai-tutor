@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 import './Register.css';
+import AuthHeader from './AuthHeader';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Sync dark mode preference (no toggle on auth pages)
+  useEffect(() => {
+    if (localStorage.getItem('darkmode') === 'true') {
+      document.body.classList.add('darkmode');
+    } else {
+      document.body.classList.remove('darkmode');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,11 +40,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="register-container">
-      <header className="registerheader">
-        <div className="logo-box"><i className="bi bi-book"></i></div>
-        <h2>Papyrus</h2>
-        <p>Reset your password</p>
-      </header>
+      <AuthHeader />
 
       <main className="registermain">
         <div className="registerform" style={{ padding: '36px 32px' }}>
@@ -42,7 +48,7 @@ const ForgotPassword = () => {
           {!sent ? (
             <>
               <h3 className="register-title">Forgot your password?</h3>
-              <p style={{ color: 'var(--text-muted, #888)', marginBottom: 24, fontSize: 14, lineHeight: 1.6 }}>
+              <p className="auth-muted-text auth-muted-text--sm auth-muted-text--gap">
                 Enter your email address and we'll send you a link to reset your password.
               </p>
 
@@ -63,29 +69,28 @@ const ForgotPassword = () => {
                   type="submit"
                   className="register-btn"
                   disabled={loading}
-                  style={{ marginTop: 8 }}
                 >
                   {loading ? 'Sending...' : 'Send Reset Link'}
                 </button>
               </form>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>📧</div>
+            <div className="auth-form-center" style={{ padding: '16px 0' }}>
+              <div className="auth-status-icon" aria-hidden="true">📧</div>
               <h3 className="register-title">Check your inbox</h3>
-              <p style={{ color: 'var(--text-muted, #888)', lineHeight: 1.6, marginBottom: 24 }}>
+              <p className="auth-muted-text auth-muted-text--gap">
                 If <strong>{email}</strong> is registered, you'll receive a reset link shortly.
                 The link expires in <strong>1 hour</strong>.
               </p>
-              <p style={{ fontSize: 13, color: 'var(--text-muted, #888)' }}>
+              <p className="auth-muted-text auth-muted-text--sm">
                 Didn't receive it? Check your spam folder.
               </p>
             </div>
           )}
 
-          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 14 }}>
-            <Link to="/login" style={{ color: 'var(--accent, #ff6900)' }}>
-              ← Back to Sign In
+          <p className="auth-link-footer">
+            <Link to="/login" className="auth-link">
+              &larr; Back to Sign In
             </Link>
           </p>
         </div>
