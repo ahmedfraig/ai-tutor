@@ -14,14 +14,23 @@ const apiClient = axios.create({
 // We still keep the localStorage 'user' object for display purposes (name, email) —
 // this is non-sensitive UI data only, NOT the authentication credential.
 
-// On 401, clear display data and redirect to login
+// On 401, clear display data and redirect to login —
+// BUT only if:
+//   1. The failed request was NOT an auth endpoint (login/register return 401 for wrong creds)
+//   2. The user is NOT already on the login or register page (avoids infinite reload)
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const isAuthEndpoint = error.config?.url?.includes('/auth/');
+        const isAlreadyOnAuthPage = ['/login', '/register'].some((p) =>
+            window.location.pathname.startsWith(p)
+        );
+
+        if (error.response?.status === 401 && !isAuthEndpoint && !isAlreadyOnAuthPage) {
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
+
         return Promise.reject(error);
     }
 );

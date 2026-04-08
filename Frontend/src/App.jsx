@@ -1,6 +1,7 @@
 import "./App.css";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./contexts/AuthContext";
 
 import Home from "./Components/Home";
 import Mylearning from "./Components/Mylearning";
@@ -15,7 +16,7 @@ import Profile from './Components/Profile';
 
 function App() {
   return (
-    <>
+    <AuthProvider>
 
       <Toaster position="top-center" reverseOrder={false} />
 
@@ -84,7 +85,7 @@ function App() {
           }
         />
       </Routes>
-    </>
+    </AuthProvider>
   );
 }
 

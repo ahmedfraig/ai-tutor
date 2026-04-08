@@ -64,11 +64,10 @@ const registerUser = async (req, res) => {
         // 7. MED-3: set HttpOnly cookie — browser sends this automatically, JS never sees it
         res.cookie('authToken', token, COOKIE_OPTIONS);
 
-        // 8. Return user info (token also returned for non-browser clients / backwards compat)
+        // Return user info only — no token in body (cookie is sufficient for browser clients)
         res.status(201).json({
             message: 'User registered successfully',
             user: newUser.rows[0],
-            token,
         });
 
     } catch (error) {
@@ -116,7 +115,7 @@ const loginUser = async (req, res) => {
         // 6. MED-3: set HttpOnly cookie
         res.cookie('authToken', token, COOKIE_OPTIONS);
 
-        // 7. Send response
+        // Return user info only — no token in body
         res.status(200).json({
             message: 'Login successful',
             user: {
@@ -124,7 +123,6 @@ const loginUser = async (req, res) => {
                 full_name: user.full_name,
                 email: user.email,
             },
-            token,
         });
 
     } catch (error) {

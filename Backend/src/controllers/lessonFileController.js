@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { Readable } = require('stream');
 const https = require('https');
 const http = require('http');
+const { validateString } = require('../middleware/validateInput');
 
 const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
@@ -157,11 +158,11 @@ const uploadFile = async (req, res) => {
 
         const fileId = driveResponse.data.id;
 
-        // Make the file publicly readable (anyone with the link)
-        await drive.permissions.create({
-            fileId,
-            requestBody: { role: 'reader', type: 'anyone' },
-        });
+        // LOW-NEW-3: Do NOT grant 'reader' permission to 'anyone'.
+        // Files are served exclusively through the authenticated /stream and /download
+        // proxy endpoints (which enforce ownership). A raw Drive URL cannot bypass auth.
+        // Note: existing uploaded files that were already made public are not affected —
+        // only new uploads from this point forward will be private.
 
         const file_path = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
@@ -285,9 +286,9 @@ const renameFile = async (req, res) => {
         const { id } = req.params;
         const { name } = req.body;
 
-        if (!name || !name.trim()) {
-            return res.status(400).json({ message: 'name is required' });
-        }
+        // MED-NEW-2: enforce length limit on file name
+        const nameErr = validateString(name, 'File name', { min: 1, max: 200 });
+        if (nameErr) return res.status(400).json({ message: nameErr });
 
         const result = await db.query(
             `UPDATE lesson_files SET name = $1

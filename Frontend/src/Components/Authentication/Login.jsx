@@ -3,9 +3,11 @@ import "./Login.css";
 import { useNavigate, Link } from "react-router-dom";
 import toast from 'react-hot-toast';
 import apiClient from "../../api/apiClient";
+import { useAuth } from "../../contexts/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { setAuthStatus } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,9 +41,13 @@ const Login = () => {
       const res = await apiClient.post('/auth/login', { email, password });
       const { user } = res.data;
 
-      // MED-3: no token stored in localStorage — the HttpOnly cookie is set by the server.
+      // Auth is handled by the HttpOnly cookie set by the server.
       // Only save non-sensitive display data (name/email) for the UI.
       localStorage.setItem('user', JSON.stringify(user));
+
+      // Tell the AuthContext the user is now authenticated so
+      // ProtectedRoute lets them through without another API call.
+      setAuthStatus('authed');
 
       toast.success('Logged in successfully!');
       navigate('/home');

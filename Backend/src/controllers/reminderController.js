@@ -27,6 +27,11 @@ const createReminder = async (req, res) => {
         if (!remind_date) {
             return res.status(400).json({ message: 'remind_date is required' });
         }
+        // P2-2: validate ISO date format — prevents DB type errors from arbitrary strings
+        const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:?\d{2})?)?$/;
+        if (!ISO_DATE_RE.test(remind_date)) {
+            return res.status(400).json({ message: 'remind_date must be a valid date (YYYY-MM-DD or ISO 8601)' });
+        }
         const err = validateString(notes, 'Notes', { min: 1, max: 1000 });
         if (err) return res.status(400).json({ message: err });
 

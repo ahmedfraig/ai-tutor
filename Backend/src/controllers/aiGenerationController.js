@@ -253,10 +253,12 @@ const triggerAiGeneration = async (req, res) => {
         // Check if AI service is available
         const aiReady = await aiService.isAvailable();
         if (!aiReady) {
-            return res.status(503).json({
-                message: 'AI service is not available. Please try again later.',
-                hint: `Expected at ${aiService.AI_API_URL}`,
-            });
+            // P3-1: never expose the internal service URL to the client in production
+            const body = { message: 'AI service is not available. Please try again later.' };
+            if (process.env.NODE_ENV !== 'production') {
+                body.hint = `Expected at ${aiService.AI_API_URL}`;
+            }
+            return res.status(503).json(body);
         }
 
         // Get source files from DB

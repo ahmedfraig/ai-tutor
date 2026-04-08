@@ -34,12 +34,16 @@ const endDay = async (req, res) => {
         if (!duration || duration < 5) {
             return res.status(200).json({ message: 'Too short, skipped' });
         }
+        // P2-1: cap at 24h (the physical maximum possible in one day).
+        // This blocks overflow attacks (e.g. duration: 9999999999) while fully
+        // recording any legitimate session, including extreme ones.
+        const safeDuration = Math.min(duration, 86400);
 
         await db.query(
             `UPDATE study_days
              SET time_spent = time_spent + $1
              WHERE user_id = $2 AND study_date = ${cairoToday}`,
-            [duration, userId]
+            [safeDuration, userId]
         );
         res.status(200).json({ message: 'Duration saved' });
     } catch (error) {

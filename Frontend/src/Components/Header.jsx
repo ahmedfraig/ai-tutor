@@ -5,9 +5,11 @@ import { useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { MoonFill, SunFill } from "react-bootstrap-icons";
 import apiClient from "../api/apiClient";
+import { useAuth } from "../contexts/useAuth";
 
 const Header = () => {
   const navigate = useNavigate();
+  const { setAuthStatus } = useAuth();
   // Read persisted preference on every mount (header re-mounts on navigation)
   const [darkmode, setdarkmode] = useState(
     () => localStorage.getItem('darkmode') === 'true'
@@ -44,11 +46,12 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      // MED-3: clear the HttpOnly cookie server-side
+      // Clear the HttpOnly cookie server-side
       await apiClient.post('/auth/logout');
     } catch {
       // Even if the API call fails, clear local state and redirect
     } finally {
+      setAuthStatus('unauthed'); // immediately block all protected routes
       localStorage.removeItem('user');
       toast.success('Logged out successfully!');
       navigate('/login');
