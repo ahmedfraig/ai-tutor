@@ -34,9 +34,19 @@ if (!process.env.CORS_ORIGIN) {
 
 const app = express();
 
+// ── Trust Render's reverse proxy ─────────────────────────────────────────
+// Render (and most cloud platforms) sit behind a load balancer that adds
+// X-Forwarded-For. Without this, express-rate-limit throws a ValidationError
+// and cannot correctly identify client IPs for rate limiting.
+app.set('trust proxy', 1);
+
 // ── MED-4: Security headers (helmet) ─────────────────────────────────────
-// Adds X-Content-Type-Options, X-Frame-Options, HSTS, CSP, and more.
-app.use(helmet());
+// Override crossOriginResourcePolicy to 'cross-origin' — this API is
+// intentionally served cross-origin (Vercel frontend → Render backend).
+// The default 'same-origin' would block all browser requests from Vercel.
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 // MED-3: Parse cookies so authMiddleware can read the HttpOnly JWT cookie
 app.use(cookieParser());
