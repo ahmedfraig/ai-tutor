@@ -6,6 +6,8 @@
 //   FRONTEND_URL       — base URL of the frontend (used in verification links)
 
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 
 // P3: Use env var so the sender address is configurable without changing code
 const GMAIL_USER = process.env.GMAIL_USER || 'papyrusstudy@gmail.com';
