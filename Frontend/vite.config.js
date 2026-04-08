@@ -12,6 +12,9 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
+        // MED-3: forward cookies through the proxy so HttpOnly cookies work in dev
+        secure: false,
+        cookieDomainRewrite: 'localhost',
       },
     },
   },

@@ -1,26 +1,24 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-    // Use relative URL in dev (Vite proxies /api → localhost:5000)
-    // Use VITE_API_URL in production/deployment
+    // Dev: Vite proxy forwards /api → localhost:5000 (see vite.config.js)
+    // Prod: VITE_API_URL must be set to your Render backend URL
+    //       e.g. https://your-backend.onrender.com/api
     baseURL: import.meta.env.VITE_API_URL || '/api',
+    // MED-3: withCredentials=true sends the HttpOnly 'authToken' cookie automatically.
+    // The browser handles it — JS never reads it, making XSS token theft impossible.
+    withCredentials: true,
 });
 
-// Attach JWT token to every request automatically
-apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// No Authorization header interceptor needed — the HttpOnly cookie is sent automatically.
+// We still keep the localStorage 'user' object for display purposes (name, email) —
+// this is non-sensitive UI data only, NOT the authentication credential.
 
-// On 401, clear storage and redirect to login
+// On 401, clear display data and redirect to login
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
         }

@@ -37,14 +37,14 @@ const Login = () => {
     setLoading(true);
     try {
       const res = await apiClient.post('/auth/login', { email, password });
-      const { token, user } = res.data;
+      const { user } = res.data;
 
-      // Save token and user info for later use
-      localStorage.setItem('token', token);
+      // MED-3: no token stored in localStorage — the HttpOnly cookie is set by the server.
+      // Only save non-sensitive display data (name/email) for the UI.
       localStorage.setItem('user', JSON.stringify(user));
 
-      toast.success("Logged in successfully!");
-      navigate("/home");
+      toast.success('Logged in successfully!');
+      navigate('/home');
     } catch (err) {
       const message = err.response?.data?.message || "Invalid email or password";
       setErrors({ login: message });

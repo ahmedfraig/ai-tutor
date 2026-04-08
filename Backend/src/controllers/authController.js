@@ -2,107 +2,145 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { validateString, validateEmail, firstError } = require('../middleware/validateInput');
+const { logError } = require('../utils/logger');
+
+// MED-3: HttpOnly cookie options — JS cannot read this cookie at all.
+// Production (Vercel → Render cross-origin):
+//   - secure: true   → only sent over HTTPS
+//   - sameSite: 'none' → required for cross-origin (different domains)
+// Development (localhost):
+//   - secure: false  → works over http
+//   - sameSite: 'lax' → works for same-origin dev proxy
+const IS_PROD = process.env.NODE_ENV === 'production';
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: IS_PROD,                      // HTTPS only in prod
+    sameSite: IS_PROD ? 'none' : 'lax',  // cross-origin in prod, relaxed in dev
+    maxAge: 7 * 24 * 60 * 60 * 1000,     // 7 days
+    path: '/',
+};
 
 const registerUser = async (req, res) => {
     try {
-        // 1. Extract data from the frontend request
+        // 1. Extract data
         const { full_name, email, password } = req.body;
 
-        // 2. Basic Validation
-        if (!full_name || !email || !password) {
-            return res.status(400).json({ message: "All fields are required" });
+        // 2. Validation (MED-2)
+        const validationError = firstError(
+            validateString(full_name, 'Full name', { min: 2, max: 100 }),
+            validateEmail(email),
+            validateString(password,  'Password',  { min: 8, max: 128 })
+        );
+        if (validationError) {
+            return res.status(400).json({ message: validationError });
         }
 
         // 3. Check if user already exists
         const userExists = await db.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userExists.rows.length > 0) {
-            return res.status(400).json({ message: "User with this email already exists" });
+            return res.status(400).json({ message: 'User with this email already exists' });
         }
 
-        // 4. Hash the password (10 salt rounds is the industry standard)
+        // 4. Hash the password
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
 
-        // 5. Insert the new user into the Neon database
-        const insertQuery = `
-            INSERT INTO users (full_name, email, password_hash) 
-            VALUES ($1, $2, $3) 
-            RETURNING id, full_name, email, created_at;
-        `;
-        const newUser = await db.query(insertQuery, [full_name, email, password_hash]);
-
-        // 6. Generate a JWT Token so they are logged in immediately
-        const token = jwt.sign(
-            { userId: newUser.rows[0].id }, 
-            process.env.JWT_SECRET || 'fallback_secret_key', 
-            { expiresIn: '7d' } // Token expires in 7 days
+        // 5. Insert the new user
+        const newUser = await db.query(
+            `INSERT INTO users (full_name, email, password_hash)
+             VALUES ($1, $2, $3)
+             RETURNING id, full_name, email, created_at`,
+            [full_name, email, password_hash]
         );
 
-        // 7. Send the successful response back to the frontend
+        // 6. Generate JWT
+        const token = jwt.sign(
+            { userId: newUser.rows[0].id },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        // 7. MED-3: set HttpOnly cookie — browser sends this automatically, JS never sees it
+        res.cookie('authToken', token, COOKIE_OPTIONS);
+
+        // 8. Return user info (token also returned for non-browser clients / backwards compat)
         res.status(201).json({
-            message: "User registered successfully",
+            message: 'User registered successfully',
             user: newUser.rows[0],
-            token: token
+            token,
         });
 
     } catch (error) {
-        console.error("Error in registerUser:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+        logError('registerUser', error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
 
 const loginUser = async (req, res) => {
     try {
-        // 1. Extract email and password from the frontend request
+        // 1. Extract email and password
         const { email, password } = req.body;
 
-        // 2. Basic Validation
-        if (!email || !password) {
-            return res.status(400).json({ message: "Please provide both email and password" });
+        // 2. Validation
+        const validationError = firstError(
+            validateEmail(email),
+            validateString(password, 'Password', { min: 1, max: 128 })
+        );
+        if (validationError) {
+            return res.status(400).json({ message: validationError });
         }
 
-        // 3. Find the user in the database
+        // 3. Find the user
         const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-        
         if (result.rows.length === 0) {
-            return res.status(401).json({ message: "Invalid email or password" }); // Keep errors vague for security!
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
 
         const user = result.rows[0];
 
-        // 4. Compare the provided password with the hashed password in the database
+        // 4. Compare password
         const isMatch = await bcrypt.compare(password, user.password_hash);
-
         if (!isMatch) {
-            return res.status(401).json({ message: "Invalid email or password" });
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // 5. Generate a new JWT Token
+        // 5. Generate JWT
         const token = jwt.sign(
-            { userId: user.id }, 
-            process.env.JWT_SECRET || 'fallback_secret_key', 
-            { expiresIn: '7d' } 
+            { userId: user.id },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
         );
 
-        // 6. Send the successful response back
+        // 6. MED-3: set HttpOnly cookie
+        res.cookie('authToken', token, COOKIE_OPTIONS);
+
+        // 7. Send response
         res.status(200).json({
-            message: "Login successful",
+            message: 'Login successful',
             user: {
                 id: user.id,
                 full_name: user.full_name,
-                email: user.email
+                email: user.email,
             },
-            token: token
+            token,
         });
 
     } catch (error) {
-        console.error("Error in loginUser:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+        logError('loginUser', error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
+};
+
+// POST /api/auth/logout — clears the HttpOnly cookie server-side
+const logoutUser = (req, res) => {
+    res.clearCookie('authToken', { ...COOKIE_OPTIONS, maxAge: 0 });
+    res.status(200).json({ message: 'Logged out successfully' });
 };
 
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    logoutUser,
 };

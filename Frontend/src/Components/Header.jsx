@@ -4,6 +4,7 @@ import "./Header.css";
 import { useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { MoonFill, SunFill } from "react-bootstrap-icons";
+import apiClient from "../api/apiClient";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -41,11 +42,17 @@ const Header = () => {
     setlogoutdiv(!logoutdiv);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    toast.success("Logged out successfully!");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // MED-3: clear the HttpOnly cookie server-side
+      await apiClient.post('/auth/logout');
+    } catch {
+      // Even if the API call fails, clear local state and redirect
+    } finally {
+      localStorage.removeItem('user');
+      toast.success('Logged out successfully!');
+      navigate('/login');
+    }
   };
 
   // Read user from localStorage (saved on login)

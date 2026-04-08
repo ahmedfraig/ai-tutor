@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./AudioPlayer.css";
 import { BsMusicNoteBeamed } from "react-icons/bs";
+import apiClient from "../../api/apiClient";
 
 // Extract Drive file ID from stored URL formats
 function getDriveFileId(url) {
@@ -18,12 +19,27 @@ function getDriveFileId(url) {
 const AudioPlayer = ({ title, filePath, fileId }) => {
   const driveId = getDriveFileId(filePath);
 
+  // HIGH-1: short-lived stream token — keeps full JWT out of audio src URLs
+  const [streamToken, setStreamToken] = useState(null);
+
+  useEffect(() => {
+    if (!fileId) return;
+    let cancelled = false;
+    apiClient.post(`/lesson-files/stream-token/${fileId}`)
+      .then((res) => { if (!cancelled) setStreamToken(res.data.token); })
+      .catch(() => { if (!cancelled) setStreamToken(null); });
+    return () => { cancelled = true; };
+  }, [fileId]);
+
   // ── Real audio player ──────────────────────────────────────────
   if (driveId || fileId) {
     // Use backend stream proxy for reliable auth + CORS handling
-    const streamSrc = fileId
-      ? `/api/lesson-files/stream/${fileId}`
-      : `https://drive.google.com/uc?export=download&id=${driveId}`;
+    let streamSrc = null;
+    if (fileId && streamToken) {
+      streamSrc = `/api/lesson-files/stream/${fileId}?streamToken=${encodeURIComponent(streamToken)}`;
+    } else if (driveId) {
+      streamSrc = `https://drive.google.com/uc?export=download&id=${driveId}`;
+    }
 
     return (
       <div className="audio-player-real">
@@ -34,17 +50,22 @@ const AudioPlayer = ({ title, filePath, fileId }) => {
           <p className="audio-player-real__title">{title || "AI Audio Lesson"}</p>
           <p className="audio-player-real__sub">AI Voice Lesson</p>
         </div>
-        <audio
-          controls
-          className="audio-player-real__element"
-          src={streamSrc}
-          preload="metadata"
-        >
-          Your browser does not support the audio element.
-        </audio>
+        {streamSrc ? (
+          <audio
+            controls
+            className="audio-player-real__element"
+            src={streamSrc}
+            preload="metadata"
+          >
+            Your browser does not support the audio element.
+          </audio>
+        ) : (
+          <p style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loading audio…</p>
+        )}
       </div>
     );
   }
+
 
   // ── Placeholder (audio not yet generated) ─────────────────────
   const waveformBars = [20,40,30,50,40,60,30,50,40,30,20,40,50,60,70,50,40,60,50,40,30,20,40,30,50,40,60,30,50,40];

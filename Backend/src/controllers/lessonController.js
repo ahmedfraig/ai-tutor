@@ -1,5 +1,6 @@
 // src/controllers/lessonController.js
 const db = require('../config/db');
+const { validateString } = require('../middleware/validateInput');
 
 // GET /api/lessons - Get all lessons for the logged-in user
 const getAllLessons = async (req, res) => {
@@ -43,9 +44,8 @@ const createLesson = async (req, res) => {
         const userId = req.user.userId;
         const { title } = req.body;
 
-        if (!title) {
-            return res.status(400).json({ message: 'Title is required' });
-        }
+        const err = validateString(title, 'Title', { min: 1, max: 200 });
+        if (err) return res.status(400).json({ message: err });
 
         const result = await db.query(
             'INSERT INTO lessons (title, user_id) VALUES ($1, $2) RETURNING *',
@@ -66,9 +66,8 @@ const updateLesson = async (req, res) => {
         const { id } = req.params;
         const { title } = req.body;
 
-        if (!title) {
-            return res.status(400).json({ message: 'Title is required' });
-        }
+        const err = validateString(title, 'Title', { min: 1, max: 200 });
+        if (err) return res.status(400).json({ message: err });
 
         const result = await db.query(
             'UPDATE lessons SET title = $1 WHERE id = $2 AND user_id = $3 RETURNING *',

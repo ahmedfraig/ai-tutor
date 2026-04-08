@@ -1,5 +1,6 @@
 // src/controllers/reminderController.js
 const db = require('../config/db');
+const { validateString } = require('../middleware/validateInput');
 
 // GET /api/reminders - Get all reminders for the logged-in user
 const getReminders = async (req, res) => {
@@ -22,9 +23,12 @@ const createReminder = async (req, res) => {
         const userId = req.user.userId;
         const { remind_date, notes } = req.body;
 
-        if (!remind_date || !notes) {
-            return res.status(400).json({ message: 'remind_date and notes are required' });
+        // MED-2: validate required fields and length limits
+        if (!remind_date) {
+            return res.status(400).json({ message: 'remind_date is required' });
         }
+        const err = validateString(notes, 'Notes', { min: 1, max: 1000 });
+        if (err) return res.status(400).json({ message: err });
 
         const result = await db.query(
             'INSERT INTO reminders (user_id, remind_date, notes) VALUES ($1, $2, $3) RETURNING *',

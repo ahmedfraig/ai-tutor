@@ -1,6 +1,7 @@
 // src/controllers/lessonFileController.js
 const db = require('../config/db');
 const drive = require('../config/googleDrive');
+const jwt = require('jsonwebtoken');
 const { Readable } = require('stream');
 const https = require('https');
 const http = require('http');
@@ -15,7 +16,7 @@ const folderCache = new Map();
 // Helper: sanitize a string so it's safe as a Drive folder name
 function safeName(str) {
     return String(str)
-        .replace(/[/\\:*?"<>|]/g, '_')   // remove filename-unsafe chars
+        .replace(/[/\\:*?"<>|']/g, '_')   // remove filename-unsafe chars + single quote (Drive query injection)
         .replace(/\s+/g, '_')             // spaces → underscores
         .slice(0, 80);                    // Drive name limit safety
 }
@@ -348,8 +349,16 @@ const deleteFile = async (req, res) => {
 // GET /api/lesson-files/download/:id — proxy download with correct filename
 const downloadFile = async (req, res) => {
     try {
-        const userId = req.user.userId;
+        // HIGH-1: use the short-lived stream token from ?streamToken=
+        const claims = verifyStreamToken(req, res);
+        if (!claims) return;
+
+        const userId = claims.userId;
         const { id } = req.params;
+
+        if (claims.fileId !== parseInt(id, 10)) {
+            return res.status(403).json({ message: 'Stream token is not valid for this file' });
+        }
 
         const result = await db.query(
             'SELECT * FROM lesson_files WHERE id = $1 AND user_id = $2',
@@ -404,6 +413,57 @@ const downloadFile = async (req, res) => {
     }
 };
 
+// POST /api/lesson-files/stream-token/:id — exchange full JWT for a 2-minute scoped stream token
+// HIGH-1 fix: native <video>/<audio> elements cannot send Authorization headers,
+// so we can't pass the full long-lived JWT in the URL (it leaks into logs/history).
+// Instead the frontend calls this endpoint (with the full JWT in the Authorization header),
+// receives a short-lived, file-scoped token, and embeds THAT in the media src URL.
+const getStreamToken = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+
+        // Verify the file exists and belongs to this user
+        const result = await db.query(
+            'SELECT id FROM lesson_files WHERE id = $1 AND user_id = $2',
+            [id, userId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+
+        // Issue a minimal, short-lived token scoped to this one file
+        const streamToken = jwt.sign(
+            { userId, fileId: parseInt(id, 10), scope: 'stream' },
+            process.env.JWT_SECRET,
+            { expiresIn: '2m' }
+        );
+
+        res.status(200).json({ token: streamToken });
+    } catch (error) {
+        console.error('Error in getStreamToken:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// Internal helper: verify a stream token from a query param (?streamToken=...)
+// Used by streamFile and downloadFile so the full JWT is never needed in a URL.
+function verifyStreamToken(req, res) {
+    const raw = req.query.streamToken;
+    if (!raw) {
+        res.status(401).json({ message: 'Stream token required' });
+        return null;
+    }
+    try {
+        const decoded = jwt.verify(raw, process.env.JWT_SECRET);
+        if (decoded.scope !== 'stream') throw new Error('wrong scope');
+        return decoded; // { userId, fileId, scope }
+    } catch (err) {
+        res.status(401).json({ message: 'Stream token invalid or expired. Please refresh the page.' });
+        return null;
+    }
+}
+
 // ── streamFile — inline stream for <video> / <audio> playback ───────────────
 // Serves the file without Content-Disposition so the browser plays it inline.
 // Supports Range requests (required for video seeking / audio scrubbing).
@@ -411,8 +471,19 @@ const downloadFile = async (req, res) => {
 // so service-account-owned files are not rejected with 403.
 const streamFile = async (req, res) => {
     try {
-        const userId = req.user.userId;
+        // HIGH-1: use the short-lived stream token from ?streamToken=
+        // This token was obtained by the frontend via POST /stream-token/:id
+        // and expires in 2 minutes — it never contains full session privileges.
+        const claims = verifyStreamToken(req, res);
+        if (!claims) return; // verifyStreamToken already sent the error response
+
+        const userId = claims.userId;
         const { id } = req.params;
+
+        // Confirm the token's fileId matches the URL param (prevents token reuse on other files)
+        if (claims.fileId !== parseInt(id, 10)) {
+            return res.status(403).json({ message: 'Stream token is not valid for this file' });
+        }
 
         const result = await db.query(
             'SELECT * FROM lesson_files WHERE id = $1 AND user_id = $2',
@@ -537,5 +608,7 @@ module.exports = {
     deleteFile,
     downloadFile,
     streamFile,
+    getStreamToken,
 };
+
 

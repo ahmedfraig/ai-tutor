@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import apiClient from "../../api/apiClient";
 import "./VideoPlayer.css";
 
@@ -95,6 +95,10 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
   const [isChecking, setIsChecking] = useState(false);
   const [checkMsg, setCheckMsg]     = useState("");
 
+  // HIGH-1: short-lived stream token (replaces passing full JWT in URL)
+  const [streamToken, setStreamToken] = useState(null);
+  const streamTokenRef = useRef(null);
+
   const label = title || "AI-Generated Video";
 
   // Sync local path when the parent selects a different video
@@ -103,7 +107,28 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
     setIframeLoaded(false);
     setIframeError(false);
     setCheckMsg("");
+    setStreamToken(null); // reset token when file changes
   }, [fileId, filePath]);
+
+  // Fetch a short-lived stream token whenever fileId is set
+  useEffect(() => {
+    if (!fileId) return;
+    let cancelled = false;
+    const fetchToken = async () => {
+      try {
+        const res = await apiClient.post(`/lesson-files/stream-token/${fileId}`);
+        if (!cancelled) {
+          setStreamToken(res.data.token);
+          streamTokenRef.current = res.data.token;
+        }
+      } catch {
+        // If token fetch fails, streamToken stays null and the fallback Drive link is shown
+        if (!cancelled) setStreamToken(null);
+      }
+    };
+    fetchToken();
+    return () => { cancelled = true; };
+  }, [fileId]);
 
   // ── Soft refresh: re-fetch only this file record from the API ─────
   const handleRefreshCheck = async () => {
@@ -196,10 +221,9 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
      ──────────────────────────────────────────────────────────────── */
   if (driveId) {
     const driveViewUrl = `https://drive.google.com/file/d/${driveId}/view`;
-    // Native <video> can't send Authorization headers, so we pass the JWT in the URL
-    const authToken = localStorage.getItem('token');
-    const streamUrl = (fileId && authToken)
-      ? `${BASE_URL}/api/lesson-files/stream/${fileId}?token=${encodeURIComponent(authToken)}`
+    // HIGH-1: use short-lived stream token instead of full JWT in URL
+    const streamUrl = (fileId && streamToken)
+      ? `${BASE_URL}/api/lesson-files/stream/${fileId}?streamToken=${encodeURIComponent(streamToken)}`
       : null;
 
     if (streamUrl) {
@@ -247,7 +271,23 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
 
   /* ── Case 5: Backend stream URL or other direct URL */
   if (fileId && activeFilePath) {
-    const streamSrc = `${BASE_URL}/api/lesson-files/stream/${fileId}`;
+    // HIGH-1: use short-lived stream token
+    const streamSrc = streamToken
+      ? `${BASE_URL}/api/lesson-files/stream/${fileId}?streamToken=${encodeURIComponent(streamToken)}`
+      : null;
+
+    if (!streamSrc) {
+      // Token still loading — show a spinner
+      return (
+        <StateBox
+          variant="generating"
+          icon={<SpinnerIcon />}
+          label={label}
+          sub="Loading player…"
+        />
+      );
+    }
+
     return (
       <div className="vp-wrap">
         <video
