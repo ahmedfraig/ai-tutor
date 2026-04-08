@@ -21,8 +21,18 @@
   background-color: rgba(0, 0, 0, 0.06) !important;
   color: #111 !important;
 }
+/* ── Nav active state ──────────────────────────────────── */
+.nav-link-active {
+  color: var(--color-accent) !important;              /* orange text */
+  background-color: var(--color-accent-muted) !important; /* subtle tint */
+  font-weight: 600;
+}
 
-/* ── Nav link hover — dark mode ────────────────────────────── */
+.darkmode .nav-link-active {
+  color: var(--color-accent) !important;
+  background-color: rgba(255, 105, 0, 0.15) !important;
+}
+
 .darkmode .nav-link:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: #fff !important;

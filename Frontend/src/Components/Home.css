@@ -257,6 +257,13 @@
   border-radius: var(--radius-lg) !important;
 }
 
+/* All stat cards get a visible border in both modes.
+   Bootstrap's border-0 class removes borders so we add them back
+   explicitly via the design token, which auto-switches in dark mode. */
+.stats-grid .card {
+  border: 1px solid var(--color-border) !important;
+}
+
 /* Tablet: collapse to 1fr + 1fr + 1fr */
 @media (max-width: 991px) {
   .stats-grid {

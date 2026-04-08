@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../App.css";
 import "./Header.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { MoonFill, SunFill } from "react-bootstrap-icons";
 import apiClient from "../api/apiClient";
@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/useAuth";
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setAuthStatus } = useAuth();
   // Read persisted preference on every mount (header re-mounts on navigation)
   const [darkmode, setdarkmode] = useState(
@@ -108,17 +109,32 @@ const Header = () => {
             {/* Nav Links */}
             <ul className="navbar-nav mx-auto mb-2 mb-lg-0 gap-1 gap-lg-4 mt-3 mt-lg-0">
               <li className="nav-item">
-                <a className="nav-link rounded px-3 py-2 d-flex align-items-center" style={{cursor: 'pointer'}} onClick={() => navigate("/home")}>
+                <a
+                  className={`nav-link rounded px-3 py-2 d-flex align-items-center${location.pathname === '/home' ? ' nav-link-active' : ''}`}
+                  style={{cursor: 'pointer'}}
+                  onClick={() => navigate("/home")}
+                  aria-current={location.pathname === '/home' ? 'page' : undefined}
+                >
                   <i className="bi bi-house-door fs-5 me-2"></i> <span className="fw-medium">Home</span>
                 </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link rounded px-3 py-2 d-flex align-items-center" style={{cursor: 'pointer'}} onClick={() => navigate("/mylearning")}>
+                <a
+                  className={`nav-link rounded px-3 py-2 d-flex align-items-center${location.pathname === '/mylearning' ? ' nav-link-active' : ''}`}
+                  style={{cursor: 'pointer'}}
+                  onClick={() => navigate("/mylearning")}
+                  aria-current={location.pathname === '/mylearning' ? 'page' : undefined}
+                >
                   <i className="bi bi-book fs-5 me-2"></i> <span className="fw-medium">My Learning</span>
                 </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link rounded px-3 py-2 d-flex align-items-center" style={{cursor: 'pointer'}} onClick={() => navigate("/reminder")}>
+                <a
+                  className={`nav-link rounded px-3 py-2 d-flex align-items-center${location.pathname === '/reminder' ? ' nav-link-active' : ''}`}
+                  style={{cursor: 'pointer'}}
+                  onClick={() => navigate("/reminder")}
+                  aria-current={location.pathname === '/reminder' ? 'page' : undefined}
+                >
                   <i className="bi bi-bell fs-5 me-2"></i> <span className="fw-medium">Reminders</span>
                 </a>
               </li>
