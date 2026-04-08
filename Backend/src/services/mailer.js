@@ -27,6 +27,7 @@ const transporter = nodemailer.createTransport({
         pass: process.env.GMAIL_APP_PASSWORD,
     },
     family: 4,              // Force IPv4
+    localAddress: '0.0.0.0',
 });
 
 // P3: Verify SMTP connection at startup in dev so config errors are caught immediately
