@@ -22,6 +22,7 @@ const transporter = nodemailer.createTransport({
         user: GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
     },
+    family:4,
 });
 
 // P3: Verify SMTP connection at startup in dev so config errors are caught immediately
