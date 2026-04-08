@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
-import './Register.css'; // reuse auth page styles
+import './Register.css';
+import AuthHeader from './AuthHeader';
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
@@ -9,6 +10,13 @@ const VerifyEmail = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    // Sync dark mode preference
+    if (localStorage.getItem('darkmode') === 'true') {
+      document.body.classList.add('darkmode');
+    } else {
+      document.body.classList.remove('darkmode');
+    }
+
     const token = searchParams.get('token');
     if (!token) {
       setStatus('error');
@@ -37,46 +45,45 @@ const VerifyEmail = () => {
 
   return (
     <div className="register-container">
-      <header className="registerheader">
-        <div className="logo-box"><i className="bi bi-book"></i></div>
-        <h2>Papyrus</h2>
-        <p>Email Verification</p>
-      </header>
+      <AuthHeader />
 
       <main className="registermain">
-        <div className="registerform" style={{ textAlign: 'center', padding: '40px 32px' }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>
-            {icons[status] || '📧'}
+        <div className="registerform auth-form-center">
+          {/* aria-live announces async status changes to screen readers */}
+          <div aria-live="polite" aria-atomic="true">
+            <div className="auth-status-icon" aria-hidden="true">
+              {icons[status] || '📧'}
+            </div>
+
+            {status === 'loading' && (
+              <>
+                <h3 className="register-title">Verifying your email…</h3>
+                <p className="auth-muted-text">Please wait a moment.</p>
+              </>
+            )}
+
+            {status === 'success' && (
+              <>
+                <h3 className="register-title">Email Verified!</h3>
+                <p className="auth-muted-text auth-muted-text--gap">{message}</p>
+                <Link to="/login" className="register-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                  Sign In Now
+                </Link>
+              </>
+            )}
+
+            {(status === 'expired' || status === 'error') && (
+              <>
+                <h3 className="register-title">
+                  {status === 'expired' ? 'Link Expired' : 'Verification Failed'}
+                </h3>
+                <p className="auth-muted-text auth-muted-text--gap">{message}</p>
+                <Link to="/register" className="register-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                  Register Again
+                </Link>
+              </>
+            )}
           </div>
-
-          {status === 'loading' && (
-            <>
-              <h3 className="register-title">Verifying your email…</h3>
-              <p style={{ color: 'var(--text-muted, #888)' }}>Please wait a moment.</p>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <h3 className="register-title">Email Verified!</h3>
-              <p style={{ color: 'var(--text-muted, #888)', marginBottom: 24 }}>{message}</p>
-              <Link to="/login" className="register-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>
-                Sign In Now
-              </Link>
-            </>
-          )}
-
-          {(status === 'expired' || status === 'error') && (
-            <>
-              <h3 className="register-title">
-                {status === 'expired' ? 'Link Expired' : 'Verification Failed'}
-              </h3>
-              <p style={{ color: 'var(--text-muted, #888)', marginBottom: 24 }}>{message}</p>
-              <Link to="/register" className="register-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>
-                Register Again
-              </Link>
-            </>
-          )}
         </div>
       </main>
     </div>

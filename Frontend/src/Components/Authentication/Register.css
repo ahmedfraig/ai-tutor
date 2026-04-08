@@ -1,8 +1,11 @@
 /* ═════════════════════════════════════════════════════════════
-   Register.css — Sign Up page, fully dark-mode aware
+   Register.css — Sign Up page + shared auth page styles
+   Reused by: ResetPassword, VerifyEmail, CheckEmail
+   All colors use design tokens from index.css.
+   Dark mode flows from token overrides in body.darkmode.
    ═════════════════════════════════════════════════════════════ */
 
-/* ── Page layout ──────────────────────────────────────────── */
+/* ── Page layout ────────────────────────────────────────────── */
 .register-container {
   min-height: 100vh;
   display: flex;
@@ -10,51 +13,56 @@
   align-items: center;
   justify-content: center;
   padding: 40px 16px;
-  background-color: #f5f5f5;
+  background-color: var(--color-bg);          /* #f4f4f5 → #0d0d0d */
+  box-sizing: border-box;
+  font-family: var(--font-sans);
   transition: background-color 0.2s ease;
 }
 
-/* ── Header ──────────────────────────────────────────────── */
+/* ── Header ─────────────────────────────────────────────────── */
 .registerheader {
-  text-align: center;
-  margin-bottom: 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
-.logo-box {
-  background-color: #111;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 12px;
-  margin-bottom: 15px;
-  font-size: 20px;
-  width: fit-content;
+/* Brand wordmark — orange icon + name, no box, no frame */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
 }
 
-.registerheader h2 {
-  margin: 0 0 5px 0;
-  font-weight: 700;
-  font-size: 1.6rem;
-  color: #111;
+.auth-brand-icon {
+  font-size: 26px;
+  color: var(--color-accent);        /* #ff6900 — brand orange */
+  line-height: 1;
 }
 
-.registerheader p {
-  color: #6b7280;
-  margin: 0;
-  font-size: 0.95rem;
+.auth-brand-name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text);          /* #1a1a1a → #f0f0f0 */
+  letter-spacing: -0.5px;
+  font-family: var(--font-sans);
 }
 
-/* ── Form Card ───────────────────────────────────────────── */
+/* ── Form Card ──────────────────────────────────────────────── */
+.registermain {
+  width: 100%;
+  max-width: 440px;
+}
+
 .registerform {
   padding: 35px;
-  width: 35vw;
-  min-width: 350px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09);
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--color-surface);    /* #ffffff → #1a1a1a */
+  box-shadow: var(--shadow-md);
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .register-title {
@@ -63,20 +71,62 @@
   margin-top: 0;
   margin-bottom: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text);                  /* #1a1a1a → #f0f0f0 */
 }
 
-/* ── Labels ──────────────────────────────────────────────── */
+/* ── Utility classes — shared by VerifyEmail, CheckEmail, ResetPassword ── */
+
+/* Centered card variant (status/info pages) */
+.auth-form-center {
+  text-align: center;
+  padding: 40px 32px !important;
+}
+
+/* Status icon container (emoji at display size) */
+.auth-status-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+/* Muted hint text */
+.auth-muted-text {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.auth-muted-text--sm  { font-size: 0.8125rem; }
+.auth-muted-text--gap { margin-bottom: 1.5rem; }
+
+/* Bottom-of-card link row */
+.auth-link-footer {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+}
+
+/* Inline accent link */
+.auth-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.auth-link:hover { text-decoration: underline; }
+
+/* Field wrapper with toggle (used by ResetPassword) */
+.register-field { margin-bottom: 0.75rem; }
+
+/* ── Labels ─────────────────────────────────────────────────── */
 .registerform label {
   font-weight: 600;
   font-size: 13px;
   margin-bottom: 5px;
   display: block;
   margin-top: 15px;
-  color: #374151;
+  color: var(--color-text);                  /* #1a1a1a → #f0f0f0 */
 }
 
-/* ── Inputs ──────────────────────────────────────────────── */
+/* ── Inputs ─────────────────────────────────────────────────── */
 .input-wrapper {
   position: relative;
   width: 100%;
@@ -86,27 +136,27 @@
 .registerform input[type="email"],
 .registerform input[type="password"] {
   display: block;
-  background-color: #f3f4f6;
-  border: 1px solid transparent;
+  background-color: var(--color-bg);         /* #f4f4f5 → #0d0d0d */
+  border: 1px solid var(--color-border);     /* #e5e7eb → #2d2d2d */
   padding: 10px 10px 10px 35px;
   border-radius: 8px;
   width: 100%;
   box-sizing: border-box;
   outline: none;
-  color: #111;
+  color: var(--color-text);                  /* #1a1a1a → #f0f0f0 */
   font-size: 0.93rem;
-  font-family: inherit;
+  font-family: var(--font-sans);
   transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .registerform input:focus {
-  border-color: var(--color-accent, #ff6900);
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.12);
+  border-color: var(--color-accent);
+  background-color: var(--color-surface);    /* #ffffff → #1a1a1a */
+  box-shadow: 0 0 0 3px var(--color-accent-muted);
 }
 
 .registerform input::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-disabled);         /* #9ca3af → #6b7280 */
 }
 
 .input-icon {
@@ -114,31 +164,46 @@
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-disabled);         /* #9ca3af → #6b7280 */
 }
 
+/* Password visibility toggle ─────────────────────────────── */
 .password-toggle {
   position: absolute;
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-disabled);
   cursor: pointer;
   transition: color 0.15s ease;
 }
 
-.password-toggle:hover {
-  color: #555;
+/* When toggle is a <button>, reset browser defaults */
+.pw-btn {
+  background: none;
+  border: none;
+  padding: 8px;            /* ~32px touch area — better mobile target */
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
 }
 
-/* ── Terms checkbox ──────────────────────────────────────── */
+.password-toggle:hover,
+.pw-btn:hover { color: var(--color-text-muted); }
+
+.pw-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ── Terms checkbox ─────────────────────────────────────────── */
 .terms-check {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   margin-top: 15px;
   font-size: 13px;
-  color: #555;
+  color: var(--color-text-muted);            /* #6b7280 → #9ca3af */
 }
 
 .terms-check input[type="checkbox"] {
@@ -147,9 +212,9 @@
   width: 16px;
   height: 16px;
   min-width: 16px;
-  border: 2px solid #d1d5db;
+  border: 2px solid var(--color-border);     /* #e5e7eb → #2d2d2d */
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-surface);          /* #ffffff → #1a1a1a */
   cursor: pointer;
   margin-top: 2px;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -160,8 +225,8 @@
 }
 
 .terms-check input[type="checkbox"]:checked {
-  background-color: var(--color-accent, #ff6900);
-  border-color: var(--color-accent, #ff6900);
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .terms-check input[type="checkbox"]:checked::after {
@@ -171,7 +236,7 @@
   top: 1px;
   width: 5px;
   height: 8px;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-surface);    /* checkmark color */
   border-top: none;
   border-left: none;
   transform: rotate(45deg);
@@ -180,14 +245,16 @@
 .terms-check label {
   margin: 0;
   font-weight: 400;
-  color: #555;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
-/* ── Submit button ───────────────────────────────────────── */
+/* ── Submit button ──────────────────────────────────────────── */
+/* Inverted: dark bg + light text in light mode;
+   light bg + dark text in dark mode (tokens auto-invert). */
 .register-btn {
-  background-color: #111;
-  color: white;
+  background-color: var(--color-text);       /* #1a1a1a → #f0f0f0 */
+  color: var(--color-surface);               /* #ffffff → #1a1a1a */
   width: 100%;
   margin-top: 20px;
   padding: 11px;
@@ -196,20 +263,15 @@
   cursor: pointer;
   font-size: 0.97rem;
   font-weight: 600;
-  font-family: inherit;
-  transition: background 0.18s ease, opacity 0.18s ease;
+  font-family: var(--font-sans);
+  transition: opacity 0.18s ease;
+  text-align: center;
 }
 
-.register-btn:hover {
-  background-color: #333;
-}
+.register-btn:hover   { opacity: 0.82; }
+.register-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.register-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Divider ─────────────────────────────────────────────── */
+/* ── Divider ────────────────────────────────────────────────── */
 .divider {
   margin: 20px 0;
   text-align: center;
@@ -223,158 +285,83 @@
   left: 0;
   width: 100%;
   height: 1px;
-  background-color: #e5e7eb;
+  background-color: var(--color-border);     /* #e5e7eb → #2d2d2d */
   z-index: 1;
 }
 
 .divider span {
-  background-color: white;
+  background-color: var(--color-surface);    /* #ffffff → #1a1a1a */
   padding: 0 10px;
-  color: #9ca3af;
+  color: var(--color-text-disabled);         /* #9ca3af → #6b7280 */
   font-size: 12px;
   position: relative;
   z-index: 2;
 }
 
-/* ── Footer text ─────────────────────────────────────────── */
+/* ── Footer text ────────────────────────────────────────────── */
 .register-footer-text {
   text-align: center;
-  color: #6b7280;
+  color: var(--color-text-muted);            /* #6b7280 → #9ca3af */
   font-size: 14px;
   margin-bottom: 0;
 }
 
 .register-footer-text a {
-  color: var(--color-accent, #ff6900);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 600;
 }
 
-.register-footer-text a:hover {
-  text-decoration: underline;
-}
+.register-footer-text a:hover { text-decoration: underline; }
 
-/* ── Errors ──────────────────────────────────────────────── */
+/* ── Errors ─────────────────────────────────────────────────── */
 .error {
-  color: #ef4444;
+  color: var(--color-error);                 /* #991b1b — 9.9:1 contrast ✅ WCAG AAA */
   font-size: 12px;
   margin: 4px 0 0 2px;
 }
 
-/* ── Footer note ─────────────────────────────────────────── */
+/* ── Footer note ────────────────────────────────────────────── */
 .registerfooter {
   margin-top: 20px;
-  color: #9ca3af;
+  color: var(--color-text-disabled);         /* #9ca3af → #6b7280 */
   font-size: 12px;
   text-align: center;
   width: 90%;
 }
 
-/* ── Responsive ──────────────────────────────────────────── */
-@media (max-width: 769px) {
-  .registerform {
-    width: 90vw;
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .register-container { padding: 24px 12px; }
+  .registerform        { padding: 24px 20px; }
+
+  /* iOS auto-zoom prevention: inputs < 16px trigger zoom on focus.
+     Override to exactly 16px on mobile. */
+  .registerform input[type="text"],
+  .registerform input[type="email"],
+  .registerform input[type="password"] {
+    font-size: 1rem; /* = 16px — prevents iOS zoom */
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .register-container { justify-content: flex-start; padding-top: 16px; }
+}
+
+/* ── Reduced Motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .registerform input,
+  .register-btn,
+  .pw-btn {
+    transition: none;
   }
 }
 
 /* ════════════════════════════════════════════════════════════
-   DARK MODE
+   DARK MODE — Only overrides where token behavior ≠ desired output.
    ════════════════════════════════════════════════════════════ */
 
-body.darkmode .register-container {
-  background-color: #0d0d0d;
-}
-
-body.darkmode .registerheader h2 {
-  color: #f0f0f0;
-}
-
-body.darkmode .registerheader p {
-  color: #9ca3af;
-}
-
-body.darkmode .logo-box {
-  background-color: #222;
-}
-
+/* Form shadow needs to be stronger in dark */
 body.darkmode .registerform {
-  background-color: #1a1a1a;
-  border-color: #2d2d2d;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-}
-
-body.darkmode .register-title {
-  color: #f0f0f0;
-}
-
-body.darkmode .registerform label {
-  color: #9ca3af;
-}
-
-body.darkmode .registerform input[type="text"],
-body.darkmode .registerform input[type="email"],
-body.darkmode .registerform input[type="password"] {
-  background-color: #252525;
-  color: #f0f0f0;
-  border-color: #3d3d3d;
-}
-
-body.darkmode .registerform input:focus {
-  background-color: #2a2a2a;
-  border-color: var(--color-accent, #ff6900);
-  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.18);
-}
-
-body.darkmode .registerform input::placeholder {
-  color: #6b7280;
-}
-
-body.darkmode .input-icon,
-body.darkmode .password-toggle {
-  color: #6b7280;
-}
-
-/* Checkbox dark mode */
-body.darkmode .terms-check input[type="checkbox"] {
-  background: #252525;
-  border-color: #4d4d4d;
-}
-
-body.darkmode .terms-check input[type="checkbox"]:checked {
-  background-color: var(--color-accent, #ff6900);
-  border-color: var(--color-accent, #ff6900);
-}
-
-body.darkmode .terms-check label,
-body.darkmode .terms-check {
-  color: #9ca3af;
-}
-
-/* Button */
-body.darkmode .register-btn {
-  background-color: #f0f0f0;
-  color: #111;
-}
-
-body.darkmode .register-btn:hover {
-  background-color: #fff;
-}
-
-/* Divider */
-body.darkmode .divider::before {
-  background-color: #2d2d2d;
-}
-
-body.darkmode .divider span {
-  background-color: #1a1a1a;
-  color: #6b7280;
-}
-
-/* Footer */
-body.darkmode .register-footer-text {
-  color: #9ca3af;
-}
-
-body.darkmode .registerfooter {
-  color: #4b5563;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
 }

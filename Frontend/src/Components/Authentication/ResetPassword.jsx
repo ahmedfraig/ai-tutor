@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 import './Register.css';
+import AuthHeader from './AuthHeader';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -14,6 +15,15 @@ const ResetPassword = () => {
   const [showPw, setShowPw]     = useState(false);
   const [loading, setLoading]   = useState(false);
   const [errors, setErrors]     = useState({});
+
+  // Sync dark mode preference (no toggle on auth pages)
+  useEffect(() => {
+    if (localStorage.getItem('darkmode') === 'true') {
+      document.body.classList.add('darkmode');
+    } else {
+      document.body.classList.remove('darkmode');
+    }
+  }, []);
 
   const validate = () => {
     const errs = {};
@@ -48,15 +58,12 @@ const ResetPassword = () => {
   if (!token) {
     return (
       <div className="register-container">
-        <header className="registerheader">
-          <div className="logo-box"><i className="bi bi-book"></i></div>
-          <h2>Papyrus</h2>
-        </header>
+        <AuthHeader />
         <main className="registermain">
-          <div className="registerform" style={{ textAlign: 'center', padding: '40px 32px' }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>❌</div>
+          <div className="registerform auth-form-center">
+            <div className="auth-status-icon" aria-hidden="true">❌</div>
             <h3 className="register-title">Invalid Link</h3>
-            <p style={{ color: 'var(--text-muted, #888)', marginBottom: 24 }}>
+            <p className="auth-muted-text auth-muted-text--gap">
               This password reset link is missing or invalid.
             </p>
             <Link to="/forgot-password" className="register-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>
@@ -70,16 +77,12 @@ const ResetPassword = () => {
 
   return (
     <div className="register-container">
-      <header className="registerheader">
-        <div className="logo-box"><i className="bi bi-book"></i></div>
-        <h2>Papyrus</h2>
-        <p>Set a new password</p>
-      </header>
+      <AuthHeader />
 
       <main className="registermain">
         <div className="registerform" style={{ padding: '36px 32px' }}>
           <h3 className="register-title">Choose a new password</h3>
-          <p style={{ color: 'var(--text-muted, #888)', marginBottom: 24, fontSize: 14 }}>
+          <p className="auth-muted-text auth-muted-text--sm auth-muted-text--gap">
             Must be at least 8 characters.
           </p>
 
@@ -88,20 +91,24 @@ const ResetPassword = () => {
           <form onSubmit={handleSubmit}>
             <div className="register-field">
               <label htmlFor="rp-password">New Password</label>
-              <div style={{ position: 'relative' }}>
+              <div className="input-wrapper">
                 <input
-                  id="rp-password"
-                  type={showPw ? 'text' : 'password'}
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoFocus
-                />
-                <i
-                  className={`bi ${showPw ? 'bi-eye' : 'bi-eye-slash'}`}
-                  style={{ position: 'absolute', right: 15, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer' }}
-                  onClick={() => setShowPw(!showPw)}
-                />
+                id="rp-password"
+                type={showPw ? 'text' : 'password'}
+                placeholder="Enter new password"
+                value={password}
+                autoComplete="new-password"
+                onChange={(e) => setPassword(e.target.value)}
+                autoFocus
+              />
+              <button
+                type="button"
+                aria-label={showPw ? 'Hide password' : 'Show password'}
+                className="password-toggle pw-btn"
+                onClick={() => setShowPw(!showPw)}
+              >
+                <i className={`bi ${showPw ? 'bi-eye' : 'bi-eye-slash'}`} aria-hidden="true" />
+              </button>
               </div>
               {errors.password && <p className="error">{errors.password}</p>}
             </div>
@@ -113,6 +120,7 @@ const ResetPassword = () => {
                 type={showPw ? 'text' : 'password'}
                 placeholder="Confirm new password"
                 value={confirm}
+                autoComplete="new-password"
                 onChange={(e) => setConfirm(e.target.value)}
               />
               {errors.confirm && <p className="error">{errors.confirm}</p>}
@@ -122,14 +130,13 @@ const ResetPassword = () => {
               type="submit"
               className="register-btn"
               disabled={loading}
-              style={{ marginTop: 8 }}
             >
               {loading ? 'Updating...' : 'Update Password'}
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14 }}>
-            <Link to="/login" style={{ color: 'var(--accent, #ff6900)' }}>← Back to Sign In</Link>
+          <p className="auth-link-footer">
+            <Link to="/login" className="auth-link">← Back to Sign In</Link>
           </p>
         </div>
       </main>
