@@ -1,9 +1,11 @@
 // src/controllers/authController.js
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../config/db');
 const { validateString, validateEmail, firstError } = require('../middleware/validateInput');
 const { logError } = require('../utils/logger');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/mailer');
 
 // P3-3: Pre-computed dummy hash to prevent login timing oracle.
 // By always running ONE bcrypt.compare (against this when user not found),
@@ -55,28 +57,25 @@ const registerUser = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
 
-        // 5. Insert the new user
+        // 5. Generate a secure verification token
+        const verifyToken = crypto.randomBytes(32).toString('hex');
+        const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // 6. Insert the new user (unverified until they click the link)
         const newUser = await db.query(
-            `INSERT INTO users (full_name, email, password_hash)
-             VALUES ($1, $2, $3)
+            `INSERT INTO users (full_name, email, password_hash, is_verified, verify_token, verify_token_expires)
+             VALUES ($1, $2, $3, FALSE, $4, $5)
              RETURNING id, full_name, email, created_at`,
-            [full_name, email, password_hash]
+            [full_name, email, password_hash, verifyToken, verifyExpires]
         );
 
-        // 6. Generate JWT
-        const token = jwt.sign(
-            { userId: newUser.rows[0].id },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        // 7. Send verification email (fire-and-forget — don't block the response)
+        sendVerificationEmail(email, full_name, verifyToken).catch((err) => {
+            logError('sendVerificationEmail', err);
+        });
 
-        // 7. MED-3: set HttpOnly cookie — browser sends this automatically, JS never sees it
-        res.cookie('authToken', token, COOKIE_OPTIONS);
-
-        // Return user info only — no token in body (cookie is sufficient for browser clients)
         res.status(201).json({
-            message: 'User registered successfully',
-            user: newUser.rows[0],
+            message: 'Account created! Please check your email to verify your account before signing in.',
         });
 
     } catch (error) {
@@ -114,6 +113,14 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
+        // 5a. Block login if email not verified
+        if (!user.is_verified) {
+            return res.status(403).json({
+                message: 'Please verify your email before signing in. Check your inbox for the verification link.',
+                unverified: true,
+            });
+        }
+
         // 5. Generate JWT
         const token = jwt.sign(
             { userId: user.id },
@@ -146,8 +153,140 @@ const logoutUser = (req, res) => {
     res.status(200).json({ message: 'Logged out successfully' });
 };
 
+// GET /api/auth/verify-email?token=xxx — activate account from email link
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ message: 'Verification token is required' });
+        }
+
+        // Find user with this token that hasn't expired
+        const result = await db.query(
+            `SELECT id, is_verified FROM users
+             WHERE verify_token = $1 AND verify_token_expires > NOW()`,
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({
+                message: 'Verification link is invalid or has expired. Please register again.',
+                expired: true,
+            });
+        }
+
+        const user = result.rows[0];
+
+        if (user.is_verified) {
+            return res.status(200).json({ message: 'Email already verified. You can sign in.' });
+        }
+
+        // Mark account as verified and clear the token
+        await db.query(
+            `UPDATE users
+             SET is_verified = TRUE, verify_token = NULL, verify_token_expires = NULL
+             WHERE id = $1`,
+            [user.id]
+        );
+
+        res.status(200).json({ message: 'Email verified successfully! You can now sign in.' });
+
+    } catch (error) {
+        logError('verifyEmail', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// POST /api/auth/forgot-password — send a password reset link by email
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const emailErr = validateEmail(email);
+        if (emailErr) return res.status(400).json({ message: emailErr });
+
+        // Always return the same response — prevents email enumeration.
+        // (An attacker can't tell if the email is registered by the response.)
+        const SAFE_RESPONSE = { message: "If this email is registered, you'll receive a reset link shortly." };
+
+        const result = await db.query('SELECT id, full_name, is_verified FROM users WHERE email = $1', [email]);
+        if (result.rows.length === 0) {
+            return res.status(200).json(SAFE_RESPONSE);
+        }
+
+        const user = result.rows[0];
+
+        // Generate a secure 1-hour token
+        const resetToken   = crypto.randomBytes(32).toString('hex');
+        const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await db.query(
+            'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
+            [resetToken, resetExpires, user.id]
+        );
+
+        sendPasswordResetEmail(email, user.full_name, resetToken).catch((err) => {
+            logError('sendPasswordResetEmail', err);
+        });
+
+        res.status(200).json(SAFE_RESPONSE);
+
+    } catch (error) {
+        logError('forgotPassword', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// POST /api/auth/reset-password — set a new password using a valid reset token
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ message: 'Reset token is required' });
+        }
+
+        const passErr = validateString(password, 'Password', { min: 8, max: 128 });
+        if (passErr) return res.status(400).json({ message: passErr });
+
+        // Find user with a valid (non-expired) token
+        const result = await db.query(
+            `SELECT id FROM users
+             WHERE reset_token = $1 AND reset_token_expires > NOW()`,
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({
+                message: 'Reset link is invalid or has expired. Please request a new one.',
+                expired: true,
+            });
+        }
+
+        const userId = result.rows[0].id;
+
+        // Hash the new password and clear the token
+        const password_hash = await bcrypt.hash(password, 10);
+        await db.query(
+            `UPDATE users
+             SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL
+             WHERE id = $2`,
+            [password_hash, userId]
+        );
+
+        res.status(200).json({ message: 'Password updated successfully. You can now sign in.' });
+
+    } catch (error) {
+        logError('resetPassword', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     logoutUser,
+    verifyEmail,
+    forgotPassword,
+    resetPassword,
 };

@@ -69,8 +69,8 @@ const Register = () => {
         password: formData.password,
       });
 
-      toast.success("Account created successfully!");
-      navigate("/login");
+      toast.success("Account created! Check your inbox to verify your email.");
+      navigate("/check-email");
     } catch (err) {
       const message = err.response?.data?.message || "Registration failed. Please try again.";
       if (message.toLowerCase().includes("email")) {

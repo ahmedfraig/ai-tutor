@@ -22,14 +22,25 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         const isAuthEndpoint = error.config?.url?.includes('/auth/');
-        const isAlreadyOnAuthPage = ['/login', '/register'].some((p) =>
+
+        // All public routes that are valid for unauthenticated users.
+        // AuthContext calls GET /users/profile on startup — unauthenticated users
+        // visiting any of these pages will get a 401 from that check.
+        // Without this guard, they'd be immediately bounced to /login.
+        const PUBLIC_PATHS = [
+            '/login', '/register',
+            '/check-email', '/verify-email',
+            '/forgot-password', '/reset-password',
+        ];
+        const isOnPublicPage = PUBLIC_PATHS.some((p) =>
             window.location.pathname.startsWith(p)
         );
 
-        if (error.response?.status === 401 && !isAuthEndpoint && !isAlreadyOnAuthPage) {
+        if (error.response?.status === 401 && !isAuthEndpoint && !isOnPublicPage) {
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
+
 
         return Promise.reject(error);
     }

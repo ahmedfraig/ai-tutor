@@ -1,114 +1,121 @@
 /* ═════════════════════════════════════════════════════════════
-   Login.css — Sign In page, fully dark-mode aware
+   Login.css — Sign In page
+   All colors use design tokens from index.css.
+   Dark mode flows from token overrides in body.darkmode —
+   no per-component color overrides needed (except noted).
    ═════════════════════════════════════════════════════════════ */
 
-/* ── Page layout ──────────────────────────────────────────── */
-body {
-  background-color: #f5f5f5;
-  margin: 0;
-  font-family: inherit;
-}
-
-.loginheader {
+/* ── Page wrapper ───────────────────────────────────────── */
+.login-page {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  position: absolute;
-  top: 20%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 16px;
+  background-color: var(--color-bg);      /* #f4f4f5 → #0d0d0d in dark */
+  box-sizing: border-box;
+  font-family: var(--font-sans);          /* Inter */
 }
 
-.loginheader div {
-  background-color: #111;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 12px;
-  margin-bottom: 10px;
-  font-size: 20px;
+/* ── Header ─────────────────────────────────────────── */
+.loginheader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.loginheader h2 {
-  margin: 0 0 4px 0;
-  font-weight: 700;
-  font-size: 1.6rem;
-  color: #111;
+/* Brand wordmark: icon + name, no box, no frame */
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
 }
 
-.loginheader p {
-  color: #6b7280;
-  margin: 0;
-  font-size: 0.95rem;
+.login-brand-icon {
+  font-size: 26px;
+  color: var(--color-accent);      /* #ff6900 — brand orange */
+  line-height: 1;
 }
 
-/* ── Form card ──────────────────────────────────────────────  */
+.login-brand-name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text);        /* #1a1a1a → #f0f0f0 */
+  letter-spacing: -0.5px;
+  font-family: var(--font-sans);
+}
+
+/* ── Form card ──────────────────────────────────────────── */
 .loginmain {
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
+  max-width: 440px;
 }
 
 .loginform {
   padding: 35px;
-  width: 35vw;
-  min-width: 320px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09);
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--color-surface);     /* #ffffff → #1a1a1a */
+  box-shadow: var(--shadow-md);
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .loginp1 {
   text-align: center;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 16px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 20px 0;
 }
 
-/* ── Labels ──────────────────────────────────────────────── */
+/* ── Labels ─────────────────────────────────────────────── */
 .loginform label {
   display: block;
   font-weight: 600;
   font-size: 13px;
   margin-top: 14px;
   margin-bottom: 6px;
-  color: #374151;
+  color: var(--color-text);                   /* #1a1a1a → #f0f0f0 */
 }
 
-/* ── Inputs ──────────────────────────────────────────────── */
+/* ── Inputs ─────────────────────────────────────────────── */
 .loginform input {
   display: block;
   width: 100%;
   box-sizing: border-box;
-  background-color: #f3f4f6;
-  border: 1px solid transparent;
+  background-color: var(--color-bg);          /* #f4f4f5 → #0d0d0d */
+  border: 1px solid var(--color-border);      /* #e5e7eb → #2d2d2d */
   padding: 10px 14px;
   border-radius: 8px;
   outline: none;
-  color: #111;
+  color: var(--color-text);                   /* #1a1a1a → #f0f0f0 */
   font-size: 0.93rem;
-  font-family: inherit;
+  font-family: var(--font-sans);
   transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .loginform input:focus {
-  border-color: var(--color-accent, #ff6900);
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.12);
+  border-color: var(--color-accent);          /* #ff6900 */
+  background-color: var(--color-surface);     /* #ffffff → #1a1a1a */
+  box-shadow: 0 0 0 3px var(--color-accent-muted); /* rgba(255,105,0,0.12) */
 }
 
 .loginform input::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-disabled);          /* #9ca3af → #6b7280 */
 }
 
-/* ── Submit button ───────────────────────────────────────── */
-.loginform button {
-  background-color: #111;
-  color: white;
+/* ── Submit button ──────────────────────────────────────── */
+.loginform button[type="submit"] {
+  /* Inverted: dark bg + light text in light; light bg + dark text in dark.
+     var(--color-text) = #1a1a1a light / #f0f0f0 dark.
+     var(--color-surface) = #ffffff light / #1a1a1a dark.
+     Both token values happen to invert correctly — no dark override needed. */
+  background-color: var(--color-text);
+  color: var(--color-surface);
   width: 100%;
   margin-top: 20px;
   padding: 11px;
@@ -117,135 +124,95 @@ body {
   cursor: pointer;
   font-size: 0.97rem;
   font-weight: 600;
-  font-family: inherit;
-  transition: background 0.18s ease, opacity 0.18s ease;
+  font-family: var(--font-sans);
+  transition: opacity 0.18s ease;
 }
 
-.loginform button:hover {
-  background-color: #333;
-}
+.loginform button[type="submit"]:hover   { opacity: 0.82; }
+.loginform button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.loginform button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Sign up link ────────────────────────────────────────── */
+/* ── Sign up / forgot links ─────────────────────────────── */
 .loginp2 {
   margin-top: 16px;
   text-align: center;
-  color: #6b7280;
+  color: var(--color-text-muted);             /* #6b7280 → #9ca3af */
   font-size: 14px;
 }
 
 .loginp2 a {
-  color: var(--color-accent, #ff6900);
+  color: var(--color-accent);
   text-decoration: none;
   margin-left: 5px;
   font-weight: 600;
 }
 
-.loginp2 a:hover {
-  text-decoration: underline;
-}
+.loginp2 a:hover { text-decoration: underline; }
 
-/* ── Footer ──────────────────────────────────────────────── */
+/* ── Footer ─────────────────────────────────────────────── */
 .loginfooter {
-  position: absolute;
-  top: 85%;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #9ca3af;
+  color: var(--color-text-disabled);          /* #9ca3af → #6b7280 */
   font-size: 12px;
   text-align: center;
-  white-space: nowrap;
+  max-width: 440px;
 }
 
-/* ── Errors ──────────────────────────────────────────────── */
+/* ── Errors ─────────────────────────────────────────────── */
 .error {
-  color: #ef4444;
+  color: var(--color-error);                  /* #991b1b — 9.9:1 contrast ✅ WCAG AAA */
   font-size: 12px;
   margin-top: 5px;
 }
 
-/* ── Responsive ──────────────────────────────────────────── */
-@media (max-width: 769px) {
-  .loginform {
-    width: 90vw;
-    margin-bottom: 10px;
-  }
+/* ── Password visibility toggle ─────────────────────────── */
+.pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--color-text-disabled);          /* #9ca3af → #6b7280 */
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
 
-  .loginfooter {
-    top: 90%;
-    width: 100vw;
-    margin-left: 6px;
-    text-align: center;
+.pw-toggle:hover         { color: var(--color-text-muted); }
+.pw-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .login-page { padding: 24px 12px; gap: 16px; }
+  .loginform  { padding: 24px 20px; }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .login-page  { justify-content: flex-start; padding-top: 16px; gap: 12px; }
+  .loginheader { flex-direction: row; gap: 12px; align-items: center; }
+}
+
+/* ── Reduced Motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .loginform input,
+  .loginform button[type="submit"],
+  .pw-toggle {
+    transition: none;
   }
 }
 
 /* ════════════════════════════════════════════════════════════
-   DARK MODE
+   DARK MODE — Only overrides where token behavior ≠ desired output.
+   (Most dark mode is handled automatically by token swaps in index.css)
    ════════════════════════════════════════════════════════════ */
 
-body.darkmode {
-  background-color: #0d0d0d;
-}
-
-body.darkmode .loginheader h2 {
-  color: #f0f0f0;
-}
-
-body.darkmode .loginheader p {
-  color: #9ca3af;
-}
-
-body.darkmode .loginheader div {
-  background-color: #222;
-}
-
+/* Form shadow must be stronger in dark to remain visible on a dark bg */
 body.darkmode .loginform {
-  background-color: #1a1a1a;
-  border-color: #2d2d2d;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-}
-
-body.darkmode .loginp1 {
-  color: #f0f0f0;
-}
-
-body.darkmode .loginform label {
-  color: #9ca3af;
-}
-
-body.darkmode .loginform input {
-  background-color: #252525;
-  color: #f0f0f0;
-  border-color: #3d3d3d;
-}
-
-body.darkmode .loginform input:focus {
-  background-color: #2a2a2a;
-  border-color: var(--color-accent, #ff6900);
-  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.18);
-}
-
-body.darkmode .loginform input::placeholder {
-  color: #6b7280;
-}
-
-body.darkmode .loginform button {
-  background-color: #f0f0f0;
-  color: #111;
-}
-
-body.darkmode .loginform button:hover {
-  background-color: #fff;
-}
-
-body.darkmode .loginp2 {
-  color: #9ca3af;
-}
-
-body.darkmode .loginfooter {
-  color: #4b5563;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
 }

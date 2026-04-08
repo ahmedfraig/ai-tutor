@@ -9,6 +9,10 @@ import Reminder from "./Components/Reminder";
 import Lesson from "./Components/Lesson";
 import Login from "./Components/Authentication/Login";
 import Register from "./Components/Authentication/Register";
+import CheckEmail from "./Components/Authentication/CheckEmail";
+import VerifyEmail from "./Components/Authentication/VerifyEmail";
+import ForgotPassword from "./Components/Authentication/ForgotPassword";
+import ResetPassword from "./Components/Authentication/ResetPassword";
 import ProtectedRoute from "./Components/Authentication/ProtectedRoute";
 import ExamStart from "./Components/mylearningComponents/ExamStart";
 import QuizFlashcards from './Components/mylearningComponents/QuizFlashcards';
@@ -23,6 +27,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/check-email" element={<CheckEmail />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route
           path="/home"

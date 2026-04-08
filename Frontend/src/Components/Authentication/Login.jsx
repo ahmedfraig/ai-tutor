@@ -60,55 +60,65 @@ const Login = () => {
   };
 
   return (
-    <>
-      <header className="loginheader container-fluid">
-        <div>
-          <i className="bi bi-book"></i>
-        </div>
-        <h2>Welcome to Papyrus</h2>
-        <p>Your AI-powered learning companion</p>
+    <div className="login-page">
+      <header className="loginheader">
+        <a href="/" className="login-brand" aria-label="Papyrus home">
+          <i className="bi bi-book login-brand-icon" aria-hidden="true" />
+          <span className="login-brand-name">Papyrus</span>
+        </a>
       </header>
 
       <main className="loginmain">
         <form className="loginform" onSubmit={handleSubmit}>
-          <p className="loginp1">Sign in to your account</p>
+          <h1 className="loginp1">Sign in</h1>
 
-          {errors.login && <p className="error">{errors.login}</p>}
+          {/* Live error region — screen readers announce changes here */}
+          <div role="alert" aria-live="polite" aria-atomic="true">
+            {errors.login && <p className="error">{errors.login}</p>}
+          </div>
 
           {/* Email */}
-          <label>Email</label>
+          <label htmlFor="login-email">Email</label>
           <input
+            id="login-email"
             type="email"
             placeholder="Enter Your Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
           />
-          {errors.email && <p className="error">{errors.email}</p>}
+          {errors.email && <p className="error" role="alert">{errors.email}</p>}
 
           {/* Password */}
-          <label>Password</label>
+          <label htmlFor="login-password">Password</label>
           <div style={{ position: "relative" }}>
             <input
+              id="login-password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter Your Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
             />
-            <i
-              className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`}
-              style={{
-                position: "absolute",
-                right: "15px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                cursor: "pointer",
-              }}
+            {/* P1: use <button> so it's keyboard-focusable and screen-reader accessible */}
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
               onClick={() => setShowPassword(!showPassword)}
-            ></i>
+              className="pw-toggle"
+            >
+              <i className={`bi ${showPassword ? "bi-eye" : "bi-eye-slash"}`} aria-hidden="true" />
+            </button>
           </div>
-          {errors.password && <p className="error">{errors.password}</p>}
+          {errors.password && <p className="error" role="alert">{errors.password}</p>}
 
-          <button disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
+          <button type="submit" disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
+
+          <p style={{ textAlign: 'center', marginTop: 8, marginBottom: 0, fontSize: 13 }}>
+            <Link to="/forgot-password" style={{ color: 'var(--accent, #ff6900)' }}>
+              Forgot your password?
+            </Link>
+          </p>
 
           <p className="loginp2">
             Don't have an account?
@@ -122,7 +132,7 @@ const Login = () => {
           By signing in, you agree to our Terms of Service and Privacy Policy
         </p>
       </footer>
-    </>
+    </div>
   );
 };
 
