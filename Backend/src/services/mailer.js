@@ -17,12 +17,14 @@ if (!process.env.GMAIL_APP_PASSWORD) {
 }
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com', // Explicitly define the host
+    port: 465,              // Explicitly define the port
+    secure: true,           // Use SSL
     auth: {
         user: GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
     },
-    family:4,
+    family: 4,              // Force IPv4
 });
 
 // P3: Verify SMTP connection at startup in dev so config errors are caught immediately
