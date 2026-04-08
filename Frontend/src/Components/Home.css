@@ -239,6 +239,7 @@
 /* NOTE: .card is a Bootstrap utility used app-wide. Scoping to
    .home-container prevents this rule leaking to other pages. */
 .home-container .card {
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s ease-in-out;
 }
 .home-container .card:hover {
