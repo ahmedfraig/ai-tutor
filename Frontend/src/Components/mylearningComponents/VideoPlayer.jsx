@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import apiClient from "../../api/apiClient";
 import "./VideoPlayer.css";
 
-const BASE_URL = (apiClient.defaults.baseURL || "").replace("/api", "");
-
+const BASE_URL = apiClient.defaults.baseURL.startsWith('http') 
+  ? apiClient.defaults.baseURL.replace(/\/api$/, '') 
+  : window.location.origin;
 /* ─── URL Detectors ─────────────────────────────────────────────── */
 
 /**
