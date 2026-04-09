@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import toast from 'react-hot-toast';
 import apiClient from "../../api/apiClient";
 import { useAuth } from "../../contexts/useAuth";
+import { Helmet } from "react-helmet-async";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -69,6 +70,11 @@ const Login = () => {
       </header>
 
       <main className="loginmain">
+        <Helmet>
+          <title>Login | Papyrus</title>
+          <meta name="description" content="Sign in to your Papyrus account to access AI-powered learning tools." />
+        </Helmet>
+
         <form className="loginform" onSubmit={handleSubmit}>
           <h1 className="loginp1">Sign in</h1>
 
