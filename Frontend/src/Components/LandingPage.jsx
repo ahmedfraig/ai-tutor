@@ -104,22 +104,40 @@ const LandingPage = () => {
           name="description"
           content="Papyrus is an AI-powered learning platform that creates summaries, flashcards, quizzes, and video explanations from your course materials. Study smarter, not harder."
         />
-        <meta name="keywords" content="AI tutor, learning platform, flashcards, quizzes, study tools, AI education, Papyrus, online learning" />
+        <meta
+          name="keywords"
+          content="AI tutor, learning platform, flashcards, quizzes, study tools, AI education, Papyrus, online learning"
+        />
         <link rel="canonical" href="https://papyrusai.me/" />
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://papyrusai.me/" />
-        <meta property="og:title" content="Papyrus — AI-Powered Learning Platform" />
-        <meta property="og:description" content="Study smarter with AI-generated summaries, flashcards, quizzes, and video explanations from your course materials." />
+        <meta
+          property="og:title"
+          content="Papyrus — AI-Powered Learning Platform"
+        />
+        <meta
+          property="og:description"
+          content="Study smarter with AI-generated summaries, flashcards, quizzes, and video explanations from your course materials."
+        />
         <meta property="og:image" content="https://papyrusai.me/og-image.png" />
         <meta property="og:site_name" content="Papyrus" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Papyrus — AI-Powered Learning Platform" />
-        <meta name="twitter:description" content="Study smarter with AI-generated summaries, flashcards, quizzes, and video explanations." />
-        <meta name="twitter:image" content="https://papyrusai.me/og-image.png" />
+        <meta
+          name="twitter:title"
+          content="Papyrus — AI-Powered Learning Platform"
+        />
+        <meta
+          name="twitter:description"
+          content="Study smarter with AI-generated summaries, flashcards, quizzes, and video explanations."
+        />
+        <meta
+          name="twitter:image"
+          content="https://papyrusai.me/og-image.png"
+        />
       </Helmet>
 
       {/* ═══ Navigation ═══════════════════════════════════════ */}
@@ -129,7 +147,9 @@ const LandingPage = () => {
       >
         <div className="landing-nav-inner">
           <Link to="/" className="landing-brand" aria-label="Papyrus home">
-            <div className="landing-brand-logo" aria-hidden="true">P</div>
+            <div className="landing-brand-logo" aria-hidden="true">
+              P
+            </div>
             <span className="landing-brand-name">Papyrus</span>
           </Link>
 
@@ -155,7 +175,10 @@ const LandingPage = () => {
         >
           <motion.div variants={fadeUp} custom={0}>
             <div className="landing-hero-badge">
-              <span className="landing-hero-badge-dot" aria-hidden="true"></span>
+              <span
+                className="landing-hero-badge-dot"
+                aria-hidden="true"
+              ></span>
               Powered by AI
             </div>
           </motion.div>
@@ -163,6 +186,7 @@ const LandingPage = () => {
           <motion.h1 variants={fadeUp} custom={1}>
             Learn Smarter,{" "}
             <span className="landing-hero-accent">Not Harder</span>
+            <span className="sr-only"> with Papyrus AI Tutoring Platform</span>
           </motion.h1>
 
           <motion.p variants={fadeUp} custom={2}>
@@ -260,7 +284,9 @@ const LandingPage = () => {
                 variants={fadeUp}
                 custom={i}
               >
-                <div className={`landing-feature-icon landing-feature-icon--${f.color}`}>
+                <div
+                  className={`landing-feature-icon landing-feature-icon--${f.color}`}
+                >
                   <i className={`bi ${f.icon}`} aria-hidden="true"></i>
                 </div>
                 <h3 className="landing-feature-title">{f.title}</h3>
@@ -272,7 +298,11 @@ const LandingPage = () => {
       </section>
 
       {/* ═══ How It Works ════════════════════════════════════ */}
-      <section className="landing-how" id="how-it-works" aria-label="How it works">
+      <section
+        className="landing-how"
+        id="how-it-works"
+        aria-label="How it works"
+      >
         <div className="landing-how-inner">
           <motion.div
             initial="hidden"
@@ -299,7 +329,12 @@ const LandingPage = () => {
             variants={stagger}
           >
             {steps.map((s, i) => (
-              <motion.div className="landing-step" key={i} variants={fadeUp} custom={i}>
+              <motion.div
+                className="landing-step"
+                key={i}
+                variants={fadeUp}
+                custom={i}
+              >
                 <div className="landing-step-number">{s.num}</div>
                 <h3 className="landing-step-title">{s.title}</h3>
                 <p className="landing-step-desc">{s.desc}</p>
@@ -343,15 +378,21 @@ const LandingPage = () => {
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
-            <div className="landing-footer-logo" aria-hidden="true">P</div>
+            <div className="landing-footer-logo" aria-hidden="true">
+              P
+            </div>
             <span className="landing-footer-name">Papyrus</span>
           </div>
           <p className="landing-footer-copy">
             © {new Date().getFullYear()} Papyrus. All rights reserved.
           </p>
           <div className="landing-footer-links">
-            <Link to="/login" className="landing-footer-link">Sign In</Link>
-            <Link to="/register" className="landing-footer-link">Sign Up</Link>
+            <Link to="/login" className="landing-footer-link">
+              Sign In
+            </Link>
+            <Link to="/register" className="landing-footer-link">
+              Sign Up
+            </Link>
           </div>
         </div>
       </footer>
