@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
 
 import Home from "./Components/Home";
+import LandingPage from "./Components/LandingPage";
 import Mylearning from "./Components/Mylearning";
 import Reminder from "./Components/Reminder";
 import Lesson from "./Components/Lesson";
@@ -25,6 +26,7 @@ function App() {
       <Toaster position="top-center" reverseOrder={false} />
 
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/check-email" element={<CheckEmail />} />
@@ -64,7 +66,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
        <Route
   path="/examstart"
   element={
