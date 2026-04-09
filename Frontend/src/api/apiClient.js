@@ -28,13 +28,13 @@ apiClient.interceptors.response.use(
         // visiting any of these pages will get a 401 from that check.
         // Without this guard, they'd be immediately bounced to /login.
         const PUBLIC_PATHS = [
-            '/login', '/register',
+            '/', '/login', '/register',
             '/check-email', '/verify-email',
             '/forgot-password', '/reset-password',
         ];
-        const isOnPublicPage = PUBLIC_PATHS.some((p) =>
-            window.location.pathname.startsWith(p)
-        );
+        const isOnPublicPage = 
+            window.location.pathname === '/' || 
+            PUBLIC_PATHS.some((p) => p !== '/' && window.location.pathname.startsWith(p));
 
         if (error.response?.status === 401 && !isAuthEndpoint && !isOnPublicPage) {
             localStorage.removeItem('user');
