@@ -100,7 +100,7 @@ const LandingPage = () => {
     <div className="landing-page">
       <Helmet>
         {/* The Pipe symbol | looks cleaner in Google than a dash — */}
-        <title>Papyrus | Your AI-Powered Study Companion</title>
+        <title>PapyrusAI | Your AI-Powered Study Companion</title>
 
         <meta
           name="description"
@@ -119,18 +119,19 @@ const LandingPage = () => {
         <meta property="og:url" content="https://papyrusai.me/" />
         <meta
           property="og:title"
-          content="Papyrus | Your AI-Powered Study Companion"
+          content="PapyrusAI | Your AI-Powered Study Companion"
         />
         <meta
           property="og:description"
           content="Transform your course materials into interactive lessons with AI. Summaries, flashcards, and quizzes in seconds."
         />
         <meta property="og:image" content="https://papyrusai.me/og-image.png" />
-        <meta property="og:site_name" content="Papyrus" />
+        <meta property="og:site_name" content="PapyrusAI" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Papyrus | AI-Powered Learning" />
+        <meta name="twitter:site" content="@PapyrusAI" />
+        <meta name="twitter:title" content="PapyrusAI | AI-Powered Learning" />
         <meta
           name="twitter:description"
           content="The ultimate AI tool for students. Generate study materials from your notes automatically."

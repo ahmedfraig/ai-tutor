@@ -71,8 +71,12 @@ const Login = () => {
 
       <main className="loginmain">
         <Helmet>
-          <title>Login | Papyrus</title>
-          <meta name="description" content="Sign in to your Papyrus account to access AI-powered learning tools." />
+          <title>Sign In to PapyrusAI — Access Your AI Learning Dashboard</title>
+          <meta name="description" content="Sign in to your PapyrusAI account. Access AI-generated flashcards, summaries, quizzes, and personalized study tools. Start learning smarter today." />
+          <meta property="og:title" content="Sign In to PapyrusAI — Access Your AI Learning Dashboard" />
+          <meta property="og:description" content="Log in to PapyrusAI and continue your AI-powered learning journey with flashcards, quizzes, and summaries." />
+          <meta property="og:site_name" content="PapyrusAI" />
+          <link rel="canonical" href="https://papyrusai.me/login" />
         </Helmet>
 
         <form className="loginform" onSubmit={handleSubmit}>

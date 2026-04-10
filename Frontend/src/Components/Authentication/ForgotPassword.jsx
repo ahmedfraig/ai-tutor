@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 import './Register.css';
 import AuthHeader from './AuthHeader';
+import { Helmet } from 'react-helmet-async';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -43,6 +44,14 @@ const ForgotPassword = () => {
       <AuthHeader />
 
       <main className="registermain">
+        <Helmet>
+          <title>Reset Password — PapyrusAI</title>
+          <meta name="description" content="Forgot your password? Reset it here to regain access to your PapyrusAI account and your AI study tools." />
+          <meta property="og:title" content="Reset Password — PapyrusAI" />
+          <meta property="og:site_name" content="PapyrusAI" />
+          <link rel="canonical" href="https://papyrusai.me/forgot-password" />
+        </Helmet>
+
         <div className="registerform" style={{ padding: '36px 32px' }}>
 
           {!sent ? (

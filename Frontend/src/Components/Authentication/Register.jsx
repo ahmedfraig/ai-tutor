@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 import AuthHeader from './AuthHeader';
+import { Helmet } from 'react-helmet-async';
 
 
 const Register = () => {
@@ -89,6 +90,15 @@ const Register = () => {
       <AuthHeader />
 
       <main className='registermain'>
+        <Helmet>
+          <title>Create Your PapyrusAI Account — Free AI Learning Platform</title>
+          <meta name="description" content="Sign up for PapyrusAI. Turn your lectures and notes into smart flashcards, quizzes, and summaries automatically. Start learning for free." />
+          <meta property="og:title" content="Create Your PapyrusAI Account — Free AI Learning Platform" />
+          <meta property="og:description" content="Sign up for PapyrusAI and transform your study material into interactive learning tools." />
+          <meta property="og:site_name" content="PapyrusAI" />
+          <link rel="canonical" href="https://papyrusai.me/register" />
+        </Helmet>
+        
         <form className='registerform' onSubmit={handleSubmit}>
           <h3 className='register-title'>Create your account</h3>
 
