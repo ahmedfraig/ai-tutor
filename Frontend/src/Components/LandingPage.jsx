@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { useAuth } from "../contexts/useAuth";
 import "./LandingPage.css";
 
 /* ── Framer Motion variants ─────────────────────────────── */
@@ -78,6 +79,7 @@ const steps = [
 ];
 
 const LandingPage = () => {
+  const { authStatus } = useAuth();
   const [scrolled, setScrolled] = useState(false);
 
   // Apply saved dark mode preference
@@ -156,13 +158,15 @@ const LandingPage = () => {
           </Link>
 
           <div className="landing-nav-actions">
-            <Link to="/login" className="landing-btn-ghost">
-              Sign In
+            <Link to={authStatus === 'authed' ? "/home" : "/login"} className="landing-btn-ghost">
+              {authStatus === 'authed' ? "Dashboard" : "Sign In"}
             </Link>
-            <Link to="/register" className="landing-btn-primary">
-              Get Started Free
-              <i className="bi bi-arrow-right" aria-hidden="true"></i>
-            </Link>
+            {authStatus !== 'authed' && (
+              <Link to="/register" className="landing-btn-primary">
+                Get Started Free
+                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -198,21 +202,34 @@ const LandingPage = () => {
           </motion.p>
 
           <motion.div className="landing-hero-cta" variants={fadeUp} custom={3}>
-            <Link
-              to="/register"
-              className="landing-btn-primary landing-btn-lg"
-              id="hero-cta-register"
-            >
-              Start Learning Free
-              <i className="bi bi-arrow-right" aria-hidden="true"></i>
-            </Link>
-            <Link
-              to="/login"
-              className="landing-btn-ghost landing-btn-lg"
-              id="hero-cta-login"
-            >
-              I have an account
-            </Link>
+            {authStatus === 'authed' ? (
+              <Link
+                to="/home"
+                className="landing-btn-primary landing-btn-lg"
+                id="hero-cta-dashboard"
+              >
+                Go to Dashboard
+                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="landing-btn-primary landing-btn-lg"
+                  id="hero-cta-register"
+                >
+                  Start Learning Free
+                  <i className="bi bi-arrow-right" aria-hidden="true"></i>
+                </Link>
+                <Link
+                  to="/login"
+                  className="landing-btn-ghost landing-btn-lg"
+                  id="hero-cta-login"
+                >
+                  I have an account
+                </Link>
+              </>
+            )}
           </motion.div>
         </motion.div>
       </section>
@@ -389,12 +406,14 @@ const LandingPage = () => {
             © {new Date().getFullYear()} Papyrus. All rights reserved.
           </p>
           <div className="landing-footer-links">
-            <Link to="/login" className="landing-footer-link">
-              Sign In
+            <Link to={authStatus === 'authed' ? "/home" : "/login"} className="landing-footer-link">
+              {authStatus === 'authed' ? "Dashboard" : "Sign In"}
             </Link>
-            <Link to="/register" className="landing-footer-link">
-              Sign Up
-            </Link>
+            {authStatus !== 'authed' && (
+              <Link to="/register" className="landing-footer-link">
+                Sign Up
+              </Link>
+            )}
           </div>
         </div>
       </footer>

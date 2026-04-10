@@ -8,13 +8,20 @@ import { Helmet } from "react-helmet-async";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setAuthStatus } = useAuth();
+  const { authStatus, setAuthStatus } = useAuth(); // get authStatus
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Redirect to home if already authenticated
+  useEffect(() => {
+    if (authStatus === 'authed') {
+      navigate('/home');
+    }
+  }, [authStatus, navigate]);
 
   // Auto-apply saved dark mode preference (no toggle needed on auth pages)
   useEffect(() => {

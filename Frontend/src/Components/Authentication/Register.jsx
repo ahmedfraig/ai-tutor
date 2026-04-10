@@ -5,10 +5,11 @@ import toast from 'react-hot-toast';
 import apiClient from '../../api/apiClient';
 import AuthHeader from './AuthHeader';
 import { Helmet } from 'react-helmet-async';
-
+import { useAuth } from '../../contexts/useAuth';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { authStatus } = useAuth();
 
   const [formData, setFormData] = useState({
     fullname: "",
@@ -22,6 +23,13 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Redirect to home if already authenticated
+  useEffect(() => {
+    if (authStatus === 'authed') {
+      navigate('/home');
+    }
+  }, [authStatus, navigate]);
 
   // Auto-apply saved dark mode preference (no toggle needed on auth pages)
   useEffect(() => {
