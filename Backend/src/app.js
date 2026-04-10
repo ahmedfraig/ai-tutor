@@ -11,6 +11,18 @@ require('dotenv').config();
 const { installProductionLogger } = require('./utils/logger');
 installProductionLogger();
 
+// Security: Prevent unhandled exceptions and rejections from crashing the app
+// in a way that dumps raw objects (which may contain credentials like the DB config).
+process.on('uncaughtException', (err) => {
+    console.error('FATAL Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('FATAL Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
 // ── Startup environment guard ─────────────────────────────────────────────
 // Fail loudly if any critical secret is missing. This prevents the app from
 // running with insecure fallback values (e.g. a hardcoded JWT secret).
