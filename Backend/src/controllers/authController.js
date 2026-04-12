@@ -46,11 +46,17 @@ const registerUser = async (req, res) => {
         }
 
         // 3. Check if user already exists
-        const userExists = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+        const userExists = await db.query('SELECT id, is_verified FROM users WHERE email = $1', [email]);
+        let existingUnverifiedUserId = null;
+        
         if (userExists.rows.length > 0) {
-            // Email enumeration is mitigated by the auth rate limiter (10 req/15min).
-            // Without an email verification flow, a clear message is the better UX tradeoff.
-            return res.status(400).json({ message: 'An account with this email already exists. Please sign in.' });
+            if (userExists.rows[0].is_verified) {
+                // Email enumeration is mitigated by the auth rate limiter (10 req/15min).
+                // Without an email verification flow, a clear message is the better UX tradeoff.
+                return res.status(400).json({ message: 'An account with this email already exists. Please sign in.' });
+            } else {
+                existingUnverifiedUserId = userExists.rows[0].id;
+            }
         }
 
         // 4. Hash the password
@@ -61,13 +67,21 @@ const registerUser = async (req, res) => {
         const verifyToken = crypto.randomBytes(32).toString('hex');
         const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // 6. Insert the new user (unverified until they click the link)
-        const newUser = await db.query(
-            `INSERT INTO users (full_name, email, password_hash, is_verified, verify_token, verify_token_expires)
-             VALUES ($1, $2, $3, FALSE, $4, $5)
-             RETURNING id, full_name, email, created_at`,
-            [full_name, email, password_hash, verifyToken, verifyExpires]
-        );
+        // 6. Insert or update the user (unverified until they click the link)
+        if (existingUnverifiedUserId) {
+            await db.query(
+                `UPDATE users 
+                 SET full_name = $1, password_hash = $2, verify_token = $3, verify_token_expires = $4 
+                 WHERE id = $5`,
+                [full_name, password_hash, verifyToken, verifyExpires, existingUnverifiedUserId]
+            );
+        } else {
+            await db.query(
+                `INSERT INTO users (full_name, email, password_hash, is_verified, verify_token, verify_token_expires)
+                 VALUES ($1, $2, $3, FALSE, $4, $5)`,
+                [full_name, email, password_hash, verifyToken, verifyExpires]
+            );
+        }
 
         // 7. Send verification email (fire-and-forget — don't block the response)
         sendVerificationEmail(email, full_name, verifyToken).catch((err) => {
