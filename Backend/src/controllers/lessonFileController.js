@@ -373,14 +373,10 @@ const deleteFile = async (req, res) => {
 // GET /api/lesson-files/download/:id — proxy download with correct filename
 const downloadFile = async (req, res) => {
     try {
-        // HIGH-1: use the short-lived stream token from ?streamToken=
-        const claims = verifyStreamToken(req, res);
-        if (!claims) return;
-
-        const userId = claims.userId;
+        const userId = req.user.userId;
         const { id } = req.params;
 
-        if (claims.fileId !== parseInt(id, 10)) {
+        if (req.user.scope === 'stream' && req.user.fileId !== parseInt(id, 10)) {
             return res.status(403).json({ message: 'Stream token is not valid for this file' });
         }
 
@@ -498,17 +494,11 @@ function verifyStreamToken(req, res) {
 // so service-account-owned files are not rejected with 403.
 const streamFile = async (req, res) => {
     try {
-        // HIGH-1: use the short-lived stream token from ?streamToken=
-        // This token was obtained by the frontend via POST /stream-token/:id
-        // and expires in 2 minutes — it never contains full session privileges.
-        const claims = verifyStreamToken(req, res);
-        if (!claims) return; // verifyStreamToken already sent the error response
-
-        const userId = claims.userId;
+        const userId = req.user.userId;
         const { id } = req.params;
 
         // Confirm the token's fileId matches the URL param (prevents token reuse on other files)
-        if (claims.fileId !== parseInt(id, 10)) {
+        if (req.user.scope === 'stream' && req.user.fileId !== parseInt(id, 10)) {
             return res.status(403).json({ message: 'Stream token is not valid for this file' });
         }
 
