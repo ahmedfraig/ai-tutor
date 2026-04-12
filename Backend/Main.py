@@ -233,4 +233,4 @@ async def questions_api(req: TextRequest,userID: str = "", lid: str = ""):
         raise HTTPException(status_code=500, detail="Failed to generate questions.")
 
 
-# to run uvicorn Main:app --reload --host 127.0.0.1 --port 8000
+# to run uvicorn Main:app --reload --host 127.0.0.1 --port=8000
