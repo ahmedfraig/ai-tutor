@@ -14,10 +14,14 @@
         {
           "type": "header",
           "key": "accept",
-          "value": ".*text/markdown.*"
+          "value": "text/markdown"
         }
       ],
       "destination": "/agent-docs.md"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/",
+      "destination": "/.well-known/oauth-protected-resource"
     },
     {
       "source": "/(.*)",
@@ -29,8 +33,30 @@
       "source": "/",
       "headers": [
         {
+          "key": "Vary",
+          "value": "Accept"
+        },
+        {
           "key": "Link",
           "value": "</.well-known/api-catalog>; rel=\"api-catalog\", </.well-known/openid-configuration>; rel=\"openid-configuration\", </.well-known/oauth-authorization-server>; rel=\"oauth-authorization-server\", </.well-known/oauth-protected-resource>; rel=\"oauth-protected-resource\", </agent-docs.md>; rel=\"service-doc\""
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json; charset=utf-8"
         }
       ]
     },
