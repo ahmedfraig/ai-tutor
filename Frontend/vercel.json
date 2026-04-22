@@ -14,7 +14,18 @@
         {
           "type": "header",
           "key": "accept",
-          "value": "text/markdown"
+          "value": "(.*)text/markdown(.*)"
+        }
+      ],
+      "destination": "/agent-docs.md"
+    },
+    {
+      "source": "/index.html",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(.*)text/markdown(.*)"
         }
       ],
       "destination": "/agent-docs.md"
@@ -22,6 +33,14 @@
     {
       "source": "/.well-known/oauth-protected-resource/",
       "destination": "/.well-known/oauth-protected-resource"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": "/.well-known/oauth-protected-resource.json"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/",
+      "destination": "/.well-known/oauth-protected-resource.json"
     },
     {
       "source": "/(.*)",
@@ -53,6 +72,15 @@
     },
     {
       "source": "/.well-known/oauth-protected-resource/",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource.json",
       "headers": [
         {
           "key": "Content-Type",
