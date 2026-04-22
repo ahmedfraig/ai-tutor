@@ -52,3 +52,4 @@ Backend/Speech/*.pyc
 Backend/google-service-account.json
 
 .agents
+.env.example

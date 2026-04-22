@@ -110,7 +110,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             filePath={selectedFilePath}
             fileId={selectedFileId}
             lessonId={lessonId}
-            onVideoCompleted={onVideoCompleted}
+            onVideoCompleted={() => onVideoCompleted(selectedFileId)}
           />
         )}
         {mode === "audio" && (

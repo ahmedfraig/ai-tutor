@@ -134,8 +134,16 @@ const updateUserLesson = async (req, res) => {
         }
         if (videos_watched_count !== undefined) {
             const safeCount = Math.min(Math.max(videos_watched_count, 0), 10000);
-            fields.push(`videos_watched_count = videos_watched_count + $${paramIndex++}`);
-            values.push(safeCount);
+            // Cap at actual video count for this lesson so analytics never exceed 100%.
+            // Subquery counts rows where type='video' in lesson_files for this lesson.
+            fields.push(
+                `videos_watched_count = LEAST(
+                    videos_watched_count + $${paramIndex},
+                    (SELECT COUNT(*) FROM lesson_files WHERE lesson_id = $${paramIndex + 1} AND type = 'video')
+                )`
+            );
+            values.push(safeCount, lessonId);
+            paramIndex += 2;
         }
         if (practice_completed !== undefined) { fields.push(`practice_completed = $${paramIndex++}`); values.push(practice_completed); }
         if (last_entered !== undefined) { fields.push(`last_entered = $${paramIndex++}`); values.push(last_entered); }

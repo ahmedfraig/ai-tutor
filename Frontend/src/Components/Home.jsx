@@ -20,9 +20,10 @@ const Home = () => {
 
     const fetchStats = async () => {
       try {
-        const [statsRes, lessonsRes] = await Promise.all([
+        const [statsRes, lessonsRes, filesRes] = await Promise.all([
           apiClient.get('/study-days/stats'),
           apiClient.get('/user-lessons'),
+          apiClient.get('/lesson-files/all').catch(() => ({ data: [] })),
         ]);
 
         if (cancelled) return;
@@ -38,11 +39,21 @@ const Home = () => {
         const minutes = Math.floor((safeSecs % 3600) / 60);
         const studyTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
+        // Count videos per lesson (same approach as Mylearning)
+        const videosPerLesson = {};
+        (filesRes.data || []).forEach(f => {
+          if (f.type === 'video') {
+            videosPerLesson[f.lesson_id] = (videosPerLesson[f.lesson_id] || 0) + 1;
+          }
+        });
+
         const records = Array.isArray(lessonsRes.data) ? lessonsRes.data : [];
         const sorted = [...records].sort((a, b) =>
           new Date(b.last_entered || 0) - new Date(a.last_entered || 0)
         );
-        const recent = sorted[0] || null;
+        const recent = sorted[0]
+          ? { ...sorted[0], total_videos: videosPerLesson[sorted[0].lesson_id] || 0 }
+          : null;
 
         setStats({ studyTime, lessons: safeCount, streak: safeStreak });
         setLastLesson(recent);
@@ -61,14 +72,19 @@ const Home = () => {
   }, []);
 
   // ── Calculate dynamic progress ──
+  // Formula must match AnalyticsSection exactly:
+  //   30% videos, 25% quiz, 25% exam, 20% practice
   const getProgressPercent = () => {
     if (!lastLesson) return 0;
     const videosWatched = Number(lastLesson.videos_watched_count) || 0;
     const quizScore     = Number(lastLesson.quiz_score)           || 0;
     const examScore     = Number(lastLesson.exam_score)           || 0;
     const practiceOk    = !!lastLesson.practice_completed;
+    // total_videos comes from /user-lessons enriched with file counts
+    const totalVideos   = Number(lastLesson.total_videos)         || 0;
 
-    const vPct = Math.min(videosWatched / 2, 1) * 30;
+    // Only award video % when there are actual videos to watch
+    const vPct = totalVideos > 0 ? (Math.min(videosWatched, totalVideos) / totalVideos) * 30 : 0;
     const qPct = (quizScore / 100) * 25;
     const ePct = (examScore / 100) * 25;
     const pPct = practiceOk ? 20 : 0;

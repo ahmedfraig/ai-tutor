@@ -11,6 +11,8 @@ require('dotenv').config();
 const { installProductionLogger } = require('./utils/logger');
 installProductionLogger();
 
+const { sendWithMarkdownNegotiation } = require('./middleware/markdownNegotiation');
+
 // Security: Prevent unhandled exceptions and rejections from crashing the app
 // in a way that dumps raw objects (which may contain credentials like the DB config).
 process.on('uncaughtException', (err) => {
@@ -96,6 +98,57 @@ app.use(cors({
 // MED-2/3: Explicit JSON body size limit
 app.use(express.json({ limit: '1mb' }));
 
+// ── RFC 8288 Link headers for agent discovery ─────────────────────────────
+// These headers advertise machine-readable resources to AI agents and crawlers.
+// See: https://www.rfc-editor.org/rfc/rfc8288
+//      https://www.rfc-editor.org/rfc/rfc9727#section-3
+app.use((req, res, next) => {
+    res.setHeader(
+        'Link',
+        [
+            '</api/docs>; rel="service-doc"',
+            '</api/openapi.json>; rel="service-desc"; type="application/json"',
+            '</.well-known/api-catalog>; rel="api-catalog"',
+        ].join(', ')
+    );
+    next();
+});
+
+// ── Root endpoint ─────────────────────────────────────────────────────────
+// Supports content negotiation:
+//   • Browsers (Accept: text/html) → HTML page
+//   • AI agents (Accept: text/markdown) → Markdown + x-markdown-tokens header
+// The Vary: Accept header (set by sendWithMarkdownNegotiation) ensures caches
+// store separate copies for each representation.
+app.get('/', (req, res) => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PapyrusAI API</title>
+</head>
+<body>
+  <h1>PapyrusAI API</h1>
+  <p>AI-powered tutoring platform backend. Version 1.0.0.</p>
+  <h2>Resources</h2>
+  <ul>
+    <li><a href="/api/docs">API Documentation</a></li>
+    <li><a href="/api/openapi.json">OpenAPI Specification (JSON)</a></li>
+    <li><a href="/.well-known/api-catalog">API Catalog</a></li>
+  </ul>
+  <h2>Endpoints</h2>
+  <ul>
+    <li><strong>POST /api/auth/register</strong> – Register a new user</li>
+    <li><strong>POST /api/auth/login</strong> – Authenticate and receive a session cookie</li>
+    <li><strong>GET /api/lessons</strong> – List lessons for the authenticated user</li>
+    <li><strong>POST /api/ai-generations</strong> – Generate AI-powered study content</li>
+  </ul>
+</body>
+</html>`;
+
+    sendWithMarkdownNegotiation(req, res, html);
+});
+
 
 
 // ── P3-2: Validate numeric route params globally ──────────────────────────
@@ -116,6 +169,101 @@ app.param('id',       requirePositiveInt('id'));
 app.param('lessonId', requirePositiveInt('lessonId'));
 
 // ── Routes ────────────────────────────────────────────────────────────────
+
+// Health endpoint for the API catalog status
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime() }));
+
+// ── .well-known routes (no rate limiting — must be freely accessible) ────
+app.get('/.well-known/api-catalog', (req, res) => {
+    res.setHeader('Content-Type', 'application/linkset+json');
+    res.send(JSON.stringify({
+        "linkset": [
+            {
+                "anchor": "/api",
+                "service-desc": [
+                    { "href": "/api/openapi.json", "type": "application/json" }
+                ],
+                "service-doc": [
+                    { "href": "/api/docs" }
+                ],
+                "status": [
+                    { "href": "/api/health" }
+                ]
+            }
+        ]
+    }));
+});
+
+// OAuth 2.0 Authorization Server Metadata (RFC 8414)
+app.get('/.well-known/oauth-authorization-server', (req, res) => {
+    // Construct absolute URLs using the incoming request's host/protocol
+    // In production (Render behind TLS proxy), req.protocol is correctly 'https' because of app.set('trust proxy', 1)
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({
+        "issuer": baseUrl,
+        "authorization_endpoint": `${baseUrl}/login`,
+        "token_endpoint": `${baseUrl}/api/auth/login`,
+        "jwks_uri": `${baseUrl}/.well-known/http-message-signatures-directory`,
+        "response_types_supported": ["token"],
+        "grant_types_supported": ["password", "client_credentials"],
+        "token_endpoint_auth_methods_supported": ["client_secret_post", "none"],
+        "scopes_supported": ["api", "stream"]
+    });
+});
+
+// OAuth Protected Resource Metadata (RFC 9728)
+app.get('/.well-known/oauth-protected-resource', (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({
+        "resource": baseUrl,
+        "authorization_servers": [baseUrl],
+        "scopes_supported": ["api", "stream"],
+        "bearer_methods_supported": ["header", "cookie"]
+    });
+});
+
+// Model Context Protocol (MCP) Server Card (SEP-1649)
+app.get('/.well-known/mcp/server-card.json', (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({
+        "serverInfo": {
+            "name": "PapyrusAI Server",
+            "version": "1.0.0",
+            "description": "AI-powered tutoring platform backend"
+        },
+        "transport": {
+            "type": "sse", // SSE is standard for over-HTTP MCP
+            "endpoint": `${baseUrl}/api/mcp/sse`
+        },
+        "capabilities": {
+            "tools": {},
+            "prompts": {},
+            "resources": {}
+        }
+    });
+});
+
+// Agent Skills Discovery Index (RFC v0.2.0)
+app.get('/.well-known/agent-skills/index.json', (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({
+        "$schema": "https://agentskills.io/schema/v0.2.0/skills_index.json",
+        "skills": [
+            {
+                "name": "papyrus-ai-api",
+                "type": "rest",
+                "description": "Core interactions with the PapyrusAI tutoring platform",
+                "url": `${baseUrl}/api/openapi.json`,
+                // SHA-256 placeholder (representing the openapi spec schema identity)
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" 
+            }
+        ]
+    });
+});
+
+const webBotAuthRoutes = require('./routes/webBotAuthRoutes');
+app.use('/.well-known/http-message-signatures-directory', webBotAuthRoutes);
+
 // Apply the strict limiter to auth before registering the routes
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authLimiter, authRoutes);

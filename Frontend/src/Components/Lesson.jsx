@@ -24,9 +24,17 @@ function Lesson() {
   // Called by Sidebar when files are added/deleted → refresh analytics
   const handleFilesChanged = () => setAnalyticsKey(k => k + 1);
 
-  // Called by VideoPlayer when a video ends → count as watched
-  const handleVideoCompleted = () => {
-    if (!lessonId) return;
+  // Track which video IDs have already fired onEnded this session.
+  // Prevents the same video from inflating the count if the user
+  // rewinds and lets it end again.
+  const watchedVideoIdsRef = useRef(new Set());
+
+  // Called by VideoPlayer when a video ends → count as watched (once per unique video)
+  const handleVideoCompleted = (fileId) => {
+    if (!lessonId || !fileId) return;
+    // Guard: only count each unique video once per session
+    if (watchedVideoIdsRef.current.has(fileId)) return;
+    watchedVideoIdsRef.current.add(fileId);
     apiClient.put(`/user-lessons/${lessonId}`, {
       videos_watched_count: 1,
     }).catch(() => {});
@@ -77,9 +85,12 @@ function Lesson() {
       startStudyDay();
     }
 
-    // Cleanup always runs on EVERY unmount (including real navigation away)
-    return () => {
+    const saveTime = () => {
+      // Prevent saving double times if unmount happens right after beforeunload
+      if (!entryTimeRef.current) return;
       const secondsSpent = Math.floor((Date.now() - entryTimeRef.current) / 1000);
+      entryTimeRef.current = null; // mark as saved
+
       if (secondsSpent < 5) return; // ignore accidental flashes
 
       // Update user_lesson cumulative time (for per-lesson analytics)
@@ -92,6 +103,15 @@ function Lesson() {
       apiClient.put('/study-days/end', {
         duration: secondsSpent,
       }).catch(() => {});
+    };
+
+    // Save time when user closes the browser or refreshes
+    window.addEventListener('beforeunload', saveTime);
+
+    // Cleanup always runs on EVERY unmount (soft navigation away from this page)
+    return () => {
+      window.removeEventListener('beforeunload', saveTime);
+      saveTime();
     };
   }, [lessonId]);
 
