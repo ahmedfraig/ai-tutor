@@ -44,7 +44,7 @@ const StatCard = ({ icon, iconColor, label, value, progress, mounted }) => (
 /* ── Main component ─────────────────────────────────────────────── */
 const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
   const [data, setData] = useState(null);
-  const [fileCounts, setFileCounts] = useState({ videos: 0, audios: 0, quizzes: 0 });
+  const [fileCounts, setFileCounts] = useState({ videos: 0, readyVideos: 0, audios: 0, quizzes: 0 });
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -67,9 +67,11 @@ const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
 
         setData(trackingRes.data);
 
-        // Count files by type
+        // Count files by type.
+        // Total videos should represent all video records in the lesson.
         const files = filesRes.data || [];
         const videoCount = files.filter(f => f.type === 'video').length;
+        const readyVideoCount = files.filter(f => f.type === 'video' && !!f.file_path).length;
         const audioCount = files.filter(f => f.type === 'audio').length;
 
         // Count quiz generations
@@ -78,6 +80,7 @@ const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
 
         setFileCounts({
           videos: videoCount,
+          readyVideos: readyVideoCount,
           audios: audioCount,
           quizzes: quizCount,
         });
@@ -107,9 +110,11 @@ const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
   const timeLabel       = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
   // Videos watched: capped at total (can't watch more unique videos than exist)
-  const rawWatched      = Number(data?.videos_watched_count) || 0;
-  const totalVideos     = fileCounts.videos;
-  const videosWatched   = Math.min(rawWatched, totalVideos); // cap at total
+  const rawWatched        = Number(data?.videos_watched_count) || 0;
+  const totalVideos       = fileCounts.videos;
+  const readyVideos       = fileCounts.readyVideos;
+  // Completed videos cannot exceed playable videos.
+  const completedVideos   = Math.min(rawWatched, readyVideos);
 
   const quizScore       = Number(data?.quiz_score) || 0;
   const examScore       = Number(data?.exam_score) || 0;
@@ -120,14 +125,14 @@ const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
 
   // Completion: weighted across all components
   // 30% videos, 25% quiz score, 25% exam score, 20% practice
-  const vPct = totalVideos > 0 ? (videosWatched / totalVideos) * 30 : 0;
+  const vPct = totalVideos > 0 ? (completedVideos / totalVideos) * 30 : 0;
   const qPct = (quizScore / 100) * 25;
   const ePct = (examScore / 100) * 25;
   const pPct = practiceOk ? 20 : 0;
 
   // If no content exists yet, show 0% instead of NaN
   const rawCompletion = vPct + qPct + ePct + pPct;
-  const completion = Number.isNaN(rawCompletion) ? 0 : Math.round(rawCompletion);
+  const completion = Number.isFinite(rawCompletion) ? Math.round(Math.min(rawCompletion, 100)) : 0;
 
   // Quiz average (combine quiz + exam if both exist)
   let quizAvg = 0;
@@ -173,7 +178,7 @@ const AnalyticsSection = ({ lessonId, analyticsKey = 0 }) => {
           <h4 className="as-progress-title">Learning Progress</h4>
         </div>
 
-        <ProgressRow label="Videos Watched"   current={videosWatched}       total={totalVideos} />
+        <ProgressRow label="Completed Videos" current={completedVideos}     total={totalVideos} />
         <ProgressRow label="Audio Lessons"    current={0}                    total={totalAudios} />
         <ProgressRow label="Practice Quizzes" current={practiceOk ? 1 : 0}  total={totalQuizzes} />
       </div>

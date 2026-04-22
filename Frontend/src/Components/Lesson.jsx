@@ -30,15 +30,25 @@ function Lesson() {
   const watchedVideoIdsRef = useRef(new Set());
 
   // Called by VideoPlayer when a video ends → count as watched (once per unique video)
-  const handleVideoCompleted = (fileId) => {
+  const handleVideoCompleted = async (fileId) => {
     if (!lessonId || !fileId) return;
     // Guard: only count each unique video once per session
     if (watchedVideoIdsRef.current.has(fileId)) return;
-    watchedVideoIdsRef.current.add(fileId);
-    apiClient.put(`/user-lessons/${lessonId}`, {
-      videos_watched_count: 1,
-    }).catch(() => {});
-    setAnalyticsKey(k => k + 1);
+    try {
+      // Hard guard: only increment if the exact file is a ready video.
+      const res = await apiClient.get(`/lesson-files/${lessonId}`);
+      const fileRecord = (res.data || []).find((f) => f.id === fileId);
+      const isReadyVideo = !!fileRecord && fileRecord.type === "video" && !!fileRecord.file_path;
+      if (!isReadyVideo) return;
+
+      watchedVideoIdsRef.current.add(fileId);
+      await apiClient.put(`/user-lessons/${lessonId}`, {
+        videos_watched_count: 1,
+      });
+      setAnalyticsKey(k => k + 1);
+    } catch {
+      // Silent fail: do not increment on errors.
+    }
   };
 
   const showToast = (message) => setToast({ show: true, message });

@@ -134,12 +134,18 @@ const updateUserLesson = async (req, res) => {
         }
         if (videos_watched_count !== undefined) {
             const safeCount = Math.min(Math.max(videos_watched_count, 0), 10000);
-            // Cap at actual video count for this lesson so analytics never exceed 100%.
-            // Subquery counts rows where type='video' in lesson_files for this lesson.
+            // Cap at actual READY video count for this lesson so analytics never exceed 100%.
+            // Pending generated videos (without file_path) are not watchable yet.
             fields.push(
                 `videos_watched_count = LEAST(
                     videos_watched_count + $${paramIndex},
-                    (SELECT COUNT(*) FROM lesson_files WHERE lesson_id = $${paramIndex + 1} AND type = 'video')
+                    (
+                        SELECT COUNT(*)
+                        FROM lesson_files
+                        WHERE lesson_id = $${paramIndex + 1}
+                          AND type = 'video'
+                          AND NULLIF(BTRIM(file_path), '') IS NOT NULL
+                    )
                 )`
             );
             values.push(safeCount, lessonId);

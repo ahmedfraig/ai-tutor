@@ -8,8 +8,12 @@ import toast from "react-hot-toast";
 // Compute completion % using same formula as AnalyticsSection
 function computeCompletion(tracking) {
   if (!tracking) return 0;
+  const completedVideos = Math.min(
+    tracking.videos_watched_count || 0,
+    tracking.ready_videos || 0
+  );
   const vPct = tracking.total_videos > 0
-    ? (Math.min(tracking.videos_watched_count || 0, tracking.total_videos) / tracking.total_videos) * 30
+    ? (completedVideos / tracking.total_videos) * 30
     : 0;
   const qPct = ((tracking.quiz_score || 0) / 100) * 25;
   const ePct = ((tracking.exam_score || 0) / 100) * 25;
@@ -48,11 +52,15 @@ const Mylearning = () => {
 
         setLessons(lessonsRes.data);
 
-        // Count videos per lesson
+        // Count videos per lesson (all videos + ready/playable videos)
         const videosPerLesson = {};
+        const readyVideosPerLesson = {};
         (filesRes.data || []).forEach(f => {
           if (f.type === 'video') {
             videosPerLesson[f.lesson_id] = (videosPerLesson[f.lesson_id] || 0) + 1;
+            if (f.file_path) {
+              readyVideosPerLesson[f.lesson_id] = (readyVideosPerLesson[f.lesson_id] || 0) + 1;
+            }
           }
         });
 
@@ -62,6 +70,7 @@ const Mylearning = () => {
           map[record.lesson_id] = {
             ...record,
             total_videos: videosPerLesson[record.lesson_id] || 0,
+            ready_videos: readyVideosPerLesson[record.lesson_id] || 0,
           };
         });
 

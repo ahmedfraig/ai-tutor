@@ -1,0 +1,6 @@
+{
+  "resource": "/",
+  "authorization_servers": ["/"],
+  "scopes_supported": ["api", "stream"],
+  "bearer_methods_supported": ["header", "cookie"]
+}

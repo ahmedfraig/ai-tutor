@@ -289,6 +289,27 @@ const createRecord = async (req, res) => {
             [lesson_id, userId, type, name, file_path || null]
         );
 
+        // If we create a pending video placeholder (no file_path yet), ensure
+        // old/stale watched counts cannot make it appear instantly completed.
+        if (type === 'video' && !file_path) {
+            await db.query(
+                `UPDATE user_lesson
+                 SET videos_watched_count = LEAST(
+                     videos_watched_count,
+                     (
+                         SELECT COUNT(*)
+                         FROM lesson_files
+                         WHERE lesson_id = $1
+                           AND user_id = $2
+                           AND type = 'video'
+                           AND NULLIF(BTRIM(file_path), '') IS NOT NULL
+                     )
+                 )
+                 WHERE lesson_id = $1 AND user_id = $2`,
+                [lesson_id, userId]
+            );
+        }
+
         // Return the target Drive folder ID so the AI team knows where to upload
         res.status(201).json({
             ...result.rows[0],
@@ -350,6 +371,27 @@ const deleteFile = async (req, res) => {
 
         // Delete from DB first
         await db.query('DELETE FROM lesson_files WHERE id = $1', [id]);
+
+        // If a video is deleted, clamp watched-count to remaining ready videos
+        // to prevent stale completion from carrying over to newly generated videos.
+        if (record.type === 'video') {
+            await db.query(
+                `UPDATE user_lesson
+                 SET videos_watched_count = LEAST(
+                     videos_watched_count,
+                     (
+                         SELECT COUNT(*)
+                         FROM lesson_files
+                         WHERE lesson_id = $1
+                           AND user_id = $2
+                           AND type = 'video'
+                           AND NULLIF(BTRIM(file_path), '') IS NOT NULL
+                     )
+                 )
+                 WHERE lesson_id = $1 AND user_id = $2`,
+                [record.lesson_id, userId]
+            );
+        }
 
         // Delete from Google Drive if URL present
         if (record.file_path && record.file_path.includes('drive.google.com')) {

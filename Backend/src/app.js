@@ -48,6 +48,10 @@ if (!process.env.CORS_ORIGIN) {
 
 const app = express();
 
+function getBaseUrl(req) {
+    return `${req.protocol}://${req.get('host')}`;
+}
+
 // ── Trust Render's reverse proxy ─────────────────────────────────────────
 // Render (and most cloud platforms) sit behind a load balancer that adds
 // X-Forwarded-For. Without this, express-rate-limit throws a ValidationError
@@ -103,12 +107,16 @@ app.use(express.json({ limit: '1mb' }));
 // See: https://www.rfc-editor.org/rfc/rfc8288
 //      https://www.rfc-editor.org/rfc/rfc9727#section-3
 app.use((req, res, next) => {
+    const baseUrl = getBaseUrl(req);
     res.setHeader(
         'Link',
         [
-            '</api/docs>; rel="service-doc"',
-            '</api/openapi.json>; rel="service-desc"; type="application/json"',
-            '</.well-known/api-catalog>; rel="api-catalog"',
+            `<${baseUrl}/api/docs>; rel="service-doc"; type="text/html"`,
+            `<${baseUrl}/api/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"`,
+            `<${baseUrl}/.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"`,
+            `<${baseUrl}/.well-known/openid-configuration>; rel="openid-configuration"; type="application/json"`,
+            `<${baseUrl}/.well-known/oauth-authorization-server>; rel="oauth-authorization-server"; type="application/json"`,
+            `<${baseUrl}/.well-known/oauth-protected-resource>; rel="oauth-protected-resource"; type="application/json"`,
         ].join(', ')
     );
     next();
@@ -149,6 +157,50 @@ app.get('/', (req, res) => {
     sendWithMarkdownNegotiation(req, res, html);
 });
 
+app.get('/api/docs', (req, res) => {
+    const baseUrl = getBaseUrl(req);
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PapyrusAI API Documentation</title>
+</head>
+<body>
+  <h1>PapyrusAI API Documentation</h1>
+  <p>This service provides authenticated endpoints for lessons, files, analytics, and AI generations.</p>
+  <h2>OpenAPI</h2>
+  <p><a href="${baseUrl}/api/openapi.json">${baseUrl}/api/openapi.json</a></p>
+  <h2>Health</h2>
+  <p><a href="${baseUrl}/api/health">${baseUrl}/api/health</a></p>
+</body>
+</html>`;
+    sendWithMarkdownNegotiation(req, res, html);
+});
+
+app.get('/api/openapi.json', (req, res) => {
+    const baseUrl = getBaseUrl(req);
+    res.setHeader('Content-Type', 'application/vnd.oai.openapi+json; charset=utf-8');
+    res.json({
+        openapi: '3.1.0',
+        info: {
+            title: 'PapyrusAI API',
+            version: '1.0.0',
+            description: 'AI-powered tutoring platform backend API.'
+        },
+        servers: [{ url: `${baseUrl}/api` }],
+        paths: {
+            '/health': {
+                get: {
+                    summary: 'Service health check',
+                    responses: {
+                        '200': { description: 'Healthy' }
+                    }
+                }
+            }
+        }
+    });
+});
+
 
 
 // ── P3-2: Validate numeric route params globally ──────────────────────────
@@ -175,30 +227,45 @@ app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', uptime
 
 // ── .well-known routes (no rate limiting — must be freely accessible) ────
 app.get('/.well-known/api-catalog', (req, res) => {
+    const baseUrl = getBaseUrl(req);
     res.setHeader('Content-Type', 'application/linkset+json');
     res.send(JSON.stringify({
         "linkset": [
             {
-                "anchor": "/api",
+                "anchor": `${baseUrl}/api`,
                 "service-desc": [
-                    { "href": "/api/openapi.json", "type": "application/json" }
+                    { "href": `${baseUrl}/api/openapi.json`, "type": "application/vnd.oai.openapi+json" }
                 ],
                 "service-doc": [
-                    { "href": "/api/docs" }
+                    { "href": `${baseUrl}/api/docs`, "type": "text/html" }
                 ],
                 "status": [
-                    { "href": "/api/health" }
+                    { "href": `${baseUrl}/api/health`, "type": "application/json" }
                 ]
             }
         ]
     }));
 });
 
+// OpenID Connect Discovery 1.0 metadata
+app.get('/.well-known/openid-configuration', (req, res) => {
+    const baseUrl = getBaseUrl(req);
+    res.json({
+        issuer: baseUrl,
+        authorization_endpoint: `${baseUrl}/login`,
+        token_endpoint: `${baseUrl}/api/auth/login`,
+        jwks_uri: `${baseUrl}/.well-known/http-message-signatures-directory`,
+        response_types_supported: ['token'],
+        subject_types_supported: ['public'],
+        id_token_signing_alg_values_supported: ['HS256'],
+        grant_types_supported: ['password', 'client_credentials'],
+        scopes_supported: ['api', 'stream']
+    });
+});
+
 // OAuth 2.0 Authorization Server Metadata (RFC 8414)
 app.get('/.well-known/oauth-authorization-server', (req, res) => {
-    // Construct absolute URLs using the incoming request's host/protocol
-    // In production (Render behind TLS proxy), req.protocol is correctly 'https' because of app.set('trust proxy', 1)
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     res.json({
         "issuer": baseUrl,
         "authorization_endpoint": `${baseUrl}/login`,
@@ -213,7 +280,7 @@ app.get('/.well-known/oauth-authorization-server', (req, res) => {
 
 // OAuth Protected Resource Metadata (RFC 9728)
 app.get('/.well-known/oauth-protected-resource', (req, res) => {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     res.json({
         "resource": baseUrl,
         "authorization_servers": [baseUrl],
@@ -224,7 +291,7 @@ app.get('/.well-known/oauth-protected-resource', (req, res) => {
 
 // Model Context Protocol (MCP) Server Card (SEP-1649)
 app.get('/.well-known/mcp/server-card.json', (req, res) => {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     res.json({
         "serverInfo": {
             "name": "PapyrusAI Server",
@@ -245,7 +312,7 @@ app.get('/.well-known/mcp/server-card.json', (req, res) => {
 
 // Agent Skills Discovery Index (RFC v0.2.0)
 app.get('/.well-known/agent-skills/index.json', (req, res) => {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     res.json({
         "$schema": "https://agentskills.io/schema/v0.2.0/skills_index.json",
         "skills": [

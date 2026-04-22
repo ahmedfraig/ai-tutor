@@ -102,6 +102,21 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
 
   const label = title || "AI-Generated Video";
 
+  const handleEnded = (event) => {
+    const el = event?.currentTarget;
+    if (!el) return;
+
+    const duration = Number(el.duration);
+    const currentTime = Number(el.currentTime);
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    // Only count as completed when actual playback reached the end.
+    const watchedRatio = currentTime / duration;
+    if (!Number.isFinite(watchedRatio) || watchedRatio < 0.9) return;
+
+    onVideoCompleted?.();
+  };
+
   // Sync local path when the parent selects a different video
   useEffect(() => {
     setLocalFilePath(filePath);
@@ -237,7 +252,7 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
             preload="metadata"
             playsInline
             aria-label={label}
-            onEnded={onVideoCompleted}
+            onEnded={handleEnded}
           >
             <source src={streamUrl} type="video/mp4" />
             Your browser does not support the video tag.
@@ -297,7 +312,7 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
           controls
           preload="metadata"
           aria-label={label}
-          onEnded={onVideoCompleted}
+          onEnded={handleEnded}
         >
           <source src={streamSrc} type="video/mp4" />
           Your browser does not support the video tag.
