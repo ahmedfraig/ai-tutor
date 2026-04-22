@@ -1,6 +1,25 @@
 {
   "rewrites": [
     {
+      "source": "/.well-known/(.*)",
+      "destination": "/.well-known/$1"
+    },
+    {
+      "source": "/agent-docs.md",
+      "destination": "/agent-docs.md"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": ".*text/markdown.*"
+        }
+      ],
+      "destination": "/agent-docs.md"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -12,6 +31,23 @@
         {
           "key": "Link",
           "value": "</.well-known/api-catalog>; rel=\"api-catalog\", </.well-known/openid-configuration>; rel=\"openid-configuration\", </.well-known/oauth-authorization-server>; rel=\"oauth-authorization-server\", </.well-known/oauth-protected-resource>; rel=\"oauth-protected-resource\", </agent-docs.md>; rel=\"service-doc\""
+        }
+      ]
+    },
+    {
+      "source": "/agent-docs.md",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        },
+        {
+          "key": "x-markdown-tokens",
+          "value": "120"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept"
         }
       ]
     },
