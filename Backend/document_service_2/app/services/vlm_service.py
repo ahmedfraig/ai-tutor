@@ -68,11 +68,9 @@ class VlmService:
         }
         dtype = dtype_map.get(dtype_str, torch.float32)
 
-        # Flash Attention 2 only on GPU with compatible torch build
-        use_fa2 = (
-            settings.vlm_use_flash_attention
-            and device.startswith("cuda")
-        )
+        # Flash Attention 2 only on GPU with compatible torch build.
+        # If flash-attn is unavailable, we automatically fall back to eager.
+        use_fa2 = settings.vlm_use_flash_attention and device.startswith("cuda")
         attn_impl = "flash_attention_2" if use_fa2 else "eager"
 
         # On CPU: reduce pixel budget so the image tensor is smaller → faster
@@ -89,13 +87,30 @@ class VlmService:
         )
 
         try:
-            self._model = Qwen2VLForConditionalGeneration.from_pretrained(
-                settings.vlm_model_id,
-                torch_dtype=dtype,
-                attn_implementation=attn_impl,
-                device_map=device if device.startswith("cuda") else None,
-                cache_dir=settings.hf_cache_dir,
-            )
+            try:
+                self._model = Qwen2VLForConditionalGeneration.from_pretrained(
+                    settings.vlm_model_id,
+                    torch_dtype=dtype,
+                    attn_implementation=attn_impl,
+                    device_map=device if device.startswith("cuda") else None,
+                    cache_dir=settings.hf_cache_dir,
+                )
+            except Exception as exc:
+                # Transformers can fail at load-time if flash_attn is missing.
+                if use_fa2 and ("flash_attn" in str(exc).lower() or "flashattention" in str(exc).lower()):
+                    logger.warning(
+                        "vlm_flash_attention_unavailable_fallback",
+                        reason=str(exc),
+                    )
+                    self._model = Qwen2VLForConditionalGeneration.from_pretrained(
+                        settings.vlm_model_id,
+                        torch_dtype=dtype,
+                        attn_implementation="eager",
+                        device_map=device if device.startswith("cuda") else None,
+                        cache_dir=settings.hf_cache_dir,
+                    )
+                else:
+                    raise
             if not device.startswith("cuda"):
                 self._model = self._model.to(device)
 

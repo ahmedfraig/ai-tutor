@@ -95,11 +95,18 @@ WORKDIR /app
 COPY requirements.txt .
 
 # CUDA-enabled torch (cu124 wheel)
-RUN pip install torch==2.4.1+cu124 torchvision==0.19.1+cu124 \
-    --index-url https://download.pytorch.org/whl/cu124 && \
-    pip install paddlepaddle-gpu==2.6.2.post120 \
+# Install torch/torchvision without transitive CUDA python wheels.
+# CUDA/CUDNN runtime libs are already provided by the nvidia/cuda base image.
+RUN pip install --no-deps torch==2.4.1+cu124 torchvision==0.19.1+cu124 \
+    --index-url https://download.pytorch.org/whl/cu124
+
+RUN pip install filelock fsspec jinja2 networkx sympy typing-extensions triton==3.0.0
+
+RUN pip install paddlepaddle-gpu==2.6.2.post120 \
     -i https://www.paddlepaddle.org.cn/packages/stable/cu120/ && \
-    pip install -r requirements.txt
+    grep -v '^accelerate==' requirements.txt > /tmp/requirements.no_accelerate.txt && \
+    pip install -r /tmp/requirements.no_accelerate.txt && \
+    pip install --no-deps accelerate==1.2.1
 
 COPY scripts/download_models.py scripts/download_models.py
 RUN PRELOAD_PADDLE_MODELS=0 PRELOAD_VLM_MODELS=1 python scripts/download_models.py

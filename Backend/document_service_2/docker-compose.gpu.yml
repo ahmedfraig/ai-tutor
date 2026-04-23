@@ -18,7 +18,7 @@ services:
     environment:
       - DEVICE=auto        # resolve_device() picks cuda:0 automatically
       - OCR_USE_GPU=true
-      - VLM_USE_FLASH_ATTENTION=true
+      - VLM_USE_FLASH_ATTENTION=false
       - VLM_DTYPE=auto     # bfloat16 on Ampere+, float16 on older cards
     deploy:
       resources:
