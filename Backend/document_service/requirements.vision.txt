@@ -1,5 +1,0 @@
-docling
-paddleocr
-transformers
-accelerate
-bitsandbytes
