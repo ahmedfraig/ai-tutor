@@ -104,6 +104,21 @@
   margin: 4px 0 0;
 }
 
+/* ── Hint / read-only note ────────────────────────────────── */
+.pf-hint {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin: 4px 0 0;
+}
+
+/* Disabled (read-only) input */
+.pf-input:disabled {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  cursor: default;
+  opacity: 1;
+}
+
 /* ── Action buttons ──────────────────────────────────────── */
 .pf-actions {
   display: flex;
@@ -227,4 +242,14 @@ body.darkmode .pf-btn-cancel:hover {
 
 body.darkmode .pf-text-muted {
   color: #6b7280;
+}
+
+body.darkmode .pf-hint {
+  color: #6b7280;
+}
+
+body.darkmode .pf-input:disabled {
+  background-color: #161616;
+  color: #6b7280;
+  border-color: #2d2d2d;
 }

@@ -7,7 +7,8 @@ import './Profile.css';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ full_name: '', email: '', password: '', confirmPassword: '' });
+  const [email, setEmail] = useState('');
+  const [formData, setFormData] = useState({ full_name: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -16,10 +17,10 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const res = await apiClient.get('/users/profile');
+        setEmail(res.data.email || '');
         setFormData(prev => ({
           ...prev,
           full_name: res.data.full_name || '',
-          email: res.data.email || '',
         }));
       } catch (err) {
         console.error('Failed to load profile:', err);
@@ -34,7 +35,6 @@ const Profile = () => {
   const validate = () => {
     const newErrors = {};
     if (!formData.full_name.trim()) newErrors.full_name = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (formData.password && formData.password.length < 6)
       newErrors.password = 'Password must be at least 6 characters';
     if (formData.password && formData.password !== formData.confirmPassword)
@@ -48,7 +48,7 @@ const Profile = () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { full_name: formData.full_name, email: formData.email };
+      const payload = { full_name: formData.full_name };
       if (formData.password) payload.password = formData.password;
       const res = await apiClient.put('/users/profile', payload);
       const currentUser = JSON.parse(localStorage.getItem('user')) || {};
@@ -96,12 +96,12 @@ const Profile = () => {
                 id="profile-email"
                 className="pf-input"
                 type="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                value={email}
+                disabled
+                readOnly
               />
-              {errors.email && <p className="pf-error" role="alert">{errors.email}</p>}
             </div>
+
           </div>
 
           {/* ── Change Password ───────────────── */}
