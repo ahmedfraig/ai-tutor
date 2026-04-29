@@ -1,182 +1,124 @@
-import dotenv
+import os
 import time
 import re
 import traceback
-# ------------------------------- Configuration -------------------------------
-MODEL_NAME = "openai/gpt-oss-20b"
-MAX_INPUT_TOKENS = 2000  # token budget for the input chunk (approximate)
-SAFETY_MARGIN_TOKENS = 256  # reserved tokens for system/instruction/response overhead
-MAX_RETRIES = 4  # API call retry attempts for transient errors
-# max tokens for model to produce per chunk (if your client supports this param)
-CHUNK_RESPONSE_MAX_TOKENS = 3500
-API_KEY = dotenv.get_key(".env", "GROQ_API_KEY")
+import json
 from openai import OpenAI
-groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=API_KEY)
 
-# Alternatively, if you already store a list of documents, you can loop over them (not shown here).
-# ------------------------------- Main processing -------------------------------
-TRIGGER_CHUNK_COUNT = None  # <-- example: if the chunker produced exactly 4 chunks, use SYSTEM_PROMPT_ALT globally
-TRIGGER_CHUNK_INDEX = None  # e.g., 2 to use SYSTEM_PROMPT_ALT only for chunk 2; set to None to disable
-PARAGRAPHS_PER_CHUNK = 20  # each chunk will contain 4 paragraphs (except the final chunk)
-ENFORCE_TOKEN_LIMIT_ON_GROUP = False  # if True, fall back to token-based split when a paragraph-group is too large
-# ------------------------------- Token estimation -------------------------------
-"""
-You are an MCQ question generator for educational use. For each input text chunk, produce a set of multiple-choice questions that together cover the chunk's main ideas, important facts, and key implications.
+# ─────────────────────────── Configuration ───────────────────────────
 
-Requirements and format (follow exactly):
+MODEL_NAME                = "openai/gpt-oss-20b"
+MAX_INPUT_TOKENS          = 1500
+SAFETY_MARGIN_TOKENS      = 256
+MAX_RETRIES               = 4
+CHUNK_RESPONSE_MAX_TOKENS = 5000
 
-1) Number of questions
-- Generate up to 10 high-quality questions by default. If the chunk contains fewer than 10 clear main ideas, generate one question per distinct idea. Do not produce trivial or duplicate questions.
+API_KEY = os.getenv("GROQ_API_KEY")
 
-2) Question format
-- Each question must be numbered and formatted like this:
-
-QUESTION 1: <question text>
-
-a. <option a>
-b. <option b>
-c. <option c>
-d. <option d>
-
-Answer: <letter>
-
-- The correct answer letter must appear exactly on the line `Answer: <letter>` directly after the four choices.
-- Do NOT include any hidden chain-of-thought or internal reasoning.
-
-3) Quality rules for questions and options
-- Questions should be clear, unambiguous, and answerable from the chunk.
-- Distractor options (wrong answers) must be plausible but clearly incorrect when compared to the chunk; avoid implausible nonsense.
-- Avoid paraphrasing the same question multiple times.
-- Preserve numeric/temporal facts exactly as stated in the chunk; never invent numbers or dates.
-- If a fact is not stated but is a reasonable inference, mark the question or option text with `[INFERENCE]`.
-
-4) Coverage
-- Cover the chunk's high-level claims, key mechanisms, important results, and notable limitations or assumptions.
-- Include at least one question that tests understanding of any equations, algorithms, or important procedural steps in the chunk (if present).
-
-5) Difficulty and balance
-- Provide a mix of difficulty levels: roughly 60% recall/understanding, 40% application/analysis (e.g., ask about implications, trade-offs, or minor calculations based on given numbers).
-
-6) End-of-response clarification
-- After every multiple-choice question, provide the correct answer and a short, bullet-point explanation for each option (a, b, c, d) explaining why that option is correct or incorrect, using only information from the chunk.
-
-7) Output cleanliness
-- Use plain text only (no Markdown code fences).
-- Do not output any extraneous commentary, meta-discussion, or chain-of-thought.
-
-Now generate the requested MCQs for the provided chunk following the rules above.
-"""
-
-# ------------------------------- System prompt -------------------------------
-SYSTEM_PROMPT = ("""
-You are an MCQ question generator for educational use. For each input text chunk, produce multiple-choice questions that follow the rules below EXACTLY.
-
-OUTPUT FORMAT (IMPORTANT):
-- The final output MUST be valid JSON.
-- The output MUST be an array of objects.
-- Each object MUST follow this structure exactly:
-
-[
-  {
-    "question": "<question text>",
-    "a": "<option a>",
-    "b": "<option b>",
-    "c": "<option c>",
-    "d": "<option d>",
-    "solution": "<letter>"
-  }
-]
-
-- Do NOT include explanations in this JSON.
-- Do NOT add text before or after the JSON.
-- Do NOT include markdown formatting, backticks, or code fences.
-- Do NOT include newline escape characters like \\n inside strings unless they are part of the actual content.
-
-QUESTION GENERATION RULES:
-
-1) Number of questions:
-- Generate up to 10 high-quality questions.
-- If the text contains fewer than 10 distinct ideas, generate one question per idea.
-- Do NOT create trivial or duplicate questions.
-
-2) Question requirements:
-- Questions must be clear, unambiguous, and answerable from the chunk.
-- Preserve numeric/temporal facts EXACTLY.
-- Include plausible distractors (wrong answers).
-- If something requires inference, label the option or question with [INFERENCE].
-
-3) Coverage:
-- Cover major ideas, mechanisms, results, assumptions, limitations.
-- Include at least one question testing equations, algorithms, or steps if present.
-
-4) Difficulty:
-- About 60% recall/understanding.
-- About 40% application/analysis.
-
-5) Clean output:
-- The ENTIRE response must be valid JSON only.
-- No commentary. No meta discussion. No chain-of-thought. No formatting outside JSON.
-
-Now generate the MCQ set as JSON for the given input text.
-"""
+groq_client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=API_KEY,
 )
-SYSTEM_PROMPT_ALT = ("""
-You are an MCQ question generator for educational use. For each input text chunk, produce multiple-choice questions that follow the rules below EXACTLY.
 
-OUTPUT FORMAT (IMPORTANT):
-- The final output MUST be valid JSON.
-- The output MUST be an array of objects.
-- Each object MUST follow this structure exactly:
+# ─────────────────────────── Prompt Helpers ───────────────────────────
 
-[
-  {
-    "question": "<question text>",
-    "a": "<option a>",
-    "b": "<option b>",
-    "c": "<option c>",
-    "d": "<option d>",
-    "solution": "<letter>"
-  }
-]
+def get_target_count(qty) -> int:
+    if isinstance(qty, int) or str(qty).isdigit():
+        return int(qty)
+    return {"low": 10, "standard": 15, "high": 30}.get(str(qty).lower(), 15)
 
-- Do NOT include explanations in this JSON.
-- Do NOT add text before or after the JSON.
-- Do NOT include markdown formatting, backticks, or code fences.
-- Do NOT include newline escape characters like \\n inside strings unless they are part of the actual content.
 
-QUESTION GENERATION RULES:
+def get_system_prompt(count: int, diff: str) -> str:
+    if diff == "hard":
+        diff_block = (
+            "DIFFICULTY: HARD (Inference & Synthesis)\n"
+            "- Questions must NOT be answerable by keyword search alone.\n"
+            "- Test deep understanding, implications, and synthesis of ideas.\n"
+            "- Mix: 40% recall, 60% application/analysis.\n"
+        )
+    else:
+        diff_block = (
+            "DIFFICULTY: STANDARD (Comprehension & Recall)\n"
+            "- Questions test clear facts and direct concepts from the text.\n"
+            "- Answers must be explicitly verifiable from the source text.\n"
+            "- Mix: 60% recall, 40% application/analysis.\n"
+        )
 
-1) Number of questions:
-- Generate up to 10 high-quality questions.
-- If the text contains fewer than 10 distinct ideas, generate one question per idea.
-- Do NOT create trivial or duplicate questions.
+    schema = (
+        '{\n'
+        '  "questions": [\n'
+        '    {\n'
+        '      "id": 1,\n'
+        '      "question": "Question text here",\n'
+        '      "options": [\n'
+        '        {"key": "a", "text": "Option A"},\n'
+        '        {"key": "b", "text": "Option B"},\n'
+        '        {"key": "c", "text": "Option C"},\n'
+        '        {"key": "d", "text": "Option D"}\n'
+        '      ],\n'
+        '      "answer": "a",\n'
+        '      "explanation_points": [\n'
+        '        {"key": "a", "text": "Correct: explain why this is right."},\n'
+        '        {"key": "b", "text": "Incorrect: explain why this is wrong."},\n'
+        '        {"key": "c", "text": "Incorrect: explain why this is wrong."},\n'
+        '        {"key": "d", "text": "Incorrect: explain why this is wrong."}\n'
+        '      ]\n'
+        '    }\n'
+        '  ]\n'
+        '}'
+    )
 
-2) Question requirements:
-- Questions must be clear, unambiguous, and answerable from the chunk.
-- Preserve numeric/temporal facts EXACTLY.
-- Include plausible distractors (wrong answers).
-- If something requires inference, label the option or question with [INFERENCE].
+    return (
+        f"You are an educational MCQ generator.\n\n"
+        f"TASK: Generate exactly {count} multiple-choice questions from the provided text.\n\n"
+        f"SEMANTIC RELEVANCE STRATEGY:\n"
+        f"- Identify the core themes and arguments.\n"
+        f"- Weight question frequency by relevance; central concepts get more questions.\n\n"
 
-3) Coverage:
-- Cover major ideas, mechanisms, results, assumptions, limitations.
-- Include at least one question testing equations, algorithms, or steps if present.
+        f"ANSWER DESIGN:\n"
+        f"- Make incorrect options plausible and close to the correct answer, not obviously wrong.\n"
+        f"- Keep options similar in length, style, and specificity so the correct answer is not easy to guess.\n"
+        f"- Avoid predictable answer patterns.\n"
+        f"- Distribute correct answers as evenly as possible across a, b, c, and d.\n\n"
 
-4) Difficulty:
-- About 60% recall/understanding.
-- About 40% application/analysis.
+        f"{diff_block}\n"
+        f"OUTPUT REQUIREMENTS:\n"
+        f"- Return ONLY raw JSON. Absolutely no markdown, no code fences, no explanations.\n"
+        f"- Your entire response must start with {{ and end with }}.\n"
+        f"- Every backslash inside JSON strings MUST be double-escaped.\n\n"
+        f"JSON SCHEMA:\n"
+        f"{schema}\n\n"
+        f"STRICT RULES:\n"
+        f"- Root object has exactly one key: \"questions\".\n"
+        f"- Generate exactly {count} questions.\n"
+        f"- Each question has exactly 4 options keyed a, b, c, d in that order.\n"
+        f"- \"answer\" is one of: a, b, c, d.\n"
+        f"- Each question has exactly 4 explanation_points (one per option, same order).\n"
+        f"- No \"all of the above\" or \"none of the above\" options.\n"
+        f"- No duplicate questions.\n"
+        f"- IDs start at 1 and increment by 1.\n"
+    )
 
-5) Clean output:
-- The ENTIRE response must be valid JSON only.
-- No commentary. No meta discussion. No chain-of-thought. No formatting outside JSON.
+def get_retry_prompt(count: int) -> str:
+    """
+    Minimal fallback prompt used when the first attempt returns no JSON at all.
+    Strips everything down to reduce confusion.
+    """
+    return (
+        f"Generate {count} multiple-choice questions from the text below.\n"
+        f"Respond with ONLY a JSON object. No explanation, no markdown.\n"
+        f"Format:\n"
+        '{"questions": [{"id": 1, "question": "...", "options": ['
+        '{"key": "a", "text": "..."}, {"key": "b", "text": "..."}, '
+        '{"key": "c", "text": "..."}, {"key": "d", "text": "..."}], '
+        '"answer": "a", "explanation_points": ['
+        '{"key": "a", "text": "Correct: ..."}, {"key": "b", "text": "Incorrect: ..."}, '
+        '{"key": "c", "text": "Incorrect: ..."}, {"key": "d", "text": "Incorrect: ..."}]}]}'
+    )
 
-Now generate the MCQ set as JSON for the given input text.
-"""
-)
+# ─────────────────────────── Token / Chunking ───────────────────────────
+
 def estimate_tokens(text: str) -> int:
-    """
-    Try to use tiktoken for accurate token counts; otherwise fallback to heuristic:
-    ~1 token ≈ 4 characters.
-    """
     try:
         import tiktoken
         try:
@@ -185,210 +127,318 @@ def estimate_tokens(text: str) -> int:
             enc = tiktoken.get_encoding("cl100k_base")
         return len(enc.encode(text))
     except Exception:
-        return max(1, int(len(text) / 4))
+        return max(1, len(text) // 4)
 
 
-# ------------------------------- Chunking logic -------------------------------
-def chunk_text_by_token_limit(text: str, max_input_tokens: int, safety_margin_tokens: int=256):
-    """
-    Split text into chunks whose estimated token count <= (max_input_tokens - safety_margin_tokens).
-    Prefer paragraph boundaries; fall back to sentences or character-splits if paragraph is too large.
-    """
-    max_tokens_per_chunk = max(64, max_input_tokens - safety_margin_tokens)
-    paragraphs = re.split(r'\n{2,}', text)
-    chunks = []
-    current = ""
-    for p in paragraphs:
-        p = p.strip()
-        if not p:
+def chunk_text_by_token_limit(text: str, max_input_tokens: int, safety_margin: int) -> list:
+    limit = max(64, max_input_tokens - safety_margin)
+    chunks, current = [], ""
+
+    for para in re.split(r"\n{2,}", text):
+        para = para.strip()
+        if not para:
             continue
-        if estimate_tokens(p) > max_tokens_per_chunk:
-            # paragraph is too large: split by sentence-like boundaries
-            sentences = re.split(r'(?<=[.!?])\s+', p)
-            for s in sentences:
-                if not s.strip():
+
+        if estimate_tokens(para) > limit:
+            for sentence in re.split(r"(?<=[.!?])\s+", para):
+                sentence = sentence.strip()
+                if not sentence:
                     continue
-                candidate = (current + "\n\n" + s).strip() if current else s
-                if estimate_tokens(candidate) <= max_tokens_per_chunk:
+                candidate = f"{current}\n\n{sentence}".strip() if current else sentence
+                if estimate_tokens(candidate) <= limit:
                     current = candidate
                 else:
                     if current:
                         chunks.append(current)
-                    # if sentence still too large, split by chars
-                    if estimate_tokens(s) > max_tokens_per_chunk:
-                        approx_chars = max_tokens_per_chunk * 4
-                        for i in range(0, len(s), approx_chars):
-                            part = s[i: i + approx_chars].strip()
+                    if estimate_tokens(sentence) > limit:
+                        step = limit * 4
+                        for i in range(0, len(sentence), step):
+                            part = sentence[i:i + step].strip()
                             if part:
                                 chunks.append(part)
                         current = ""
                     else:
-                        current = s
+                        current = sentence
         else:
-            candidate = (current + "\n\n" + p).strip() if current else p
-            if estimate_tokens(candidate) <= max_tokens_per_chunk:
+            candidate = f"{current}\n\n{para}".strip() if current else para
+            if estimate_tokens(candidate) <= limit:
                 current = candidate
             else:
                 if current:
                     chunks.append(current)
-                current = p
+                current = para
+
     if current:
         chunks.append(current)
     return chunks
 
+# ─────────────────────────── API Call ───────────────────────────
 
-# ------------------------------- API call with backoff -------------------------------
-def call_chat_with_backoff(client, model, messages, max_retries=4, base_wait=1.0, max_response_tokens=None):
-    """
-    Call client.chat.completions.create with simple exponential backoff for transient errors.
-    """
-    for attempt in range(max_retries):
+def call_llm(messages: list, max_response_tokens: int) -> str:
+    """Call the LLM with exponential backoff. Returns raw response text."""
+    for attempt in range(MAX_RETRIES):
         try:
-            kwargs = {}
-            if max_response_tokens is not None:
-                kwargs["max_tokens"] = max_response_tokens
-            resp = client.chat.completions.create(model=model, messages=messages, **kwargs)
-            return resp
+            resp = groq_client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=max_response_tokens,
+            )
+            return resp.choices[0].message.content
+
         except Exception as e:
-            txt = str(e).lower()
-            # Non-retriable errors: request too large -> raise so upstream can handle chunking
-            if "413" in txt or "request too large" in txt or "request entity too large" in txt:
+            err = str(e).lower()
+            if any(k in err for k in ("413", "request too large", "request entity too large")):
                 raise
-            # Last attempt -> re-raise
-            if attempt == max_retries - 1:
+            if attempt == MAX_RETRIES - 1:
                 raise
-            wait = base_wait * (2 ** attempt)
-            print(f"Transient error, retrying in {wait}s... (attempt {attempt+1}/{max_retries})")
+            wait = 2 ** attempt
+            print(f"[LLM] Transient error, retry {attempt + 1}/{MAX_RETRIES} in {wait}s — {e}")
             time.sleep(wait)
-    raise RuntimeError("Exhausted retries")
+
+    raise RuntimeError("Exhausted all retries.")
+
+# ─────────────────────────── JSON Pipeline ───────────────────────────
+
+_INVALID_BACKSLASH_RE = re.compile(r'(?<!\\)\\(?!["\\/bfnrtu])')
 
 
-# ------------------------------- Helper for extracting content -------------------------------
-def extract_text_from_response(resp):
+def _repair_backslashes(text: str) -> str:
+    return _INVALID_BACKSLASH_RE.sub(r"\\\\", text)
+
+
+def _extract_complete_questions(text: str) -> dict | None:
     """
-    Robust extraction across SDK response shapes.
+    When the JSON is truncated mid-stream, pull out every fully-formed
+    question object that appears before the cut-off point.
+    Returns a {"questions": [...]} dict, or None if nothing usable found.
     """
+    question_blocks = re.findall(
+        r'\{\s*"id"\s*:.*?"explanation_points"\s*:\s*\[.*?\]\s*\}',
+        text,
+        re.DOTALL,
+    )
+    if not question_blocks:
+        return None
+
+    valid = []
+    for block in question_blocks:
+        try:
+            q = json.loads(block)
+            valid.append(q)
+        except json.JSONDecodeError:
+            try:
+                q = json.loads(_repair_backslashes(block))
+                valid.append(q)
+            except json.JSONDecodeError:
+                pass  # truly broken block — skip it
+
+    return {"questions": valid} if valid else None
+
+
+def extract_json_from_response(raw: str) -> dict:
+    text = raw.strip()
+
+    # Strip markdown fences
+    text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*```$", "", text)
+
+    # ── 1. Direct parse (happy path) ──────────────────────────────────
     try:
-        if hasattr(resp, "choices"):
-            choice = resp.choices[0]
-            # attribute-style
-            if hasattr(choice, "message") and hasattr(choice.message, "content"):
-                return choice.message.content
-            # dict-style
-            if isinstance(choice, dict):
-                return choice.get("message", {}).get("content") or choice.get("text")
-        if isinstance(resp, dict):
-            return resp.get("choices", [{}])[0].get("message", {}).get("content") or resp.get("choices", [{}])[0].get("text")
-    except Exception:
+        return json.loads(text)
+    except json.JSONDecodeError:
         pass
-    # Fallback: try string representation
-    return str(resp)
 
-def chunk_by_paragraph_groups(text: str, paragraphs_per_chunk: PARAGRAPHS_PER_CHUNK,
-                              enforce_token_limit: bool=False, max_input_tokens: int=None):
+    # ── 2. Extract first complete { ... } block ───────────────────────
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        print(f"[DEBUG] Model returned no JSON. Raw response:\n---\n{raw}\n---")
+        raise ValueError("No JSON object found in model response.")
+    extracted = match.group(0)
+
+    try:
+        return json.loads(extracted)
+    except json.JSONDecodeError:
+        pass
+
+    # ── 3. Repair unescaped backslashes ───────────────────────────────
+    repaired = _repair_backslashes(extracted)
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        pass
+
+    # ── 4. Truncated response — salvage complete question blocks ──────
+    print("[DEBUG] JSON truncated or malformed — attempting partial salvage...")
+    salvaged = _extract_complete_questions(repaired)
+    if salvaged:
+        print(f"[DEBUG] Salvaged {len(salvaged['questions'])} question(s) from truncated response.")
+        return salvaged
+
+    print(f"[DEBUG] JSON unparseable. Raw response:\n---\n{raw}\n---")
+    raise ValueError("JSON unparseable and no complete questions could be salvaged.")
+
+
+def normalize_questions_json(data: dict) -> dict:
+    if not isinstance(data, dict) or "questions" not in data:
+        raise ValueError("Response must be a JSON object with a 'questions' key.")
+    if not isinstance(data["questions"], list):
+        raise ValueError("'questions' must be a list.")
+
+    out = []
+    for idx, q in enumerate(data["questions"], start=1):
+        if not isinstance(q, dict):
+            continue
+        out.append({
+            "id": idx,
+            "question": str(q.get("question", "")).strip(),
+            "options": [
+                {
+                    "key": str(o.get("key", "")).strip().lower(),
+                    "text": str(o.get("text", "")).strip(),
+                }
+                for o in q.get("options", [])
+                if isinstance(o, dict)
+            ],
+            "answer": str(q.get("answer", "")).strip().lower(),
+            "explanation_points": [
+                {
+                    "key": str(e.get("key", "")).strip().lower(),
+                    "text": str(e.get("text", "")).strip(),
+                }
+                for e in q.get("explanation_points", [])
+                if isinstance(e, dict)
+            ],
+        })
+    return {"questions": out}
+
+
+def validate_question(q: dict, i: int):
+    for field in ("id", "question", "options", "answer", "explanation_points"):
+        if field not in q:
+            raise ValueError(f"Q{i} missing field '{field}'.")
+    if not q["question"]:
+        raise ValueError(f"Q{i} has empty question text.")
+    if not isinstance(q["options"], list) or len(q["options"]) != 4:
+        raise ValueError(f"Q{i} must have exactly 4 options (got {len(q.get('options', []))}).")
+    if [o["key"] for o in q["options"]] != ["a", "b", "c", "d"]:
+        raise ValueError(f"Q{i} option keys must be a, b, c, d in order.")
+    for o in q["options"]:
+        if not o.get("text"):
+            raise ValueError(f"Q{i} has an empty option text.")
+    if q["answer"] not in ("a", "b", "c", "d"):
+        raise ValueError(f"Q{i} has invalid answer '{q['answer']}'.")
+    if not isinstance(q["explanation_points"], list) or len(q["explanation_points"]) != 4:
+        raise ValueError(f"Q{i} must have exactly 4 explanation_points.")
+    if [e["key"] for e in q["explanation_points"]] != ["a", "b", "c", "d"]:
+        raise ValueError(f"Q{i} explanation_point keys must be a, b, c, d in order.")
+    for e in q["explanation_points"]:
+        if not e.get("text"):
+            raise ValueError(f"Q{i} has an empty explanation_point text.")
+
+
+def parse_and_collect_valid_questions(raw: str) -> list:
+    """Parse a chunk response and return only structurally valid questions."""
+    data = extract_json_from_response(raw)
+    data = normalize_questions_json(data)
+
+    valid = []
+    for i, q in enumerate(data["questions"], start=1):
+        try:
+            validate_question(q, i)
+            valid.append(q)
+        except ValueError as e:
+            print(f"[Validation] Skipping malformed question: {e}")
+    return valid
+
+# ─────────────────────────── Chunk Processing with Retry ───────────────────────────
+
+def process_chunk(chunk: str, count: int, diff: str, max_resp_tokens: int, chunk_label: str) -> list:
     """
-    Split text into chunks where each chunk contains exactly `paragraphs_per_chunk` paragraphs
-    (a paragraph is separated by two or more newlines). The final chunk may contain fewer paragraphs.
-    If enforce_token_limit=True and a group exceeds max_input_tokens (estimated), it will optionally
-    fall back to the original token-aware chunker for that particular group.
+    Attempt to generate `count` questions from `chunk`.
+    - First attempt: full detailed prompt.
+    - If no JSON returned: retry once with a minimal fallback prompt.
+    Returns a list of valid question dicts (may be fewer than count).
     """
-    # split into paragraphs by two-or-more newlines, trim, drop empties
-    paras = [p.strip() for p in re.split(r'\n{2,}', text) if p.strip()]
-    total_paras = len(paras)
-    if total_paras == 0:
+    # ── Attempt 1: full prompt ──────────────────────────────────────────
+    messages = [
+        {"role": "system", "content": get_system_prompt(count, diff)},
+        {"role": "user",   "content": f"Text:\n\n{chunk}"},
+    ]
+    try:
+        raw = call_llm(messages, max_resp_tokens)
+        valid_qs = parse_and_collect_valid_questions(raw)
+        print(f"[{chunk_label}] attempt 1 → accepted {len(valid_qs)}/{count} questions")
+        if valid_qs:
+            return valid_qs
+    except ValueError as e:
+        print(f"[{chunk_label}] attempt 1 parse error: {e}")
+    except Exception as e:
+        print(f"[{chunk_label}] attempt 1 LLM error: {e}")
+        traceback.print_exc()
+        return []   # hard LLM failure — don't bother retrying
+
+    # ── Attempt 2: minimal fallback prompt ─────────────────────────────
+    print(f"[{chunk_label}] retrying with minimal prompt...")
+    fallback_messages = [
+        {"role": "system", "content": get_retry_prompt(count)},
+        {"role": "user",   "content": chunk},
+    ]
+    try:
+        raw = call_llm(fallback_messages, max_resp_tokens)
+        valid_qs = parse_and_collect_valid_questions(raw)
+        print(f"[{chunk_label}] attempt 2 → accepted {len(valid_qs)}/{count} questions")
+        return valid_qs
+    except Exception as e:
+        print(f"[{chunk_label}] attempt 2 also failed: {e}")
         return []
 
-    # group paragraphs_per_chunk paras each
-    groups = []
-    for i in range(0, total_paras, paragraphs_per_chunk):
-        group_paras = paras[i:i + paragraphs_per_chunk]
-        group_text = "\n\n".join(group_paras)
-        # optional token-limit enforcement for a group
-        if enforce_token_limit and max_input_tokens is not None:
-            est = estimate_tokens(group_text)
-            # if group is too big, fall back to the token-based chunker for this group
-            if est > max_input_tokens:
-                # use the original token-aware chunker (preserves paragraph logic inside)
-                sub_chunks = chunk_text_by_token_limit(group_text, max_input_tokens=max_input_tokens,
-                                                       safety_margin_tokens=SAFETY_MARGIN_TOKENS)
-                # extend groups with the fallback sub-chunks
-                groups.extend(sub_chunks)
-                continue
-        groups.append(group_text)
+# ─────────────────────────── Main Entry Point ───────────────────────────
 
-    for idx, grp in enumerate(groups, start=1):
-        para_count = len([p for p in re.split(r'\n{2,}', grp) if p.strip()])
-    return groups
+def generate_questions(long_text: str, qty: str = "standard", diff: str = "standard") -> dict:
+    """
+    Generate frontend-ready MCQ JSON from long_text.
+    Returns: {"questions": [...]}  — never nested.
+    """
+    if not long_text.strip():
+        raise RuntimeError("Input text is empty.")
 
+    target_count = get_target_count(qty)
+    chunks = chunk_text_by_token_limit(long_text, MAX_INPUT_TOKENS, SAFETY_MARGIN_TOKENS)
 
-# ------------------------------- Main processing (modified) -------------------------------
-def generate_questions(LONG_TEXT: str):
-    if not LONG_TEXT.strip():
-        raise RuntimeError("LONG_TEXT is empty. Paste your text into the LONG_TEXT variable in the script.")
+    if not chunks:
+        raise RuntimeError("No valid text chunks produced.")
 
-    # 1) Split text into chunks
-        # Use paragraph-groups chunking (4 paragraphs per chunk)
-    chunks = chunk_by_paragraph_groups(LONG_TEXT, paragraphs_per_chunk=PARAGRAPHS_PER_CHUNK,
-                                      enforce_token_limit=ENFORCE_TOKEN_LIMIT_ON_GROUP,
-                                      max_input_tokens=MAX_INPUT_TOKENS if ENFORCE_TOKEN_LIMIT_ON_GROUP else None)
-    num_chunks = len(chunks)
+    base_per_chunk, remainder = divmod(target_count, len(chunks))
+    collected = []
 
-    # Decide whether to use alternate prompt for the whole run (global switch)
-    use_alt_globally = False
-    if TRIGGER_CHUNK_COUNT is not None and num_chunks == TRIGGER_CHUNK_COUNT:
-        use_alt_globally = True
-    all_parts = []
-    per_chunk_word_counts = []
     for idx, chunk in enumerate(chunks, start=1):
-        est_tokens = estimate_tokens(chunk)
-        # Choose system prompt for this chunk
-        if use_alt_globally:
-            system_for_this_chunk = SYSTEM_PROMPT_ALT
-        else:
-            # If per-chunk trigger is set and matches this idx, use ALT for this chunk
-            if TRIGGER_CHUNK_INDEX is not None and idx == TRIGGER_CHUNK_INDEX:
-                system_for_this_chunk = SYSTEM_PROMPT_ALT
-            else:
-                system_for_this_chunk = SYSTEM_PROMPT
+        chunk_q_count = base_per_chunk + (1 if idx <= remainder else 0)
+        if chunk_q_count <= 0:
+            continue
 
-        messages = [
-            {"role": "system", "content": system_for_this_chunk},
-            {"role": "user", "content": chunk}
-        ]
+        max_resp_tokens = min(CHUNK_RESPONSE_MAX_TOKENS, 700 * chunk_q_count)
+        label = f"Chunk {idx}/{len(chunks)}"
 
-        # Call the API with backoff
-        try:
-            resp = call_chat_with_backoff(groq_client, model=MODEL_NAME, messages=messages,
-                                         max_retries=MAX_RETRIES, base_wait=1.0,
-                                         max_response_tokens=CHUNK_RESPONSE_MAX_TOKENS)
-        except Exception as e:
-            print(f"Error while processing chunk {idx}: {e}", flush=True)
-            print(traceback.format_exc(), flush=True)
-            raise
-        # Extract the assistant's content robustly
-        translation = extract_text_from_response(resp)
-        if translation is None:
-            raise RuntimeError(f"Empty response for chunk {idx}")
+        print(
+            f"[{label}] questions={chunk_q_count} | "
+            f"tokens≈{estimate_tokens(chunk)} | "
+            f"max_resp={max_resp_tokens}"
+        )
 
-        translation = translation.strip()
-        words = re.findall(r"\b\w+\b", translation)
-        wc = len(words)
-        per_chunk_word_counts.append(wc)
-        all_parts.append({
-            "chunk_index": idx,
-            "chunk_estimated_tokens": est_tokens,
-            "chunk_chars": len(chunk),
-            "response_text": translation,
-            "response_word_count": wc,
-            "used_alt_prompt": system_for_this_chunk is SYSTEM_PROMPT_ALT
-        })
+        valid_qs = process_chunk(chunk, chunk_q_count, diff, max_resp_tokens, label)
+        collected.extend(valid_qs)
 
-    # Combine all outputs into one large response
-    combined_sections = []
-    for p in all_parts:
-        combined_sections.append(p["response_text"])
-    combined_text = "\n".join(combined_sections)
-    #combined_text = combined_text.replace("\\", "")
-    #combined_text = combined_text.replace("\n", "")
-    #combined_text = combined_text.replace('"', '')
-    return combined_text
+    if not collected:
+        raise RuntimeError("All chunks failed — no questions generated.")
+
+    # Trim if we got more than requested
+    if len(collected) > target_count:
+        collected = collected[:target_count]
+
+    # Re-number IDs globally
+    for i, q in enumerate(collected, start=1):
+        q["id"] = i
+
+    print(f"[Done] Returning {len(collected)}/{target_count} questions.")
+    return {"questions": collected}
