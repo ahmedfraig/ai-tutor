@@ -22,6 +22,8 @@ app = FastAPI(
 
 class TextRequest(BaseModel):
     long_text: str
+    qty: str = "standard"   # "low" | "standard" | "high" | numeric string e.g. "25"
+    diff: str = "standard"  # "standard" | "hard"
 
 class QuestionRequest(BaseModel):
     long_text: str
@@ -94,7 +96,11 @@ async def api_summarize(request: TextRequest):
 @app.post("/api/flipcards", summary="Generate flashcards")
 async def api_flipcards(request: TextRequest):
     try:
-        return {"flipcards": generate_flip_cards(request.long_text)}
+        return generate_flip_cards(
+            request.long_text,
+            qty=request.qty,
+            diff=request.diff
+        )
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
