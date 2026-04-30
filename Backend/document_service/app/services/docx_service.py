@@ -12,7 +12,6 @@ import time
 from pathlib import Path
 
 from docx import Document
-from docx.oxml.ns import qn
 from PIL import Image
 
 from app.core.config import get_settings
@@ -26,7 +25,6 @@ from app.models.schemas import (
     ExtractedElement,
 )
 from app.services.vlm_service import get_vlm_service
-from app.utils.image_utils import visual_content_ratio
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -85,8 +83,6 @@ async def process_docx(
                     img_bytes = rel.target_part.blob
                     img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                     if img.width < 80 or img.height < 80:
-                        continue
-                    if visual_content_ratio(img) < settings.visual_content_ratio_threshold:
                         continue
                     desc = await vlm_svc.adescribe(img, vlm_prompt)
                     if desc.strip():

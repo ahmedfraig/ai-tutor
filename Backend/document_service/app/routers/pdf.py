@@ -5,9 +5,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, UploadFile
+from fastapi.responses import PlainTextResponse
 
-from app.models.schemas import ExtractionMode, ExtractionResponse
+from app.models.schemas import ExtractionMode
 from app.services.pdf_service import process_pdf
 from app.utils.file_utils import save_upload, validate_extension
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/pdf", tags=["PDF"])
 
 @router.post(
     "/extract",
-    response_model=ExtractionResponse,
+    response_class=PlainTextResponse,
     summary="Extract text and visuals from a PDF",
 )
 async def extract_pdf(
@@ -36,7 +37,7 @@ async def extract_pdf(
             page_list = None
 
     async with save_upload(file, ["pdf"]) as (tmp_path, file_size):
-        return await process_pdf(
+        result = await process_pdf(
             path=tmp_path,
             filename=file.filename,
             file_size=file_size,
@@ -46,3 +47,4 @@ async def extract_pdf(
             pages=page_list,
             vlm_prompt=vlm_prompt,
         )
+        return result.full_text

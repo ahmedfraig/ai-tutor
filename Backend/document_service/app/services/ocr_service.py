@@ -101,11 +101,11 @@ class OcrService:
     # ── Async wrappers ────────────────────────────────────────────────────────
 
     async def aextract_image(self, image: Image.Image, preprocess: bool = True) -> OcrResult:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.extract_image, image, preprocess)
 
     async def aextract_path(self, path: Path) -> OcrResult:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.extract_path, path)
 
 

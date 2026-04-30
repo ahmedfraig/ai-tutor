@@ -71,12 +71,14 @@ class ExtractionResponse(BaseModel):
         device_used: str = "cpu",
         pages_processed: int = 0,
     ) -> "ExtractionResponse":
-        text_parts = [
-            e.content
-            for e in elements
-            if e.element_type not in (ElementType.IMAGE_DESCRIPTION, ElementType.FIGURE)
-               and e.content.strip()
-        ]
+        text_parts = []
+        for e in elements:
+            if not e.content.strip():
+                continue
+            if e.element_type in (ElementType.IMAGE_DESCRIPTION, ElementType.FIGURE):
+                text_parts.append(f"[Visual: {e.content}]")
+            else:
+                text_parts.append(e.content)
         return cls(
             metadata=metadata,
             elements=elements,

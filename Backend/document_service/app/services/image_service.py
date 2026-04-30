@@ -70,16 +70,11 @@ async def process_image(
                 ))
 
         # ── VLM ───────────────────────────────────────────────────────────────
-        # Triggered when image is visually rich OR OCR has low confidence
         run_vlm = (
             mode == ExtractionMode.VLM_ONLY
             or (
                 mode in (ExtractionMode.AUTO, ExtractionMode.FULL)
                 and describe_visuals
-                and (
-                    vcr > settings.visual_content_ratio_threshold
-                    or ocr_confidence < settings.ocr_confidence_threshold
-                )
             )
         )
 

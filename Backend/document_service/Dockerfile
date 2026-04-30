@@ -73,8 +73,9 @@ CMD ["uvicorn", "app.main:app", \
 
 # ── GPU target ────────────────────────────────────────────────────────────────
 # Requires: NVIDIA Container Toolkit on the Docker host
-# Tested with CUDA 12.4 (Ampere / Ada cards — A100, H100, RTX 3090/4090)
-FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 AS gpu
+# Tested with CUDA 12.1 + cuDNN 8 (Turing/Ampere/Ada — RTX 20xx/30xx/40xx, A100, H100)
+# cu121 torch + cu120 paddlepaddle both target cuDNN 8, which is the same ABI.
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04 AS gpu
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -86,6 +87,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 python3.11-dev python3-pip python3.11-venv \
     libglib2.0-0 libgl1 libgomp1 libsm6 libxext6 libxrender1 \
     poppler-utils curl \
+    build-essential ninja-build \
     && ln -sf /usr/bin/python3.11 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip \
     && rm -rf /var/lib/apt/lists/*
@@ -94,22 +96,31 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-# CUDA-enabled torch (cu124 wheel)
+# CUDA-enabled torch (cu121 wheel — matches cuDNN 8 used by paddlepaddle cu120)
 # Install torch/torchvision without transitive CUDA python wheels.
 # CUDA/CUDNN runtime libs are already provided by the nvidia/cuda base image.
-RUN pip install --no-deps torch==2.4.1+cu124 torchvision==0.19.1+cu124 \
-    --index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-deps torch==2.4.1+cu121 torchvision==0.19.1+cu121 \
+    --index-url https://download.pytorch.org/whl/cu121
 
 RUN pip install filelock fsspec jinja2 networkx sympy typing-extensions triton==3.0.0
 
+# Flash Attention 2 — compile against the already-installed torch + CUDA headers.
+# Targets common GPU architectures to avoid JIT compilation at runtime.
+# NOTE: This step takes ~20 min on first build; subsequent builds use the cache.
+ENV TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0+PTX" \
+    CUDA_HOME=/usr/local/cuda
+RUN pip install flash-attn==2.6.3 --no-build-isolation
+
 RUN pip install paddlepaddle-gpu==2.6.2.post120 \
-    -i https://www.paddlepaddle.org.cn/packages/stable/cu120/ && \
-    grep -v '^accelerate==' requirements.txt > /tmp/requirements.no_accelerate.txt && \
-    pip install -r /tmp/requirements.no_accelerate.txt && \
-    pip install --no-deps accelerate==1.2.1
+    -i https://www.paddlepaddle.org.cn/packages/stable/cu120/
+
+RUN grep -v '^accelerate==' requirements.txt > /tmp/requirements.no_accelerate.txt && \
+    pip install -r /tmp/requirements.no_accelerate.txt
+
+RUN pip install --no-deps accelerate==1.2.1
 
 COPY scripts/download_models.py scripts/download_models.py
-RUN PRELOAD_PADDLE_MODELS=0 PRELOAD_VLM_MODELS=1 python scripts/download_models.py
+RUN PRELOAD_PADDLE_MODELS=1 PRELOAD_VLM_MODELS=1 python scripts/download_models.py
 
 COPY app/ app/
 

@@ -219,11 +219,11 @@ class VlmService:
     # ── Async wrappers ────────────────────────────────────────────────────────
 
     async def adescribe(self, image: Image.Image, prompt: str = _DEFAULT_PROMPT) -> str:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.describe, image, prompt)
 
     async def adescribe_path(self, path: Path, prompt: str = _DEFAULT_PROMPT) -> str:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.describe_path, path, prompt)
 
     def unload(self) -> None:

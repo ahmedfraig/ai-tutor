@@ -168,16 +168,15 @@ async def process_pdf(
                         if emb_img.width < 80 or emb_img.height < 80:
                             del emb_img
                             continue
-                        if visual_content_ratio(emb_img) > settings.visual_content_ratio_threshold:
-                            desc = await vlm_svc.adescribe(emb_img, vlm_prompt)
-                            if desc.strip():
-                                elements.append(ExtractedElement(
-                                    element_type=ElementType.FIGURE,
-                                    content=desc,
-                                    page=page_num,
-                                    source="vlm",
-                                    metadata={"embedded_image_index": img_idx},
-                                ))
+                        desc = await vlm_svc.adescribe(emb_img, vlm_prompt)
+                        if desc.strip():
+                            elements.append(ExtractedElement(
+                                element_type=ElementType.FIGURE,
+                                content=desc,
+                                page=page_num,
+                                source="vlm",
+                                metadata={"embedded_image_index": img_idx},
+                            ))
                         del emb_img  # free immediately after use
                     except Exception as exc:
                         logger.warning("embedded_image_failed", page=page_num, error=str(exc))

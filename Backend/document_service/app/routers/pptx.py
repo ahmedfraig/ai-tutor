@@ -4,8 +4,9 @@ app/routers/pptx.py
 from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, UploadFile
+from fastapi.responses import PlainTextResponse
 
-from app.models.schemas import ExtractionMode, ExtractionResponse
+from app.models.schemas import ExtractionMode
 from app.services.pptx_service import process_pptx
 from app.utils.file_utils import save_upload, validate_extension
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/pptx", tags=["PPTX"])
 
 @router.post(
     "/extract",
-    response_model=ExtractionResponse,
+    response_class=PlainTextResponse,
     summary="Extract text and visuals from a PowerPoint presentation",
 )
 async def extract_pptx(
@@ -25,7 +26,7 @@ async def extract_pptx(
 ):
     validate_extension(file, ["pptx"])
     async with save_upload(file, ["pptx"]) as (tmp_path, file_size):
-        return await process_pptx(
+        result = await process_pptx(
             path=tmp_path,
             filename=file.filename,
             file_size=file_size,
@@ -33,3 +34,4 @@ async def extract_pptx(
             describe_visuals=describe_visuals,
             vlm_prompt=vlm_prompt,
         )
+        return result.full_text

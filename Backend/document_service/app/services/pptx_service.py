@@ -27,7 +27,6 @@ from app.models.schemas import (
     ExtractedElement,
 )
 from app.services.vlm_service import get_vlm_service
-from app.utils.image_utils import visual_content_ratio
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -85,15 +84,14 @@ async def process_pptx(
                     img_bytes = shape.image.blob
                     img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
                     if img.width >= 80 and img.height >= 80:
-                        if visual_content_ratio(img) > settings.visual_content_ratio_threshold:
-                            desc = await vlm_svc.adescribe(img, vlm_prompt)
-                            if desc.strip():
-                                elements.append(ExtractedElement(
-                                    element_type=ElementType.FIGURE,
-                                    content=desc,
-                                    slide=slide_num,
-                                    source="vlm",
-                                ))
+                        desc = await vlm_svc.adescribe(img, vlm_prompt)
+                        if desc.strip():
+                            elements.append(ExtractedElement(
+                                element_type=ElementType.FIGURE,
+                                content=desc,
+                                slide=slide_num,
+                                source="vlm",
+                            ))
                 except Exception as exc:
                     logger.warning("pptx_image_failed", slide=slide_num, error=str(exc))
 
