@@ -1,0 +1,54 @@
+# requirements.txt
+#
+# NOTE: torch and paddlepaddle are installed BEFORE this file in the Dockerfile
+# using their custom index URLs. They are listed here as comments for reference
+# but NOT pip-installed from this file to avoid index conflicts.
+#
+# torch==2.4.1           # CPU:  +cpu wheel  |  GPU: +cu124 wheel
+# torchvision==0.19.1    # CPU:  +cpu wheel  |  GPU: +cu124 wheel
+# paddlepaddle==2.6.2    # CPU:  paddlepaddle  |  GPU: paddlepaddle-gpu
+
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1      # includes uvloop + httptools
+python-multipart==0.0.12
+httpx==0.28.0
+
+# ── Config ────────────────────────────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# ── PDF processing ────────────────────────────────────────────────────────────
+pdfplumber==0.11.4
+PyMuPDF==1.24.14               # fitz: page rasterisation + image extraction
+pypdf==5.1.0
+
+# ── DOCX / PPTX ───────────────────────────────────────────────────────────────
+python-docx==1.1.2
+python-pptx==1.0.2
+
+# ── Image ─────────────────────────────────────────────────────────────────────
+Pillow==11.0.0
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+
+# ── VLM (Qwen2-VL) ───────────────────────────────────────────────────────────
+transformers==4.47.1
+accelerate==1.2.1
+qwen-vl-utils==0.0.8           # Official Qwen2-VL image preprocessing
+
+# ── paddleocr (OCR model — paddle itself installed separately) ────────────────
+paddleocr==2.9.1
+
+# ── Async ─────────────────────────────────────────────────────────────────────
+anyio==4.7.0
+aiofiles==24.1.0
+
+# ── Observability ─────────────────────────────────────────────────────────────
+structlog==24.4.0
+prometheus-fastapi-instrumentator==7.0.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
