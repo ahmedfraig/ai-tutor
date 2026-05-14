@@ -22,9 +22,6 @@ app = FastAPI(
 
 class TextRequest(BaseModel):
     long_text: str
-    qty: str = "standard"   # "low" | "standard" | "high" | numeric string e.g. "25"
-    diff: str = "standard"  # "standard" | "hard"
-
 class QuestionRequest(BaseModel):
     long_text: str
     qty: str = "standard"   # "low" | "standard" | "high" | numeric string e.g. "25"
@@ -51,10 +48,8 @@ async def get_questions(request: QuestionRequest):
 async def get_tts_script(request: TextRequest):
     try:
         script = transform_to_friendly_script(request.long_text)
-        ssml_version = convert_transitions_to_ssml(script)
         return {
             "friendly_script": script,
-            "ssml_format": ssml_version,
         }
     except Exception as e:
         traceback.print_exc()
@@ -65,10 +60,8 @@ async def get_tts_script(request: TextRequest):
 async def get_arabic_tts(request: TextRequest):
     try:
         arabic_script = translate_to_egyptian_tts(request.long_text)
-        ssml_version = convert_to_arabic_ssml(arabic_script)
         return {
             "arabic_script": arabic_script,
-            "ssml_format": ssml_version,
         }
     except Exception as e:
         traceback.print_exc()
@@ -94,7 +87,7 @@ async def api_summarize(request: TextRequest):
 
 
 @app.post("/api/flipcards", summary="Generate flashcards")
-async def api_flipcards(request: TextRequest):
+async def api_flipcards(request: QuestionRequest):
     try:
         return generate_flip_cards(
             request.long_text,
