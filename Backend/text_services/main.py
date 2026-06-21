@@ -59,10 +59,7 @@ async def get_tts_script(request: TextRequest):
 @app.post("/api/translate-to-arabic-tts")
 async def get_arabic_tts(request: TextRequest):
     try:
-        arabic_script = translate_to_egyptian_tts(request.long_text)
-        return {
-            "arabic_script": arabic_script,
-        }
+        return translate_to_egyptian_tts(request.long_text)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

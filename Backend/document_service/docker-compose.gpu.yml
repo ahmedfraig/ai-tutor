@@ -18,14 +18,14 @@ services:
     environment:
       - DEVICE=auto        # resolve_device() picks cuda:0 automatically
       - OCR_USE_GPU=true
-      - VLM_USE_FLASH_ATTENTION=false
+      - VLM_USE_FLASH_ATTENTION=true
       - VLM_DTYPE=auto     # bfloat16 on Ampere+, float16 on older cards
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1          # Change to "all" to expose all GPUs
+              count: all          # Change to "all" to expose all GPUs
               capabilities: [gpu]
         limits:
           memory: 12G      # bfloat16 model ~2.5GB + PaddleOCR GPU + headroom

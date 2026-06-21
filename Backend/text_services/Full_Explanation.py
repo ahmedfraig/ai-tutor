@@ -1,4 +1,3 @@
-
 import dotenv
 import time
 import re
@@ -6,223 +5,410 @@ import traceback
 
 # ------------------------------- Configuration -------------------------------
 MODEL_NAME = "openai/gpt-oss-20b"
-MAX_INPUT_TOKENS = 4000  # token budget for the input chunk (approximate)
-SAFETY_MARGIN_TOKENS = 256  # reserved tokens for system/instruction/response overhead
-MAX_RETRIES = 4  # API call retry attempts for transient errors
+
+MAX_INPUT_TOKENS = 4000
+SAFETY_MARGIN_TOKENS = 256
+MAX_RETRIES = 4
 CHUNK_RESPONSE_MAX_TOKENS = 6000
-TRIGGER_CHUNK_COUNT = None  # <-- example: if the chunker produced exactly 4 chunks, use SYSTEM_PROMPT_ALT globally
-TRIGGER_CHUNK_INDEX = None  # e.g., 2 to use SYSTEM_PROMPT_ALT only for chunk 2; set to None to disable
-PARAGRAPHS_PER_CHUNK = 20  # each chunk will contain 4 paragraphs (except the final chunk)
-ENFORCE_TOKEN_LIMIT_ON_GROUP = False  # if True, fall back to token-based split when a paragraph-group is too large
+
+TRIGGER_CHUNK_COUNT = None
+TRIGGER_CHUNK_INDEX = None
+
+PARAGRAPHS_PER_CHUNK = 20
+ENFORCE_TOKEN_LIMIT_ON_GROUP = False
+
 API_KEY = dotenv.get_key(".env", "GROQ_API_KEY")
+
 from openai import OpenAI
-groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=API_KEY)
-# ------------------------------- System prompt -------------------------------
-SYSTEM_PROMPT = (
-    "You are a Tutor who takes input as lectures, research-papers, novels, and almost any Text, Generates a deep explaination as output."
-"For each chunk, produce labeled steps: "
-"Explain it in depth**:"
-"Step 1 – Outline** Reveal the overall structure of the paragraph"
-"Step 2 – Section‑by‑section**: For each section start with explaining its general idea, relates it to the preceding section (if exists), then discuss the aim, intuition, arguments, author's choice, summarize it briefly at end."
-"for Mathematical details (if exists): Translate each equation into plain language, explain the role of every hyper‑parameter and the design trade‑offs, relate its role/aim to the theoretical text related to it (before it or after it)."
-"Step 3 – Context & Motivation**: Connect the ideas to prior work and put the text into it's historical context in terms of comparison, with a sequential narrative overview, updates (if exists)."
-"Step 4 – Summary**: Provide a concise recap (e.g., “Step 1: …”)."
-"Clearly label** each reasoning step."
-"You can add information from your knowledge if it clarifies mysterious or unclear parts in text, you can combine steps or change their orders if it follows the text structure and ideas."
+
+groq_client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=API_KEY
 )
+
+
+# ------------------------------- System prompts -------------------------------
+
+SYSTEM_PROMPT = (
+    "You are an educational content explainer. "
+    "Your job is to turn the input text into a clear, focused explanation that will later be converted into a TTS narration script. "
+
+    "OUTPUT GOAL: "
+    "Produce clean explanatory text that can be passed as long_text into a TTS-script-generation endpoint. "
+
+    "CONTENT RULES: "
+    "- Focus only on the important ideas, mechanisms, definitions, architecture, equations, results, and takeaways. "
+    "- Do not include author names, emails, affiliations, footnotes, references, citations, or bibliography details unless they are essential to understanding the concept. "
+    "- Do not list paper metadata. "
+    "- Do not over-explain historical background unless it directly helps explain the main idea. "
+    "- Explain the content in the same logical order as the input, but skip unnecessary administrative or publication details. "
+    "- For equations, do not output raw LaTeX only. Explain what the equation means in plain language. "
+    "- Keep technical terms such as Transformer, attention, softmax, BLEU, encoder, decoder, RNN, CNN, GPU, Adam, ReLU in English when appropriate. "
+    "- If the input contains many details, prioritize the details that help a student understand the topic. "
+
+    "STYLE RULES: "
+    "- Write in clear simple English. "
+    "- Do not use markdown headings like ## or ###. "
+    "- Do not use tables. "
+    "- Do not use bullet-heavy formatting. "
+    "- Do not use labels like Step 1, Step 2, Step 3. "
+    "- Write as smooth paragraphs that can be later transformed into speech. "
+    "- Use short paragraphs. "
+    "- Add [pause] between major ideas. "
+    "- Add [transition] when moving to a new major section. "
+
+    "FINAL OUTPUT RULES: "
+    "- Return only the explanation text. "
+    "- Do not return JSON. "
+    "- Do not wrap the answer in quotes. "
+    "- Do not include markdown fences. "
+)
+
+
 SYSTEM_PROMPT_ALT = (
-   "You are a Tutor who takes input as lectures, research-papers, novels, and almost any Text, Generates a deep explaination as output."
-"For each chunk, produce labeled steps: "
-"Explain it in depth**:"
-"Step 1 – Outline** Reveal the overall structure of the paragraph"
-"Step 2 – Section‑by‑section**: For each section start with explaining its general idea, relates it to the preceding section (if exists), then discuss the aim, intuition, arguments, author's choice, summarize it briefly at end."
-"for Mathematical details (if exists): Translate each equation into plain language, explain the role of every hyper‑parameter and the design trade‑offs, relate its role/aim to the theoretical text related to it (before it or after it)."
-"Step 3 – Context & Motivation**: Connect the ideas to prior work and put the text into it's historical context in terms of comparison, with a sequential narrative overview, updates (if exists)."
-"Step 4 – Summary**: Provide a concise recap (e.g., “Step 1: …”)."
-"Highlight strengths, possible limitations, and open questions. Ask clarifying questions: if any part of the document is ambiguous or unclear."
-"Clearly label** each reasoning step  and then give your final, concise explanation at the end."
-"You can add information from your knowledge if it clarifies mysterious or unclear parts in text, you can combine steps or change their orders if it follows the text structure and ideas."
+    "You are an educational content explainer. "
+    "Your job is to turn the input text into a clear, focused explanation that will later be converted into a TTS narration script. "
+
+    "OUTPUT GOAL: "
+    "Produce clean explanatory text that can be passed as long_text into a TTS-script-generation endpoint. "
+
+    "CONTENT RULES: "
+    "- Focus only on the important ideas, mechanisms, definitions, architecture, equations, results, and takeaways. "
+    "- Do not include author names, emails, affiliations, footnotes, references, citations, or bibliography details unless they are essential to understanding the concept. "
+    "- Do not list paper metadata. "
+    "- Do not over-explain historical background unless it directly helps explain the main idea. "
+    "- Explain the content in the same logical order as the input, but skip unnecessary administrative or publication details. "
+    "- For equations, do not output raw LaTeX only. Explain what the equation means in plain language. "
+    "- Keep technical terms such as Transformer, attention, softmax, BLEU, encoder, decoder, RNN, CNN, GPU, Adam, ReLU in English when appropriate. "
+    "- If the input contains many details, prioritize the details that help a student understand the topic. "
+
+    "STYLE RULES: "
+    "- Write in clear simple English. "
+    "- Do not use markdown headings like ## or ###. "
+    "- Do not use tables. "
+    "- Do not use bullet-heavy formatting. "
+    "- Do not use labels like Step 1, Step 2, Step 3. "
+    "- Write as smooth paragraphs that can be later transformed into speech. "
+    "- Use short paragraphs. "
+    "- Add [pause] between major ideas. "
+    "- Add [transition] when moving to a new major section. "
+
+    "ENDING RULES: "
+    "- End with a concise final recap of the most important ideas only. "
+    "- Do not add questions to the user. "
+    "- Do not add unnecessary limitations or open research questions unless the input directly discusses them. "
+
+    "FINAL OUTPUT RULES: "
+    "- Return only the explanation text. "
+    "- Do not return JSON. "
+    "- Do not wrap the answer in quotes. "
+    "- Do not include markdown fences. "
 )
 
 
 # ------------------------------- Token estimation -------------------------------
+
 def estimate_tokens(text: str) -> int:
     """
-    Try to use tiktoken for accurate token counts; otherwise fallback to heuristic:
-    ~1 token ≈ 4 characters.
+    Try to use tiktoken for accurate token counts.
+    Otherwise fallback to heuristic: 1 token ≈ 4 characters.
     """
     try:
         import tiktoken
+
         try:
             enc = tiktoken.encoding_for_model("gpt-4")
         except Exception:
             enc = tiktoken.get_encoding("cl100k_base")
+
         return len(enc.encode(text))
+
     except Exception:
         return max(1, int(len(text) / 4))
 
 
 # ------------------------------- Chunking logic -------------------------------
-def chunk_text_by_token_limit(text: str, max_input_tokens: int, safety_margin_tokens: int=256):
+
+def chunk_text_by_token_limit(
+    text: str,
+    max_input_tokens: int,
+    safety_margin_tokens: int = 256
+):
     """
-    Split text into chunks whose estimated token count <= (max_input_tokens - safety_margin_tokens).
-    Prefer paragraph boundaries; fall back to sentences or character-splits if paragraph is too large.
+    Split text into chunks whose estimated token count <= max_input_tokens - safety_margin_tokens.
+    Prefer paragraph boundaries. Fall back to sentence or character splits if needed.
     """
+
     max_tokens_per_chunk = max(64, max_input_tokens - safety_margin_tokens)
-    paragraphs = re.split(r'\n{2,}', text)
+
+    paragraphs = re.split(r"\n{2,}", text)
     chunks = []
     current = ""
+
     for p in paragraphs:
         p = p.strip()
+
         if not p:
             continue
+
         if estimate_tokens(p) > max_tokens_per_chunk:
-            # paragraph is too large: split by sentence-like boundaries
-            sentences = re.split(r'(?<=[.!?])\s+', p)
+            sentences = re.split(r"(?<=[.!?])\s+", p)
+
             for s in sentences:
                 if not s.strip():
                     continue
+
                 candidate = (current + "\n\n" + s).strip() if current else s
+
                 if estimate_tokens(candidate) <= max_tokens_per_chunk:
                     current = candidate
                 else:
                     if current:
                         chunks.append(current)
-                    # if sentence still too large, split by chars
+
                     if estimate_tokens(s) > max_tokens_per_chunk:
                         approx_chars = max_tokens_per_chunk * 4
+
                         for i in range(0, len(s), approx_chars):
-                            part = s[i: i + approx_chars].strip()
+                            part = s[i:i + approx_chars].strip()
                             if part:
                                 chunks.append(part)
+
                         current = ""
                     else:
                         current = s
         else:
             candidate = (current + "\n\n" + p).strip() if current else p
+
             if estimate_tokens(candidate) <= max_tokens_per_chunk:
                 current = candidate
             else:
                 if current:
                     chunks.append(current)
                 current = p
+
     if current:
         chunks.append(current)
+
     return chunks
 
 
+def chunk_by_paragraph_groups(
+    text: str,
+    paragraphs_per_chunk: int = PARAGRAPHS_PER_CHUNK,
+    enforce_token_limit: bool = False,
+    max_input_tokens: int = None
+):
+    """
+    Split text into chunks where each chunk contains paragraphs_per_chunk paragraphs.
+    If enforce_token_limit=True and a group exceeds max_input_tokens, fall back to token-aware chunking.
+    """
+
+    paras = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
+
+    if not paras:
+        return []
+
+    groups = []
+
+    for i in range(0, len(paras), paragraphs_per_chunk):
+        group_paras = paras[i:i + paragraphs_per_chunk]
+        group_text = "\n\n".join(group_paras)
+
+        if enforce_token_limit and max_input_tokens is not None:
+            est = estimate_tokens(group_text)
+
+            if est > max_input_tokens:
+                sub_chunks = chunk_text_by_token_limit(
+                    group_text,
+                    max_input_tokens=max_input_tokens,
+                    safety_margin_tokens=SAFETY_MARGIN_TOKENS
+                )
+                groups.extend(sub_chunks)
+                continue
+
+        groups.append(group_text)
+
+    return groups
+
+
 # ------------------------------- API call with backoff -------------------------------
-def call_chat_with_backoff(client, model, messages, max_retries=4, base_wait=1.0, max_response_tokens=None):
+
+def call_chat_with_backoff(
+    client,
+    model,
+    messages,
+    max_retries: int = 4,
+    base_wait: float = 1.0,
+    max_response_tokens=None
+):
     """
-    Call client.chat.completions.create with simple exponential backoff for transient errors.
+    Call client.chat.completions.create with simple exponential backoff.
     """
+
     for attempt in range(max_retries):
         try:
             kwargs = {}
+
             if max_response_tokens is not None:
                 kwargs["max_tokens"] = max_response_tokens
-            resp = client.chat.completions.create(model=model, messages=messages, **kwargs)
+
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                **kwargs
+            )
+
             return resp
+
         except Exception as e:
             txt = str(e).lower()
-            # Non-retriable errors: request too large -> raise so upstream can handle chunking
+
             if "413" in txt or "request too large" in txt or "request entity too large" in txt:
                 raise
-            # Last attempt -> re-raise
+
             if attempt == max_retries - 1:
                 raise
+
             wait = base_wait * (2 ** attempt)
-            print(f"Transient error, retrying in {wait}s... (attempt {attempt+1}/{max_retries})")
+            print(
+                f"Transient error, retrying in {wait}s... "
+                f"(attempt {attempt + 1}/{max_retries})"
+            )
             time.sleep(wait)
+
     raise RuntimeError("Exhausted retries")
 
 
-# ------------------------------- Helper for extracting content -------------------------------
+# ------------------------------- Response extraction -------------------------------
+
 def extract_text_from_response(resp):
     """
     Robust extraction across SDK response shapes.
     """
+
     try:
         if hasattr(resp, "choices"):
             choice = resp.choices[0]
-            # attribute-style
+
             if hasattr(choice, "message") and hasattr(choice.message, "content"):
                 return choice.message.content
-            # dict-style
+
             if isinstance(choice, dict):
                 return choice.get("message", {}).get("content") or choice.get("text")
+
         if isinstance(resp, dict):
-            return resp.get("choices", [{}])[0].get("message", {}).get("content") or resp.get("choices", [{}])[0].get("text")
+            return (
+                resp.get("choices", [{}])[0].get("message", {}).get("content")
+                or resp.get("choices", [{}])[0].get("text")
+            )
+
     except Exception:
         pass
-    # Fallback: try string representation
+
     return str(resp)
 
 
+# ------------------------------- Final TTS-script cleaning -------------------------------
+
+def clean_explanation_for_tts_script_endpoint(text: str) -> str:
+    """
+    Clean explanation output so it is suitable as long_text
+    for the tts_scripts endpoint.
+
+    This does not make JSON.
+    It only returns clean plain text.
+    """
+
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Remove markdown headings
+    text = re.sub(r"#{1,6}\s*", "", text)
+
+    # Remove markdown bold/italic markers
+    text = text.replace("**", "")
+    text = text.replace("*", "")
+
+    # Remove markdown bullets at line starts
+    text = re.sub(r"^\s*[-•]\s+", "", text, flags=re.MULTILINE)
+
+    # Remove emails
+    text = re.sub(r"\S+@\S+", " ", text)
+
+    # Remove citation/reference markers like [1], [38]
+    # Keep [pause] and [transition]
+    text = re.sub(
+        r"\[(?!pause\]|transition\])\d+\]",
+        " ",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    # Remove bibliography-like sections if generated
+    text = re.sub(r"\bReferences\b\s*:?.*", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bBibliography\b\s*:?.*", " ", text, flags=re.IGNORECASE)
+
+    # Normalize pause markers
+    text = re.sub(r"\[pause\]", " [pause] ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\[transition\]", " [transition] ", text, flags=re.IGNORECASE)
+
+    # Remove excessive newlines
+    text = text.replace("\r", " ")
+    text = text.replace("\n", " ")
+
+    # Normalize spaces
+    text = re.sub(r"\s+", " ", text)
+
+    # Restore markers exactly
+    text = text.replace("[ pause ]", "[pause]")
+    text = text.replace("[ transition ]", "[transition]")
+
+    return text.strip()
+
+
 # ------------------------------- Main processing -------------------------------
-def chunk_by_paragraph_groups(text: str, paragraphs_per_chunk: PARAGRAPHS_PER_CHUNK,
-                              enforce_token_limit: bool=False, max_input_tokens: int=None):
-    """
-    Split text into chunks where each chunk contains exactly `paragraphs_per_chunk` paragraphs
-    (a paragraph is separated by three or more newlines). The final chunk may contain fewer paragraphs.
-    If enforce_token_limit=True and a group exceeds max_input_tokens (estimated), it will optionally
-    fall back to the original token-aware chunker for that particular group.
-    """
-    # split into paragraphs by three-or-more newlines, trim, drop empties
-    paras = [p.strip() for p in re.split(r'\n{2,}', text) if p.strip()]
-    total_paras = len(paras)
-    if total_paras == 0:
-        return []
 
-    # group paragraphs_per_chunk paras each
-    groups = []
-    for i in range(0, total_paras, paragraphs_per_chunk):
-        group_paras = paras[i:i + paragraphs_per_chunk]
-        # join paragraphs with three newlines to preserve the paragraph delimiter
-        group_text = "\n\n".join(group_paras)
-        # optional token-limit enforcement for a group
-        if enforce_token_limit and max_input_tokens is not None:
-            est = estimate_tokens(group_text)
-            # if group is too big, fall back to the token-based chunker for this group
-            if est > max_input_tokens:
-                # use the original token-aware chunker (preserves paragraph logic inside)
-                sub_chunks = chunk_text_by_token_limit(group_text, max_input_tokens=max_input_tokens,
-                                                       safety_margin_tokens=SAFETY_MARGIN_TOKENS)
-                # extend groups with the fallback sub-chunks
-                groups.extend(sub_chunks)
-                continue
-        groups.append(group_text)
-    return groups
-
-# ------------------------------- Main processing (modified) -------------------------------
 def full_explanation(LONG_TEXT: str):
+    """
+    Generate a focused, TTS-script-friendly explanation from long input text.
+    Output is clean plain text suitable as long_text for the tts_scripts endpoint.
+    """
+
     if not LONG_TEXT.strip():
-        raise RuntimeError("LONG_TEXT is empty. Paste your text into the LONG_TEXT variable in the script.")
+        raise RuntimeError(
+            "LONG_TEXT is empty. Paste your text into the LONG_TEXT variable in the script."
+        )
 
-    # Use paragraph-groups chunking (PARAGRAPHS_PER_CHUNK should be defined in your config)
-    chunks = chunk_by_paragraph_groups(LONG_TEXT, paragraphs_per_chunk=PARAGRAPHS_PER_CHUNK,
-                                      enforce_token_limit=ENFORCE_TOKEN_LIMIT_ON_GROUP,
-                                      max_input_tokens=MAX_INPUT_TOKENS if ENFORCE_TOKEN_LIMIT_ON_GROUP else None)
+    chunks = chunk_by_paragraph_groups(
+        LONG_TEXT,
+        paragraphs_per_chunk=PARAGRAPHS_PER_CHUNK,
+        enforce_token_limit=ENFORCE_TOKEN_LIMIT_ON_GROUP,
+        max_input_tokens=MAX_INPUT_TOKENS if ENFORCE_TOKEN_LIMIT_ON_GROUP else None
+    )
+
     num_chunks = len(chunks)
-    # optional: set trigger to last chunk (you did this previously)
-    TRIGGER_CHUNK_INDEX = num_chunks
 
-    # Decide whether to use alternate prompt for the whole run (global switch)
+    # Use alternate prompt for the last chunk so the ending is clean
+    trigger_chunk_index = num_chunks
+
     use_alt_globally = False
+
     if TRIGGER_CHUNK_COUNT is not None and num_chunks == TRIGGER_CHUNK_COUNT:
         use_alt_globally = True
+
     all_parts = []
     per_chunk_word_counts = []
-    total_api_time = 0.0
 
-    start_all = time.time()
     for idx, chunk in enumerate(chunks, start=1):
         est_tokens = estimate_tokens(chunk)
-        # Choose system prompt for this chunk
+
         if use_alt_globally:
             system_for_this_chunk = SYSTEM_PROMPT_ALT
         else:
-            if TRIGGER_CHUNK_INDEX is not None and idx == TRIGGER_CHUNK_INDEX:
+            if trigger_chunk_index is not None and idx == trigger_chunk_index:
                 system_for_this_chunk = SYSTEM_PROMPT_ALT
             else:
                 system_for_this_chunk = SYSTEM_PROMPT
@@ -232,25 +418,29 @@ def full_explanation(LONG_TEXT: str):
             {"role": "user", "content": chunk}
         ]
 
-        # Call the API with backoff
         try:
-            resp = call_chat_with_backoff(groq_client, model=MODEL_NAME, messages=messages,
-                                         max_retries=MAX_RETRIES, base_wait=1.0,
-                                         max_response_tokens=CHUNK_RESPONSE_MAX_TOKENS)
+            resp = call_chat_with_backoff(
+                groq_client,
+                model=MODEL_NAME,
+                messages=messages,
+                max_retries=MAX_RETRIES,
+                base_wait=1.0,
+                max_response_tokens=CHUNK_RESPONSE_MAX_TOKENS
+            )
+
         except Exception as e:
             print(f"Error while processing chunk {idx}: {e}", flush=True)
             print(traceback.format_exc(), flush=True)
             raise
 
+        explanation = extract_text_from_response(resp)
 
-        # Extract the assistant's content robustly
-        translation = extract_text_from_response(resp)
-        if translation is None:
+        if explanation is None:
             raise RuntimeError(f"Empty response for chunk {idx}")
 
-        translation = translation.strip()
-        # Word count for the model's response (per chunk)
-        words = re.findall(r"\b\w+\b", translation)
+        explanation = explanation.strip()
+
+        words = re.findall(r"\b\w+\b", explanation)
         wc = len(words)
         per_chunk_word_counts.append(wc)
 
@@ -258,13 +448,17 @@ def full_explanation(LONG_TEXT: str):
             "chunk_index": idx,
             "chunk_estimated_tokens": est_tokens,
             "chunk_chars": len(chunk),
-            "response_text": translation,
+            "response_text": explanation,
             "response_word_count": wc,
             "used_alt_prompt": system_for_this_chunk is SYSTEM_PROMPT_ALT
         })
-    # Combine all outputs into one large response
+
     combined_sections = []
+
     for p in all_parts:
         combined_sections.append(p["response_text"])
-    combined_text = "\n".join(combined_sections)
+
+    combined_text = " [transition] ".join(combined_sections)
+    combined_text = clean_explanation_for_tts_script_endpoint(combined_text)
+
     return combined_text

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # =============================================================================
 # document-service  —  Production Dockerfile
 #
@@ -73,14 +74,17 @@ CMD ["uvicorn", "app.main:app", \
 
 # ── GPU target ────────────────────────────────────────────────────────────────
 # Requires: NVIDIA Container Toolkit on the Docker host
-# Tested with CUDA 12.1 + cuDNN 8 (Turing/Ampere/Ada — RTX 20xx/30xx/40xx, A100, H100)
-# cu121 torch + cu120 paddlepaddle both target cuDNN 8, which is the same ABI.
-FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04 AS gpu
+# CUDA 12.8 + PyTorch cu128 is required for RTX 50-series / sm_120 GPUs.
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04 AS gpu
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
+    PIP_NO_CACHE_DIR=false \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=1000 \
+    PIP_RETRIES=10 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH" \
     DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -89,38 +93,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils curl \
     build-essential ninja-build \
     && ln -sf /usr/bin/python3.11 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip \
+    && python3.11 -m venv /opt/venv \
+    && /opt/venv/bin/python -m pip install --upgrade pip setuptools wheel \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY requirements.txt .
 
-# CUDA-enabled torch (cu121 wheel — matches cuDNN 8 used by paddlepaddle cu120)
-# Install torch/torchvision without transitive CUDA python wheels.
-# CUDA/CUDNN runtime libs are already provided by the nvidia/cuda base image.
-RUN pip install --no-deps torch==2.4.1+cu121 torchvision==0.19.1+cu121 \
-    --index-url https://download.pytorch.org/whl/cu121
+# CUDA-enabled torch with RTX 50-series / sm_120 support.
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --timeout 1000 --retries 10 \
+    torch==2.8.0 torchvision==0.23.0 \
+    --index-url https://download.pytorch.org/whl/cu128
 
-RUN pip install filelock fsspec jinja2 networkx sympy typing-extensions triton==3.0.0
+RUN python -c "import torch; print('torch import ok', torch.__version__)"
 
-# Flash Attention 2 — compile against the already-installed torch + CUDA headers.
-# Targets common GPU architectures to avoid JIT compilation at runtime.
-# NOTE: This step takes ~20 min on first build; subsequent builds use the cache.
-ENV TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0+PTX" \
-    CUDA_HOME=/usr/local/cuda
-RUN pip install flash-attn==2.6.3 --no-build-isolation
+# Flash Attention 2 built against the installed torch/CUDA stack.
+# RTX 50-series is compute capability 12.0, exposed to nvcc as sm_120.
+ENV TORCH_CUDA_ARCH_LIST="12.0" \
+    CUDA_HOME=/usr/local/cuda \
+    MAX_JOBS=4
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --timeout 1000 --retries 10 \
+    ninja packaging wheel setuptools
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --timeout 1000 --retries 10 \
+    flash-attn --no-build-isolation
 
-RUN pip install paddlepaddle-gpu==2.6.2.post120 \
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --timeout 1000 --retries 10 paddlepaddle-gpu==2.6.2.post120 \
     -i https://www.paddlepaddle.org.cn/packages/stable/cu120/
 
-RUN grep -v '^accelerate==' requirements.txt > /tmp/requirements.no_accelerate.txt && \
-    pip install -r /tmp/requirements.no_accelerate.txt
+RUN --mount=type=cache,target=/root/.cache/pip grep -v '^accelerate==' requirements.txt > /tmp/requirements.no_accelerate.txt && \
+    python -m pip download --timeout 1000 --retries 10 -r /tmp/requirements.no_accelerate.txt -d /tmp/wheels && \
+    python -m pip install --no-index --find-links=/tmp/wheels -r /tmp/requirements.no_accelerate.txt
 
-RUN pip install --no-deps accelerate==1.2.1
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --timeout 1000 --retries 10 --no-deps accelerate==1.2.1
 
 COPY scripts/download_models.py scripts/download_models.py
-RUN PRELOAD_PADDLE_MODELS=1 PRELOAD_VLM_MODELS=1 python scripts/download_models.py
+RUN PRELOAD_PADDLE_MODELS=1 PRELOAD_VLM_MODELS=0 python scripts/download_models.py
 
 COPY app/ app/
 

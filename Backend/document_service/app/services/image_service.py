@@ -38,7 +38,7 @@ async def process_image(
     mode: ExtractionMode = ExtractionMode.AUTO,
     describe_visuals: bool = True,
     ocr_lang: str | None = None,
-    vlm_prompt: str = "Describe the content of this image in detail.",
+    vlm_prompt: str = "Describe the content of this image briefly .",
 ) -> ExtractionResponse:
     t0 = time.perf_counter()
     ocr_svc = get_ocr_service()

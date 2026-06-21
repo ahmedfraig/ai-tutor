@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI, Query
 from sqlalchemy.orm import Session
 
 from .config import settings
-from .database import Base, engine, get_db
+from .database import Base, engine, get_db, init_database
 from .schemas import (
     ChunkResponse,
     ChunkStoreRequest,
@@ -39,6 +39,7 @@ from .services import (
 
 app = FastAPI(title=settings.api_title)
 
+init_database()
 Base.metadata.create_all(bind=engine)
 
 

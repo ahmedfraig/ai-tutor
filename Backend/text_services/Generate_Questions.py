@@ -10,15 +10,26 @@ from openai import OpenAI
 MODEL_NAME                = "openai/gpt-oss-20b"
 MAX_INPUT_TOKENS          = 1500
 SAFETY_MARGIN_TOKENS      = 256
-MAX_RETRIES               = 4
-CHUNK_RESPONSE_MAX_TOKENS = 5000
+MAX_RETRIES               = 2
+CHUNK_RESPONSE_MAX_TOKENS = 3200
 
-API_KEY = os.getenv("GROQ_API_KEY")
+groq_client = None
 
-groq_client = OpenAI(
-    base_url="https://api.groq.com/openai/v1",
-    api_key=API_KEY,
-)
+
+def get_groq_client():
+    global groq_client
+
+    if groq_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY is not set.")
+
+        groq_client = OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=api_key,
+        )
+
+    return groq_client
 
 # ─────────────────────────── Prompt Helpers ───────────────────────────
 
@@ -29,74 +40,25 @@ def get_target_count(qty) -> int:
 
 
 def get_system_prompt(count: int, diff: str) -> str:
-    if diff == "hard":
-        diff_block = (
-            "DIFFICULTY: HARD (Inference & Synthesis)\n"
-            "- Questions must NOT be answerable by keyword search alone.\n"
-            "- Test deep understanding, implications, and synthesis of ideas.\n"
-            "- Mix: 40% recall, 60% application/analysis.\n"
-        )
-    else:
-        diff_block = (
-            "DIFFICULTY: STANDARD (Comprehension & Recall)\n"
-            "- Questions test clear facts and direct concepts from the text.\n"
-            "- Answers must be explicitly verifiable from the source text.\n"
-            "- Mix: 60% recall, 40% application/analysis.\n"
-        )
-
-    schema = (
-        '{\n'
-        '  "questions": [\n'
-        '    {\n'
-        '      "id": 1,\n'
-        '      "question": "Question text here",\n'
-        '      "options": [\n'
-        '        {"key": "a", "text": "Option A"},\n'
-        '        {"key": "b", "text": "Option B"},\n'
-        '        {"key": "c", "text": "Option C"},\n'
-        '        {"key": "d", "text": "Option D"}\n'
-        '      ],\n'
-        '      "answer": "a",\n'
-        '      "explanation_points": [\n'
-        '        {"key": "a", "text": "Correct: explain why this is right."},\n'
-        '        {"key": "b", "text": "Incorrect: explain why this is wrong."},\n'
-        '        {"key": "c", "text": "Incorrect: explain why this is wrong."},\n'
-        '        {"key": "d", "text": "Incorrect: explain why this is wrong."}\n'
-        '      ]\n'
-        '    }\n'
-        '  ]\n'
-        '}'
+    difficulty = (
+        "hard: use inference, comparison, and synthesis"
+        if diff == "hard"
+        else "standard: use clear facts, concepts, definitions, and mechanisms"
     )
 
     return (
-        f"You are an educational MCQ generator.\n\n"
-        f"TASK: Generate exactly {count} multiple-choice questions from the provided text.\n\n"
-        f"SEMANTIC RELEVANCE STRATEGY:\n"
-        f"- Identify the core themes and arguments.\n"
-        f"- Weight question frequency by relevance; central concepts get more questions.\n\n"
-
-        f"ANSWER DESIGN:\n"
-        f"- Make incorrect options plausible and close to the correct answer, not obviously wrong.\n"
-        f"- Keep options similar in length, style, and specificity so the correct answer is not easy to guess.\n"
-        f"- Avoid predictable answer patterns.\n"
-        f"- Distribute correct answers as evenly as possible across a, b, c, and d.\n\n"
-
-        f"{diff_block}\n"
-        f"OUTPUT REQUIREMENTS:\n"
-        f"- Return ONLY raw JSON. Absolutely no markdown, no code fences, no explanations.\n"
-        f"- Your entire response must start with {{ and end with }}.\n"
-        f"- Every backslash inside JSON strings MUST be double-escaped.\n\n"
-        f"JSON SCHEMA:\n"
-        f"{schema}\n\n"
-        f"STRICT RULES:\n"
-        f"- Root object has exactly one key: \"questions\".\n"
-        f"- Generate exactly {count} questions.\n"
-        f"- Each question has exactly 4 options keyed a, b, c, d in that order.\n"
-        f"- \"answer\" is one of: a, b, c, d.\n"
-        f"- Each question has exactly 4 explanation_points (one per option, same order).\n"
-        f"- No \"all of the above\" or \"none of the above\" options.\n"
-        f"- No duplicate questions.\n"
-        f"- IDs start at 1 and increment by 1.\n"
+        "Generate multiple-choice questions from the provided text.\n"
+        f"Difficulty: {difficulty}.\n"
+        f"Return exactly {count} questions.\n"
+        "Return only valid compact JSON. No markdown, no code fence.\n"
+        'Schema: {"questions":[{"id":1,"question":"...","options":['
+        '{"key":"a","text":"..."},{"key":"b","text":"..."},'
+        '{"key":"c","text":"..."},{"key":"d","text":"..."}],'
+        '"answer":"a","explanation_points":['
+        '{"key":"a","text":"Correct: ..."},{"key":"b","text":"Incorrect: ..."},'
+        '{"key":"c","text":"Incorrect: ..."},{"key":"d","text":"Incorrect: ..."}]}]}\n'
+        "Rules: use only the source text; no all/none-of-the-above; plausible distractors; "
+        "non-empty strings; answer must be a, b, c, or d; avoid duplicates."
     )
 
 def get_retry_prompt(count: int) -> str:
@@ -105,15 +67,12 @@ def get_retry_prompt(count: int) -> str:
     Strips everything down to reduce confusion.
     """
     return (
-        f"Generate {count} multiple-choice questions from the text below.\n"
-        f"Respond with ONLY a JSON object. No explanation, no markdown.\n"
-        f"Format:\n"
-        '{"questions": [{"id": 1, "question": "...", "options": ['
-        '{"key": "a", "text": "..."}, {"key": "b", "text": "..."}, '
-        '{"key": "c", "text": "..."}, {"key": "d", "text": "..."}], '
-        '"answer": "a", "explanation_points": ['
-        '{"key": "a", "text": "Correct: ..."}, {"key": "b", "text": "Incorrect: ..."}, '
-        '{"key": "c", "text": "Incorrect: ..."}, {"key": "d", "text": "Incorrect: ..."}]}]}'
+        f"Generate {count} MCQs. Output only JSON: "
+        '{"questions":[{"id":1,"question":"...","options":[{"key":"a","text":"..."},'
+        '{"key":"b","text":"..."},{"key":"c","text":"..."},{"key":"d","text":"..."}],'
+        '"answer":"a","explanation_points":[{"key":"a","text":"Correct: ..."},'
+        '{"key":"b","text":"Incorrect: ..."},{"key":"c","text":"Incorrect: ..."},'
+        '{"key":"d","text":"Incorrect: ..."}]}]}'
     )
 
 # ─────────────────────────── Token / Chunking ───────────────────────────
@@ -178,10 +137,10 @@ def call_llm(messages: list, max_response_tokens: int) -> str:
     """Call the LLM with exponential backoff. Returns raw response text."""
     for attempt in range(MAX_RETRIES):
         try:
-            resp = groq_client.chat.completions.create(
+            resp = get_groq_client().chat.completions.create(
                 model=MODEL_NAME,
                 messages=messages,
-                temperature=0.2,
+                temperature=0.1,
                 max_tokens=max_response_tokens,
             )
             return resp.choices[0].message.content
@@ -279,6 +238,48 @@ def extract_json_from_response(raw: str) -> dict:
     raise ValueError("JSON unparseable and no complete questions could be salvaged.")
 
 
+def _normalize_keyed_items(items, default_keys=("a", "b", "c", "d")) -> list[dict]:
+    normalized = []
+
+    if isinstance(items, dict):
+        items = [
+            {"key": key, "text": value}
+            for key, value in items.items()
+        ]
+
+    if not isinstance(items, list):
+        return normalized
+
+    for idx, item in enumerate(items[:len(default_keys)]):
+        fallback_key = default_keys[idx]
+
+        if isinstance(item, dict):
+            key = str(item.get("key") or item.get("id") or item.get("label") or fallback_key)
+            text = item.get("text") or item.get("value") or item.get("option") or item.get("content")
+        else:
+            key = fallback_key
+            text = item
+
+        normalized.append({
+            "key": key.strip().lower()[:1],
+            "text": re.sub(r"\s+", " ", str(text or "")).strip(),
+        })
+
+    return normalized
+
+
+def _normalize_answer(answer) -> str:
+    answer = str(answer or "").strip().lower()
+    if answer in ("a", "b", "c", "d"):
+        return answer
+
+    match = re.match(r"^([a-d])[\).:\-\s]", answer)
+    if match:
+        return match.group(1)
+
+    return answer[:1]
+
+
 def normalize_questions_json(data: dict) -> dict:
     if not isinstance(data, dict) or "questions" not in data:
         raise ValueError("Response must be a JSON object with a 'questions' key.")
@@ -289,26 +290,20 @@ def normalize_questions_json(data: dict) -> dict:
     for idx, q in enumerate(data["questions"], start=1):
         if not isinstance(q, dict):
             continue
+
+        options = _normalize_keyed_items(q.get("options") or q.get("choices"))
+        explanations = _normalize_keyed_items(
+            q.get("explanation_points")
+            or q.get("explanations")
+            or q.get("rationales")
+        )
+
         out.append({
             "id": idx,
-            "question": str(q.get("question", "")).strip(),
-            "options": [
-                {
-                    "key": str(o.get("key", "")).strip().lower(),
-                    "text": str(o.get("text", "")).strip(),
-                }
-                for o in q.get("options", [])
-                if isinstance(o, dict)
-            ],
-            "answer": str(q.get("answer", "")).strip().lower(),
-            "explanation_points": [
-                {
-                    "key": str(e.get("key", "")).strip().lower(),
-                    "text": str(e.get("text", "")).strip(),
-                }
-                for e in q.get("explanation_points", [])
-                if isinstance(e, dict)
-            ],
+            "question": re.sub(r"\s+", " ", str(q.get("question", "")).strip()),
+            "options": options,
+            "answer": _normalize_answer(q.get("answer") or q.get("correct_answer")),
+            "explanation_points": explanations,
         })
     return {"questions": out}
 
@@ -417,7 +412,7 @@ def generate_questions(long_text: str, qty: str = "standard", diff: str = "stand
         if chunk_q_count <= 0:
             continue
 
-        max_resp_tokens = min(CHUNK_RESPONSE_MAX_TOKENS, 700 * chunk_q_count)
+        max_resp_tokens = min(CHUNK_RESPONSE_MAX_TOKENS, 430 * chunk_q_count + 220)
         label = f"Chunk {idx}/{len(chunks)}"
 
         print(

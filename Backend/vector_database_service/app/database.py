@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from .config import settings
 
@@ -9,6 +9,11 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, futu
 
 class Base(DeclarativeBase):
     pass
+
+
+def init_database():
+    with engine.begin() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
 
 def get_db():

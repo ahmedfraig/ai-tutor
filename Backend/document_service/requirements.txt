@@ -4,8 +4,10 @@
 # using their custom index URLs. They are listed here as comments for reference
 # but NOT pip-installed from this file to avoid index conflicts.
 #
-# torch==2.4.1           # CPU:  +cpu wheel  |  GPU: +cu124 wheel
-# torchvision==0.19.1    # CPU:  +cpu wheel  |  GPU: +cu124 wheel
+# torch==2.4.1           # CPU: +cpu wheel
+# torch==2.3.1           # GPU: +cu121 wheel, installed in Dockerfile with --no-deps
+# torchvision==0.19.1    # CPU: +cpu wheel
+# torchvision==0.18.1    # GPU: +cu121 wheel, installed in Dockerfile with --no-deps
 # paddlepaddle==2.6.2    # CPU:  paddlepaddle  |  GPU: paddlepaddle-gpu
 
 # ── Web framework ─────────────────────────────────────────────────────────────
