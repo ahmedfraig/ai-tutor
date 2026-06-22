@@ -19,7 +19,7 @@ async def health():
         "status": "ok",
         "services": {
             "vector_database_service": await clients.check_health(settings.vector_database_service_url),
-            "text_service": await clients.check_health(settings.text_service_url),
+            "llm": clients.check_llm_config(),
         },
     }
 
@@ -32,7 +32,7 @@ async def ask(req: AskRequest):
             lesson_id=req.lesson_id,
             document_id=req.document_id,
             question=req.question,
-            top_k=req.top_k,
+            top_k=10,
         )
         chunks = retrieved.get("results", []) if retrieved else []
         memory_turns = memory.get(req.user_id, req.lesson_id, req.document_id)
@@ -50,7 +50,7 @@ async def ask(req: AskRequest):
             or str(generated)
         )
 
-        updated_memory = memory.append_turns(
+        memory.append_turns(
             req.user_id,
             req.lesson_id,
             req.document_id,
@@ -58,13 +58,7 @@ async def ask(req: AskRequest):
             answer,
         )
 
-        return {
-            "question": req.question,
-            "answer": answer,
-            "retrieved_chunks": chunks,
-            "memory_key": memory.key(req.user_id, req.lesson_id, req.document_id),
-            "memory": updated_memory,
-        }
+        return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

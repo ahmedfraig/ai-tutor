@@ -566,7 +566,6 @@ async def ask_rag(
     lesson_id: str,
     document_id: str,
     question: str,
-    top_k: int = 5,
 ):
     return await request_json(
         "POST",
@@ -576,7 +575,6 @@ async def ask_rag(
             "lesson_id": lesson_id,
             "document_id": document_id,
             "question": question,
-            "top_k": top_k,
         },
     )
 

@@ -31,7 +31,6 @@ class FlashcardsRequest(BasePipelineRequest):
 
 class AskRequest(BasePipelineRequest):
     question: str
-    top_k: int = 5
     # RAG answer is generated in English
 
 

@@ -464,14 +464,12 @@ async def ask_pipeline(
     lesson_id: str,
     document_id: str,
     question: str,
-    top_k: int = 5,
 ):
     return await clients.ask_rag(
         user_id=user_id,
         lesson_id=lesson_id,
         document_id=document_id,
         question=question,
-        top_k=top_k,
     )
 
 

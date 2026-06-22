@@ -134,7 +134,6 @@ async def ask_document(req: AskRequest):
             lesson_id=req.lesson_id,
             document_id=req.document_id,
             question=req.question,
-            top_k=req.top_k,
         )
 
     except Exception as e:

@@ -6,17 +6,7 @@ class AskRequest(BaseModel):
     lesson_id: str = Field("default", description="Lesson ID")
     document_id: str = Field(..., description="Document ID")
     question: str
-    top_k: int = 5
-
-
-class MemoryTurn(BaseModel):
-    role: str
-    content: str
 
 
 class AskResponse(BaseModel):
-    question: str
     answer: str
-    retrieved_chunks: list[dict]
-    memory_key: str
-    memory: list[MemoryTurn]

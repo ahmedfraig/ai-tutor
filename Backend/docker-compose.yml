@@ -52,16 +52,19 @@ services:
     container_name: rag_service
     ports:
       - "8006:8000"
+    env_file:
+      - ./text_services/.env
     environment:
       VECTOR_DATABASE_SERVICE_URL: http://vector_database_service:8000
-      TEXT_SERVICE_URL: http://text_service:8000
       DATA_DIR: /data
       MEMORY_MAX_TURNS: 12
+      RAG_MODEL_NAME: openai/gpt-oss-20b
+      RAG_TEMPERATURE: 0.2
+      RAG_MAX_TOKENS: 900
     volumes:
       - rag_data:/data
     depends_on:
       - vector_database_service
-      - text_service
     restart: unless-stopped
 
   # -----------------------------
