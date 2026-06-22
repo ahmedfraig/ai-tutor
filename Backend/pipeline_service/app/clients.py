@@ -109,7 +109,33 @@ async def extract_text_from_file(
     mode: str = "auto",
     describe_visuals: bool = True,
     ocr_lang: str | None = None,
-):
+) -> str:
+    extraction = await extract_document_from_file(
+        file,
+        mode=mode,
+        describe_visuals=describe_visuals,
+        ocr_lang=ocr_lang,
+    )
+
+    extracted_text = (
+        extraction.get("full_text")
+        or extraction.get("text")
+        or ""
+    ).strip()
+
+    if not extracted_text:
+        raise ServiceError("Document service returned empty extracted text.")
+
+    return extracted_text
+
+
+async def extract_document_from_file(
+    file: UploadFile,
+    *,
+    mode: str = "auto",
+    describe_visuals: bool = True,
+    ocr_lang: str | None = None,
+) -> dict:
     filename = file.filename or "upload"
     extract_path = get_document_extract_path(filename)
 
@@ -142,12 +168,49 @@ async def extract_text_from_file(
             f"body={response.text[:500]}"
         )
 
+    content_type = response.headers.get("content-type", "")
+
+    if "application/json" not in content_type:
+        extracted_text = response.text.strip()
+        if not extracted_text:
+            raise ServiceError("Document service returned empty extracted text.")
+        return {
+            "success": True,
+            "metadata": {
+                "filename": filename,
+                "file_type": filename.rsplit(".", 1)[-1].lower() if "." in filename else "",
+            },
+            "elements": [],
+            "full_text": extracted_text,
+        }
+
+    extraction = response.json()
+
+    if isinstance(extraction, str):
+        extraction = {
+            "success": True,
+            "metadata": {
+                "filename": filename,
+                "file_type": filename.rsplit(".", 1)[-1].lower() if "." in filename else "",
+            },
+            "elements": [],
+            "full_text": extraction,
+        }
+
+    if not isinstance(extraction, dict):
+        raise ServiceError("Document service returned an unsupported response shape.")
+
     extracted_text = _extract_text_from_response(response).strip()
 
     if not extracted_text:
         raise ServiceError("Document service returned empty extracted text.")
 
-    return extracted_text
+    extraction["full_text"] = extracted_text
+    extraction.setdefault("success", True)
+    extraction.setdefault("metadata", {})
+    extraction.setdefault("elements", [])
+
+    return extraction
 
 
 # =========================================================
@@ -179,6 +242,7 @@ async def create_document(
     full_text: str,
     language: str = "en",
     source_name: str = "manual_text",
+    metadata: dict | None = None,
 ):
     """
     Store full document text in database.
@@ -193,9 +257,7 @@ async def create_document(
         "full_text": full_text,
         "language": language,
         "doc_type": "text",
-        "metadata": {
-            "source": source_name,
-        },
+        "metadata": metadata or {"source": source_name},
     }
 
     return await request_json(
@@ -417,6 +479,62 @@ async def store_transcript(
         f"{settings.database_service_url}/documents/{document_id}/transcript/{language}",
         json_payload=payload,
     )
+
+
+async def get_audio(
+    *,
+    user_id: str,
+    lesson_id: str,
+    document_id: str,
+    language: str,
+) -> bytes | None:
+    async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
+        response = await client.get(
+            f"{settings.database_service_url}/documents/{document_id}/audio/{language}/content",
+            params={
+                "uid": user_id,
+                "lid": lesson_id,
+            },
+        )
+
+    if response.status_code == 404:
+        return None
+
+    if response.status_code not in {200, 201}:
+        raise ServiceError(
+            f"Audio lookup failed: status={response.status_code} body={response.text[:500]}"
+        )
+
+    return response.content
+
+
+async def store_audio(
+    *,
+    user_id: str,
+    lesson_id: str,
+    document_id: str,
+    language: str,
+    audio_bytes: bytes,
+    mime_type: str = "audio/wav",
+):
+    async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
+        response = await client.post(
+            f"{settings.database_service_url}/documents/{document_id}/audio/{language}",
+            params={
+                "uid": user_id,
+                "lid": lesson_id,
+                "mime_type": mime_type,
+            },
+            content=audio_bytes,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+
+    if response.status_code not in {200, 201}:
+        raise ServiceError(
+            f"Audio store failed: status={response.status_code} body={response.text[:500]}"
+        )
+
+    return response.json()
 
 
 async def retrieve_chunks(

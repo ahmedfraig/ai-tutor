@@ -16,23 +16,17 @@ class AddTextDocumentRequest(BasePipelineRequest):
 
 
 class SummaryRequest(BasePipelineRequest):
-    summary_type: str = "concise"
-    language: str = "en"
-    # Summary is always generated in English
+    pass
 
 
 class QuestionsRequest(BasePipelineRequest):
-    qty: str = "standard"
-    diff: str = "standard"
-    language: str = "en"
-    # Questions are always generated in English
+    qty: Literal["low", "standard", "high"] = "standard"
+    diff: Literal["easy", "standard", "hard"] = "standard"
 
 
 class FlashcardsRequest(BasePipelineRequest):
-    qty: str = "standard"
-    diff: str = "standard"
-    language: str = "en"
-    # Flashcards are always generated in English
+    qty: Literal["low", "standard", "high"] = "standard"
+    diff: Literal["easy", "standard", "hard"] = "standard"
 
 
 class AskRequest(BasePipelineRequest):

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, LargeBinary, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .config import settings
@@ -121,4 +121,20 @@ class Transcript(Base):
     lid: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     language: Mapped[str] = mapped_column(Text, nullable=False)
     transcript_text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class Audio(Base):
+    __tablename__ = "audios"
+    __table_args__ = (
+        UniqueConstraint("did", "uid", "lid", "language", name="uq_audio_unique"),
+    )
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    did: Mapped[str] = mapped_column(ForeignKey("documents.did", ondelete="CASCADE"), nullable=False, index=True)
+    uid: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    lid: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    language: Mapped[str] = mapped_column(Text, nullable=False)
+    audio_bytes: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    mime_type: Mapped[str] = mapped_column(Text, default="audio/wav")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

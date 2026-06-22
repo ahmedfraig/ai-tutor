@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = 600.0
     chunk_size: int = 1200
     chunk_overlap: int = 150
+    generation_max_chars: int = 24000
     class Config:
         env_file = ".env"
         extra = "ignore"

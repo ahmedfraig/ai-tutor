@@ -86,19 +86,15 @@ services:
   # -----------------------------
   document_service:
     build:
-      context: ./document_service
-      target: gpu
-    image: document-service:gpu
+      context: ./compact_document_service
+    image: compact-document-service:gpu
     container_name: document_service
     ports:
       - "8003:8000"
     environment:
-      DEVICE: auto
-      OCR_USE_GPU: "true"
-      VLM_USE_FLASH_ATTENTION: "true"
-      VLM_DTYPE: auto
-      ENVIRONMENT: production
-      REQUEST_TIMEOUT_SECONDS: 300
+      REQUEST_MAX_PAGES: 30
+      PDF_RENDER_DPI: 160
+      VISUAL_MODEL_NAME: Salesforce/blip-image-captioning-base
     deploy:
       resources:
         reservations:
@@ -110,7 +106,6 @@ services:
           memory: 12G
     volumes:
       - document_hf_cache:/models/hf_cache
-      - document_tmp_data:/tmp/docservice
     restart: unless-stopped
 
   # -----------------------------
@@ -144,4 +139,3 @@ volumes:
   postgres_data:
   rag_data:
   document_hf_cache:
-  document_tmp_data:

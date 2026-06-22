@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI, Query
+from fastapi import Body, Depends, FastAPI, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -8,6 +9,7 @@ from .schemas import (
     ChunkStoreRequest,
     DocumentCreate,
     DocumentResponse,
+    AudioResponse,
     FlashcardStoreRequest,
     FlashcardsResponse,
     HealthResponse,
@@ -22,6 +24,7 @@ from .schemas import (
 )
 from .services import (
     create_document,
+    get_audio,
     get_chunks,
     get_document_or_404,
     get_flashcards,
@@ -33,6 +36,7 @@ from .services import (
     retrieve_chunks_with_score,
     store_chunks,
     to_iso,
+    upsert_audio,
     upsert_summary,
     upsert_transcript,
 )
@@ -294,5 +298,67 @@ def get_arabic_transcript_endpoint(
         "lid": row.lid,
         "language": row.language,
         "transcript_text": row.transcript_text,
+        "created_at": to_iso(row.created_at),
+    }
+
+
+@app.get("/documents/{did}/audio/{language}", response_model=AudioResponse)
+def get_audio_metadata_endpoint(
+    did: str,
+    language: str,
+    uid: str = Query(...),
+    lid: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    row = get_audio(db, did, uid, lid, language)
+    return {
+        "did": row.did,
+        "uid": row.uid,
+        "lid": row.lid,
+        "language": row.language,
+        "mime_type": row.mime_type,
+        "audio_size_bytes": len(row.audio_bytes),
+        "created_at": to_iso(row.created_at),
+    }
+
+
+@app.get("/documents/{did}/audio/{language}/content")
+def get_audio_content_endpoint(
+    did: str,
+    language: str,
+    uid: str = Query(...),
+    lid: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    row = get_audio(db, did, uid, lid, language)
+    return Response(content=row.audio_bytes, media_type=row.mime_type)
+
+
+@app.post("/documents/{did}/audio/{language}", response_model=AudioResponse)
+def store_audio_endpoint(
+    did: str,
+    language: str,
+    uid: str = Query(...),
+    lid: str = Query(...),
+    mime_type: str = Query("audio/wav"),
+    audio_bytes: bytes = Body(..., media_type="application/octet-stream"),
+    db: Session = Depends(get_db),
+):
+    row = upsert_audio(
+        db=db,
+        did=did,
+        uid=uid,
+        lid=lid,
+        language=language,
+        audio_bytes=audio_bytes,
+        mime_type=mime_type,
+    )
+    return {
+        "did": row.did,
+        "uid": row.uid,
+        "lid": row.lid,
+        "language": row.language,
+        "mime_type": row.mime_type,
+        "audio_size_bytes": len(row.audio_bytes),
         "created_at": to_iso(row.created_at),
     }

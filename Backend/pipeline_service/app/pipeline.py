@@ -3,6 +3,29 @@ from app.chuncking import chunk_text
 from app.config import settings
 
 
+def public_document(document: dict) -> dict:
+    visible_document = dict(document)
+    full_text = visible_document.pop("full_text", "")
+    visible_document["full_text_length"] = len(full_text or "")
+    return visible_document
+
+
+def text_for_generation(text: str) -> str:
+    max_chars = settings.generation_max_chars
+
+    if len(text) <= max_chars:
+        return text
+
+    head_chars = int(max_chars * 0.65)
+    tail_chars = max_chars - head_chars
+
+    return (
+        text[:head_chars].rstrip()
+        + "\n\n[...middle of source document omitted for model token limit...]\n\n"
+        + text[-tail_chars:].lstrip()
+    )
+
+
 async def get_document_text_or_fail(document_id: str) -> str:
     document = await clients.get_document(document_id)
 
@@ -44,7 +67,7 @@ async def add_text_document_pipeline(
             "message": "Document already exists. Did not store it again.",
             "document_saved": False,
             "chunks_saved": False,
-            "document": existing_document,
+            "document": public_document(existing_document),
             "chunks_count": len(existing_chunks),
         }
 
@@ -74,7 +97,7 @@ async def add_text_document_pipeline(
         "message": "Document stored and chunks created.",
         "document_saved": True,
         "chunks_saved": True,
-        "document": document,
+        "document": public_document(document),
         "chunks_count": len(stored_chunks),
     }
 
@@ -84,12 +107,7 @@ async def upload_document_pipeline(
     user_id: str,
     lesson_id: str,
     document_id: str,
-    title: str | None,
     file,
-    language: str = "en",
-    mode: str = "auto",
-    describe_visuals: bool = True,
-    ocr_lang: str | None = None,
 ):
     """
     Add an uploaded document by extracting text through the document service,
@@ -106,25 +124,37 @@ async def upload_document_pipeline(
             "message": "Document already exists. Skipped extraction.",
             "document_saved": False,
             "chunks_saved": False,
-            "document": existing_document,
+            "document": public_document(existing_document),
             "chunks_count": len(existing_chunks),
         }
 
-    extracted_text = await clients.extract_text_from_file(
+    extraction = await clients.extract_document_from_file(
         file,
-        mode=mode,
-        describe_visuals=describe_visuals,
-        ocr_lang=ocr_lang,
     )
+    extracted_text = extraction["full_text"]
+    extraction_metadata = extraction.get("metadata", {})
 
     document = await clients.create_document(
         user_id=user_id,
         lesson_id=lesson_id,
         document_id=document_id,
-        title=title or file.filename,
+        title=file.filename,
         full_text=extracted_text,
-        language=language,
+        language="en",
         source_name=file.filename or "uploaded_document",
+        metadata={
+            "source": file.filename or "uploaded_document",
+            "document_service": "compact_document_service",
+            "extraction": {
+                "metadata": extraction_metadata,
+                "pages_processed": extraction.get("pages_processed"),
+                "native_count": extraction.get("native_count"),
+                "ocr_count": extraction.get("ocr_count"),
+                "visual_count": extraction.get("visual_count"),
+                "device_used": extraction.get("device_used"),
+                "processing_time_ms": extraction.get("processing_time_ms"),
+            },
+        },
     )
 
     chunks = chunk_text(
@@ -143,7 +173,18 @@ async def upload_document_pipeline(
         "message": "Document uploaded, extracted, stored, and chunked.",
         "document_saved": True,
         "chunks_saved": True,
-        "document": document,
+        "document": public_document(document),
+        "extraction": {
+            "success": extraction.get("success", True),
+            "metadata": extraction_metadata,
+            "pages_processed": extraction.get("pages_processed"),
+            "native_count": extraction.get("native_count"),
+            "ocr_count": extraction.get("ocr_count"),
+            "visual_count": extraction.get("visual_count"),
+            "device_used": extraction.get("device_used"),
+            "processing_time_ms": extraction.get("processing_time_ms"),
+            "full_text_length": len(extracted_text),
+        },
         "chunks_count": len(stored_chunks),
     }
 
@@ -176,7 +217,7 @@ async def summary_pipeline(
             "summary": cached_summary,
         }
 
-    text = await get_document_text_or_fail(document_id)
+    text = text_for_generation(await get_document_text_or_fail(document_id))
 
     generated = await clients.generate_summary(text)
 
@@ -223,7 +264,7 @@ async def questions_pipeline(
             "questions": cached_questions,
         }
 
-    text = await get_document_text_or_fail(document_id)
+    text = text_for_generation(await get_document_text_or_fail(document_id))
 
     generated = await clients.generate_questions(
         text,
@@ -310,7 +351,7 @@ async def flashcards_pipeline(
             "flashcards": cached_flashcards,
         }
 
-    text = await get_document_text_or_fail(document_id)
+    text = text_for_generation(await get_document_text_or_fail(document_id))
 
     generated = await clients.generate_flashcards(
         text,
@@ -382,7 +423,7 @@ async def transcript_pipeline(
             "transcript": cached_transcript,
         }
 
-    text = await get_document_text_or_fail(document_id)
+    text = text_for_generation(await get_document_text_or_fail(document_id))
 
     if language == "ar":
         generated = await clients.generate_arabic_transcript(text)
@@ -443,9 +484,30 @@ async def audio_pipeline(
 ):
     """
     Audio flow:
-    1. Read an existing transcript from DB.
-    2. Send transcript text to TTS.
+    1. Return cached audio from DB when it exists.
+    2. Ensure a transcript exists, generating and storing it if needed.
+    3. Generate audio from TTS, cache it in DB, and return it.
     """
+
+    cached_audio = await clients.get_audio(
+        user_id=user_id,
+        lesson_id=lesson_id,
+        document_id=document_id,
+        language=language,
+    )
+
+    if cached_audio:
+        return {
+            "audio_bytes": cached_audio,
+            "metadata": {
+                "user_id": user_id,
+                "lesson_id": lesson_id,
+                "document_id": document_id,
+                "language": language,
+                "source": "cache",
+                "audio_size_bytes": len(cached_audio),
+            },
+        }
 
     transcript = await clients.get_transcript(
         user_id=user_id,
@@ -455,10 +517,13 @@ async def audio_pipeline(
     )
 
     if not transcript:
-        raise ValueError(
-            f"No {language} transcript found for document '{document_id}'. "
-            "Generate/store the transcript first using /pipeline/transcript."
+        transcript_result = await transcript_pipeline(
+            user_id=user_id,
+            lesson_id=lesson_id,
+            document_id=document_id,
+            language=language,
         )
+        transcript = transcript_result["transcript"]
 
     transcript_text = transcript.get("transcript_text")
 
@@ -470,6 +535,15 @@ async def audio_pipeline(
         language=language,
     )
 
+    stored_audio = await clients.store_audio(
+        user_id=user_id,
+        lesson_id=lesson_id,
+        document_id=document_id,
+        language=language,
+        audio_bytes=audio_bytes,
+        mime_type="audio/wav",
+    )
+
     return {
         "audio_bytes": audio_bytes,
         "metadata": {
@@ -477,9 +551,9 @@ async def audio_pipeline(
             "lesson_id": lesson_id,
             "document_id": document_id,
             "language": language,
-            "transcript_source": "database",
+            "source": "generated",
+            "audio_cache": stored_audio,
             "audio_size_bytes": len(audio_bytes),
-            "note": "Audio path is not cached yet because DB audio endpoints are not added yet.",
         },
     }
 

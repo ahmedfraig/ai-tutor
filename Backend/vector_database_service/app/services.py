@@ -5,7 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from .embedder import embed_text
-from .models import ChunkEmbedding, Document, DocumentChunk, Flashcard, MCQ, Summary, Transcript
+from .models import Audio, ChunkEmbedding, Document, DocumentChunk, Flashcard, MCQ, Summary, Transcript
 from .schemas import (
     ChunkInput,
     DocumentCreate,
@@ -364,4 +364,60 @@ def get_transcript(db: Session, did: str, uid: str, lid: str, language: str):
     )
     if not row:
         raise HTTPException(status_code=404, detail="Transcript not found")
+    return row
+
+
+def upsert_audio(
+    db: Session,
+    did: str,
+    uid: str,
+    lid: str,
+    language: str,
+    audio_bytes: bytes,
+    mime_type: str = "audio/wav",
+):
+    get_document_or_404(db, did)
+
+    existing = db.scalar(
+        select(Audio).where(
+            Audio.did == did,
+            Audio.uid == uid,
+            Audio.lid == lid,
+            Audio.language == language,
+        )
+    )
+
+    if existing:
+        existing.audio_bytes = audio_bytes
+        existing.mime_type = mime_type
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    row = Audio(
+        id=generate_id(),
+        did=did,
+        uid=uid,
+        lid=lid,
+        language=language,
+        audio_bytes=audio_bytes,
+        mime_type=mime_type,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def get_audio(db: Session, did: str, uid: str, lid: str, language: str):
+    row = db.scalar(
+        select(Audio).where(
+            Audio.did == did,
+            Audio.uid == uid,
+            Audio.lid == lid,
+            Audio.language == language,
+        )
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Audio not found")
     return row

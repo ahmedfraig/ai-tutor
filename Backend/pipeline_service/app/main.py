@@ -72,8 +72,6 @@ async def get_summary(req: SummaryRequest):
             user_id=req.user_id,
             lesson_id=req.lesson_id,
             document_id=req.document_id,
-            summary_type=req.summary_type,
-            language=req.language,
         )
 
     except Exception as e:
@@ -90,7 +88,6 @@ async def get_questions(req: QuestionsRequest):
             document_id=req.document_id,
             qty=req.qty,
             diff=req.diff,
-            language=req.language,
         )
 
     except Exception as e:
@@ -107,7 +104,6 @@ async def get_flashcards(req: FlashcardsRequest):
             document_id=req.document_id,
             qty=req.qty,
             diff=req.diff,
-            language=req.language,
         )
 
     except Exception as e:
@@ -163,6 +159,7 @@ async def get_audio(req: AudioRequest):
             media_type="audio/wav",
             headers={
                 "Content-Disposition": f'attachment; filename="{req.document_id}_{req.language}.wav"',
+                "X-Audio-Source": result["metadata"].get("source", "unknown"),
             },
         )
 
@@ -176,11 +173,6 @@ async def upload_document(
     user_id: str = Form(...),
     document_id: str = Form(...),
     lesson_id: str = Form("default"),
-    title: str | None = Form(None),
-    language: str = Form("en"),
-    mode: str = Form("auto"),
-    describe_visuals: bool = Form(True),
-    ocr_lang: str | None = Form(None),
     file: UploadFile = File(...),
 ):
     try:
@@ -188,12 +180,7 @@ async def upload_document(
             user_id=user_id,
             lesson_id=lesson_id,
             document_id=document_id,
-            title=title,
             file=file,
-            language=language,
-            mode=mode,
-            describe_visuals=describe_visuals,
-            ocr_lang=ocr_lang,
         )
 
     except Exception as e:

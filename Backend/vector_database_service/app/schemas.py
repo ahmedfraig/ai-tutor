@@ -158,3 +158,13 @@ class TranscriptResponse(BaseModel):
     language: str
     transcript_text: str
     created_at: str
+
+
+class AudioResponse(BaseModel):
+    did: str
+    uid: str
+    lid: str
+    language: str
+    mime_type: str
+    audio_size_bytes: int
+    created_at: str
