@@ -1,0 +1,14 @@
+model/
+outputs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.gitignore
+.vscode/
+.idea/
+.venv/
+venv/
+.env
+*.log

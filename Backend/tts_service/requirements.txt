@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+TTS
+torch
+torchaudio
+pydantic
+numpy
+scipy

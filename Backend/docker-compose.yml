@@ -1,0 +1,144 @@
+services:
+  # -----------------------------
+  # Text Generation Service
+  # -----------------------------
+  text_service:
+    image: backend-text_service:latest
+    container_name: text_services
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./text_services/.env
+    restart: unless-stopped
+
+  # -----------------------------
+  # PostgreSQL + pgvector
+  # -----------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai_tutor_postgres
+    environment:
+      POSTGRES_DB: ai_tutor
+      POSTGRES_USER: ai_tutor
+      POSTGRES_PASSWORD: ai_tutor
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # -----------------------------
+  # Vector Database / RAG Store Service
+  # -----------------------------
+  vector_database_service:
+    image: backend-vector_database_service:latest
+    container_name: vector_database_service
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://ai_tutor:ai_tutor@postgres:5432/ai_tutor
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # -----------------------------
+  # RAG Chat Service
+  # Retrieval + per user/lesson/document memory
+  # -----------------------------
+  rag_service:
+    build:
+      context: ./rag
+    image: backend-rag_service:latest
+    container_name: rag_service
+    ports:
+      - "8006:8000"
+    env_file:
+      - ./text_services/.env
+    environment:
+      VECTOR_DATABASE_SERVICE_URL: http://vector_database_service:8000
+      DATA_DIR: /data
+      MEMORY_MAX_TURNS: 12
+      RAG_MODEL_NAME: openai/gpt-oss-20b
+      RAG_TEMPERATURE: 0.2
+      RAG_MAX_TOKENS: 900
+    volumes:
+      - rag_data:/data
+    depends_on:
+      - vector_database_service
+    restart: unless-stopped
+
+  # -----------------------------
+  # XTTS Service
+  # Uses your already-built image.
+  # Do NOT build it again for now.
+  # -----------------------------
+  tts_service:
+    image: xtts-fastapi:latest
+    container_name: tts_service
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./tts_service/arabic_model:/app/arabic_model
+      - ./tts_service/english_model:/app/english_model
+      - ./tts_service/outputs:/app/outputs
+    gpus: all
+    restart: unless-stopped
+
+  # -----------------------------
+  # Document Extraction / OCR Service
+  # -----------------------------
+  document_service:
+    build:
+      context: ./compact_document_service
+    image: compact-document-service:gpu
+    container_name: document_service
+    ports:
+      - "8003:8000"
+    environment:
+      REQUEST_MAX_PAGES: 30
+      PDF_RENDER_DPI: 160
+      VISUAL_MODEL_NAME: Salesforce/blip-image-captioning-base
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 12G
+    volumes:
+      - document_hf_cache:/models/hf_cache
+    restart: unless-stopped
+
+  # -----------------------------
+  # Pipeline Service
+  # Central service that frontend will call
+  # -----------------------------
+  pipeline_service:
+    build:
+      context: ./pipeline_service
+    image: backend-pipeline_service:latest
+    container_name: pipeline_service
+    ports:
+      - "8005:8000"
+    env_file:
+      - ./pipeline_service/.env
+    environment:
+      TEXT_SERVICE_URL: http://text_service:8000
+      DATABASE_SERVICE_URL: http://vector_database_service:8000
+      RAG_SERVICE_URL: http://rag_service:8000
+      TTS_SERVICE_URL: http://tts_service:8000
+      DOCUMENT_SERVICE_URL: http://document_service:8000
+    depends_on:
+      - text_service
+      - vector_database_service
+      - rag_service
+      - tts_service
+      - document_service
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rag_data:
+  document_hf_cache:
