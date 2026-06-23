@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, easeInOut } from "framer-motion";
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
+import renderLatexText from '../../utils/renderLatexText';
 import './QuizFlashcards.css';
 
 const QuizFlashcards = () => {
@@ -98,6 +99,7 @@ const QuizFlashcards = () => {
     <>
       <div className="qf-root">
         <MotionDiv
+          ref={cardRef}
           className="qf-card"
           animate={showanswers > 0 ? { rotate: [0, 360, 0] } : { rotate: 0 }}
           transition={{ duration: 1, ease: easeInOut }}
@@ -114,7 +116,7 @@ const QuizFlashcards = () => {
             <span className="qf-section-label">Question {questionnumber + 1} of {quiz.length}</span>
           </div>
 
-          <h3 className="qf-question">{quiz[questionnumber].question}</h3>
+          <h3 className="qf-question">{renderLatexText(quiz[questionnumber].question)}</h3>
 
           <div className="qf-btn-row">
             <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getprevquestion(); }}>
@@ -128,16 +130,16 @@ const QuizFlashcards = () => {
           {/* Answer */}
           {showanswers === 1 && (
             <div className="qf-answer-section">
-              <div className="qf-card-header" style={{marginTop: '16px', marginBottom: '4px'}}>
-                <div className="qf-icon-wrap"><i className="bi bi-check-circle" aria-hidden="true" style={{color: 'var(--color-success)'}}></i></div>
+              <div className="qf-card-header" style={{ marginTop: '16px', marginBottom: '4px' }}>
+                <div className="qf-icon-wrap"><i className="bi bi-check-circle" aria-hidden="true" style={{ color: 'var(--color-success)' }}></i></div>
                 <span className="qf-section-label">Answer</span>
               </div>
-              <p className="qf-answer-text">{quiz[questionnumber].answer}</p>
+              <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].answer)}</p>
               {/* Only show "Why Correct" if the pipeline populated it */}
               {quiz[questionnumber].why_correct && (
                 <>
-                  <div className="qf-card-header" style={{marginBottom: '4px'}}>
-                    <div className="qf-icon-wrap"><i className="bi bi-check2-all" aria-hidden="true" style={{color: 'var(--color-success)'}}></i></div>
+                  <div className="qf-card-header" style={{ marginBottom: '4px' }}>
+                    <div className="qf-icon-wrap"><i className="bi bi-check2-all" aria-hidden="true" style={{ color: 'var(--color-success)' }}></i></div>
                     <span className="qf-section-label">Why This Is Correct</span>
                   </div>
                   <p className="qf-answer-text">{quiz[questionnumber].why_correct}</p>
@@ -152,14 +154,14 @@ const QuizFlashcards = () => {
               <p className="qf-answer-text">{quiz[questionnumber].answer}</p>
               {quiz[questionnumber].common_mistake ? (
                 <>
-                  <div className="qf-card-header" style={{marginTop: '16px', marginBottom: '4px'}}>
-                    <div className="qf-icon-wrap"><i className="bi bi-exclamation-triangle" aria-hidden="true" style={{color: 'var(--color-error)'}}></i></div>
+                  <div className="qf-card-header" style={{ marginTop: '16px', marginBottom: '4px' }}>
+                    <div className="qf-icon-wrap"><i className="bi bi-exclamation-triangle" aria-hidden="true" style={{ color: 'var(--color-error)' }}></i></div>
                     <span className="qf-section-label">Common Mistakes</span>
                   </div>
                   <p className="qf-mistake-text">{quiz[questionnumber].common_mistake}</p>
                 </>
               ) : (
-                <p className="qf-answer-text" style={{opacity: 0.5, fontStyle: 'italic'}}>No common mistakes noted for this card.</p>
+                <p className="qf-answer-text" style={{ opacity: 0.5, fontStyle: 'italic' }}>No common mistakes noted for this card.</p>
               )}
             </div>
           )}

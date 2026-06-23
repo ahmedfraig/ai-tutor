@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { Card, Button, Container } from "react-bootstrap";
 import './Examstart.css'
 import "./ExamSection.css";
 import Toast from 'react-bootstrap/Toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
+import FloatingToast from './FloatingToast';
+import renderLatexText from '../../utils/renderLatexText';
 
 const ExamStart = () => {
     const navigate = useNavigate();
@@ -20,6 +22,8 @@ const ExamStart = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [scoreSaved, setScoreSaved] = useState(false);
+    const [toast, setToast] = useState(null);
+    const dismissToast = useCallback(() => setToast(null), []);
 
     const examfinished = () => locked.length > 0 && locked.every(l => l === true);
 
@@ -106,11 +110,13 @@ const ExamStart = () => {
 
     return (
         <>
-            <Container className="py-5">
+            <Container ref={examRef} className="py-5">
                 <h2 className="mb-4">Exam</h2>
 
                 {loading && <div className="text-muted">Loading exam...</div>}
-                {error && <div className="alert alert-warning">{error}</div>}
+
+                {/* Floating error toast */}
+                <FloatingToast message={toast} onClose={dismissToast} />
 
                 {!loading && !error && exam.map((part, index) => (
                     <Card className="shadow-sm cardexam" key={index}>
@@ -118,7 +124,7 @@ const ExamStart = () => {
                             <div className="d-flex justify-content-between mb-3">
                                 <span>Question {index + 1} / {exam.length}</span>
                             </div>
-                            <h5 className="mb-3">{part.question}</h5>
+                            <h5 className="mb-3">{renderLatexText(part.question)}</h5>
                             <ul className="list-group">
                                 {['a', 'b', 'c', 'd'].map(opt => (
                                     <li
@@ -126,7 +132,7 @@ const ExamStart = () => {
                                         className={`list-group-item ${answersChosen[index] === opt ? "clicked" : "notclicked"}`}
                                         onClick={() => !locked[index] && chooseAnswer(index, opt)}
                                     >
-                                        {opt.toUpperCase()}) {part[opt]}
+                                        {opt.toUpperCase()}) {renderLatexText(part[opt])}
                                     </li>
                                 ))}
                             </ul>

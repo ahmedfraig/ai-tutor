@@ -8,6 +8,7 @@ import Quiz from "./Quiz";
 import "./LessonContent.css";
 import apiClient from "../../api/apiClient";
 import DomPurify from 'dompurify';
+import useLatex from '../../hooks/useLatex';
 
 const TABS = [
   { key: "overview",   label: "Overview"   },
@@ -23,6 +24,10 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
   const [generating, setGenerating] = useState(null); // which type is being generated
   const [errorToast, setErrorToast] = useState(null);
   const toastTimerRef = useRef(null);
+  const summaryRef = useRef(null);   // ref for KaTeX to render equations inside
+
+  // Render LaTeX equations in the summary after content changes
+  useLatex(summaryRef, [summarize]);
 
   // Clear timer on unmount to prevent state update on dead component
   useEffect(() => () => clearTimeout(toastTimerRef.current), []);
@@ -171,8 +176,15 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             </div>
           ) : summarize ? (
             <div
+              ref={summaryRef}
               className="lc-summary-body"
-              dangerouslySetInnerHTML={{ __html: DomPurify.sanitize(summarize) }}
+              dangerouslySetInnerHTML={{
+                __html: DomPurify.sanitize(summarize, {
+                  // Keep equation wrapper divs the AI generates
+                  ADD_TAGS: ['div'],
+                  ADD_ATTR: ['class'],
+                })
+              }}
             />
           ) : (
             <div className="lc-empty-state">
