@@ -126,7 +126,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           />
         )}
         {mode === "audio" && (
-          <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} />
+          <AudioPlayer title={selectedName} filePath={selectedFilePath} fileId={selectedFileId} lessonId={lessonId} />
         )}
       </div>
 

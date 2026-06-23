@@ -16,29 +16,97 @@ function getDriveFileId(url) {
   }
 }
 
-const AudioPlayer = ({ title, filePath, fileId }) => {
+const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
   const driveId = getDriveFileId(filePath);
 
   // HIGH-1: short-lived stream token — keeps full JWT out of audio src URLs
   const [streamToken, setStreamToken] = useState(null);
+  const [localFilePath, setLocalFilePath] = useState(filePath);
+  const [isChecking, setIsChecking] = useState(false);
 
+  // Sync when props change
   useEffect(() => {
-    if (!fileId) return;
+    setLocalFilePath(filePath);
+    setStreamToken(null);
+  }, [fileId, filePath]);
+
+  // Fetch stream token when we have a file with a path
+  useEffect(() => {
+    if (!fileId || !localFilePath) return;
     let cancelled = false;
     apiClient.post(`/lesson-files/stream-token/${fileId}`)
       .then((res) => { if (!cancelled) setStreamToken(res.data.token); })
       .catch(() => { if (!cancelled) setStreamToken(null); });
     return () => { cancelled = true; };
-  }, [fileId]);
+  }, [fileId, localFilePath]);
+
+  // ── Auto-poll when audio is generating (fileId exists, no filePath) ──
+  useEffect(() => {
+    if (!fileId || localFilePath || !lessonId) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await apiClient.get(`/lesson-files/${lessonId}`);
+        const record = data.find((f) => f.id === fileId);
+        if (record && record.file_path) {
+          setLocalFilePath(record.file_path);
+        }
+      } catch { /* ignore polling errors */ }
+    }, 10000); // check every 10 seconds
+    return () => clearInterval(interval);
+  }, [fileId, localFilePath, lessonId]);
+
+  // ── Manual refresh check ────────────────────────────────────
+  const handleRefresh = async () => {
+    if (isChecking || !lessonId) return;
+    setIsChecking(true);
+    try {
+      const { data } = await apiClient.get(`/lesson-files/${lessonId}`);
+      const record = data.find((f) => f.id === fileId);
+      if (record && record.file_path) {
+        setLocalFilePath(record.file_path);
+      }
+    } catch { /* ignore */ }
+    setIsChecking(false);
+  };
+
+  const activeDriveId = getDriveFileId(localFilePath);
+
+  // ── Generating state (fileId exists but no file yet) ───────
+  if (fileId && !localFilePath) {
+    return (
+      <div className="audio-player-container">
+        <div className="icon-wrapper">
+          <BsMusicNoteBeamed className="music-icon" style={{ animation: 'spin 2s linear infinite' }} />
+        </div>
+        <h3 className="track-title">{title || "AI Audio Lesson"}</h3>
+        <p className="track-subtitle">Generating your audio… this may take a few minutes.</p>
+        <button
+          onClick={handleRefresh}
+          disabled={isChecking}
+          style={{
+            marginTop: '0.75rem',
+            padding: '0.45rem 1.2rem',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+          }}
+        >
+          {isChecking ? 'Checking…' : '🔄 Refresh to check'}
+        </button>
+      </div>
+    );
+  }
 
   // ── Real audio player ──────────────────────────────────────────
-  if (driveId || fileId) {
-    // Use backend stream proxy for reliable auth + CORS handling
+  if (activeDriveId || (fileId && localFilePath)) {
     let streamSrc = null;
     if (fileId && streamToken) {
       streamSrc = `/api/lesson-files/stream/${fileId}?streamToken=${encodeURIComponent(streamToken)}`;
-    } else if (driveId) {
-      streamSrc = `https://drive.google.com/uc?export=download&id=${driveId}`;
+    } else if (activeDriveId) {
+      streamSrc = `https://drive.google.com/uc?export=download&id=${activeDriveId}`;
     }
 
     return (

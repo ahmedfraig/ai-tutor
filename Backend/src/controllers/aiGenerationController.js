@@ -469,7 +469,7 @@ function bufferToStream(buffer) {
 const generateAudio = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { lesson_id, file_record_id, language = 'ar' } = req.body;
+        const { lesson_id, language = 'ar' } = req.body;
         console.log(`[generateAudio] START — userId=${userId} lesson_id=${lesson_id} language=${language}`);
 
         if (!lesson_id) {
@@ -482,10 +482,8 @@ const generateAudio = async (req, res) => {
             [lesson_id, userId]
         );
         if (lessonCheck.rows.length === 0) {
-            console.log('[generateAudio] ❌ Lesson not found');
             return res.status(404).json({ message: 'Lesson not found' });
         }
-        console.log(`[generateAudio] ✅ Lesson found: "${lessonCheck.rows[0].title}"`);
 
         // Get the source file to use as document context
         const filesResult = await db.query(
@@ -495,99 +493,100 @@ const generateAudio = async (req, res) => {
             [lesson_id, userId]
         );
         if (filesResult.rows.length === 0) {
-            console.log('[generateAudio] ❌ No uploaded files');
             return res.status(400).json({
                 message: 'No uploaded files found. Upload at least one PDF to generate audio.'
             });
         }
         const documentId = String(filesResult.rows[0].id);
-        console.log(`[generateAudio] ✅ Document ID: ${documentId}`);
 
         // Check pipeline availability
         const aiReady = await aiService.isAvailable();
         if (!aiReady) {
-            console.log('[generateAudio] ❌ Pipeline not available');
             return res.status(503).json({ message: 'AI pipeline is not available. Please try again later.' });
         }
-        console.log('[generateAudio] ✅ Pipeline is available');
 
-        // Call pipeline to generate TTS audio (returns a WAV Buffer)
-        console.log('[generateAudio] ⏳ Calling pipeline for TTS audio...');
-        const audioBuffer = await aiService.callPipelineAudio(
-            String(userId), documentId, String(lesson_id), language
+        // ── Create a placeholder record IMMEDIATELY so the frontend can show it ──
+        const audioCount = await db.query(
+            `SELECT COUNT(*) FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'audio'`,
+            [lesson_id, userId]
         );
+        const count = parseInt(audioCount.rows[0].count, 10) + 1;
+        const insertResult = await db.query(
+            `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path)
+             VALUES ($1, $2, 'audio', $3, NULL) RETURNING *`,
+            [lesson_id, userId, `AI Audio ${count}`]
+        );
+        const placeholderRecord = insertResult.rows[0];
+        console.log(`[generateAudio] ✅ Placeholder created: id=${placeholderRecord.id} — responding to client`);
 
-        if (!audioBuffer || audioBuffer.length === 0) {
-            console.log('[generateAudio] ❌ Pipeline returned no audio data');
-            return res.status(502).json({
-                message: 'AI pipeline failed to generate audio. Please try again later.'
-            });
-        }
-        console.log(`[generateAudio] ✅ Got audio buffer: ${audioBuffer.length} bytes`);
-
-        // Upload the WAV to Google Drive
-        const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
-        const audioFilename = `audio_lesson_${lesson_id}_${language}_${Date.now()}.wav`;
-        console.log(`[generateAudio] ⏳ Uploading to Drive: ${audioFilename}...`);
-
-        let driveFileId = null;
-        try {
-            const driveRes = await drive.files.create({
-                requestBody: {
-                    name: audioFilename,
-                    parents: [ROOT_FOLDER_ID],
-                    mimeType: 'audio/wav',
-                },
-                media: {
-                    mimeType: 'audio/wav',
-                    body: bufferToStream(audioBuffer),
-                },
-                fields: 'id',
-            });
-            driveFileId = driveRes.data.id;
-            console.log(`[generateAudio] ✅ Uploaded to Drive: ${driveFileId}`);
-        } catch (driveErr) {
-            console.error('[generateAudio] ❌ Google Drive upload failed:', driveErr.message);
-            return res.status(502).json({ message: 'Failed to save audio to storage.' });
-        }
-
-        const filePath = `https://drive.google.com/uc?export=view&id=${driveFileId}`;
-
-        // Update the lesson_files record if file_record_id was provided,
-        // otherwise create a new record.
-        let fileRecord;
-        if (file_record_id) {
-            const updateResult = await db.query(
-                `UPDATE lesson_files SET file_path = $1
-                 WHERE id = $2 AND user_id = $3 RETURNING *`,
-                [filePath, file_record_id, userId]
-            );
-            fileRecord = updateResult.rows[0];
-        } else {
-            const audioCount = await db.query(
-                `SELECT COUNT(*) FROM lesson_files
-                 WHERE lesson_id = $1 AND user_id = $2 AND type = 'audio'`,
-                [lesson_id, userId]
-            );
-            const count = parseInt(audioCount.rows[0].count, 10) + 1;
-            const insertResult = await db.query(
-                `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path)
-                 VALUES ($1, $2, 'audio', $3, $4) RETURNING *`,
-                [lesson_id, userId, `AI Audio ${count}`, filePath]
-            );
-            fileRecord = insertResult.rows[0];
-        }
-        console.log(`[generateAudio] ✅ DB record saved: id=${fileRecord.id}`);
-
-        res.status(200).json({
-            message: 'Audio generated successfully',
-            file: fileRecord,
+        // Respond immediately — the frontend will show a "generating" state
+        res.status(202).json({
+            message: 'Audio generation started. It will appear shortly.',
+            file: placeholderRecord,
+            generating: true,
         });
-        console.log('[generateAudio] ✅ DONE — response sent');
+
+        // ── Background processing — pipeline call + Drive upload ─────────────
+        // This runs AFTER the response is sent. Errors are logged, not thrown.
+        (async () => {
+            try {
+                console.log('[generateAudio:bg] ⏳ Calling pipeline for TTS audio...');
+                const audioBuffer = await aiService.callPipelineAudio(
+                    String(userId), documentId, String(lesson_id), language
+                );
+
+                if (!audioBuffer || audioBuffer.length === 0) {
+                    console.error('[generateAudio:bg] ❌ Pipeline returned no audio data');
+                    // Delete the placeholder so the user can retry
+                    await db.query('DELETE FROM lesson_files WHERE id = $1', [placeholderRecord.id]);
+                    return;
+                }
+                console.log(`[generateAudio:bg] ✅ Got audio buffer: ${audioBuffer.length} bytes`);
+
+                // Upload to Google Drive
+                const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+                const audioFilename = `audio_lesson_${lesson_id}_${language}_${Date.now()}.wav`;
+                console.log(`[generateAudio:bg] ⏳ Uploading to Drive: ${audioFilename}...`);
+
+                const driveRes = await drive.files.create({
+                    requestBody: {
+                        name: audioFilename,
+                        parents: [ROOT_FOLDER_ID],
+                        mimeType: 'audio/wav',
+                    },
+                    media: {
+                        mimeType: 'audio/wav',
+                        body: bufferToStream(audioBuffer),
+                    },
+                    fields: 'id',
+                });
+                const driveFileId = driveRes.data.id;
+                console.log(`[generateAudio:bg] ✅ Uploaded to Drive: ${driveFileId}`);
+
+                // Update the placeholder with the actual file path
+                const filePath = `https://drive.google.com/uc?export=view&id=${driveFileId}`;
+                await db.query(
+                    `UPDATE lesson_files SET file_path = $1 WHERE id = $2`,
+                    [filePath, placeholderRecord.id]
+                );
+                console.log(`[generateAudio:bg] ✅ DONE — record ${placeholderRecord.id} updated with Drive URL`);
+
+            } catch (bgErr) {
+                console.error('[generateAudio:bg] ❌ Background error:', bgErr.message || bgErr);
+                // Clean up placeholder on failure so user can retry
+                try {
+                    await db.query('DELETE FROM lesson_files WHERE id = $1', [placeholderRecord.id]);
+                    console.log(`[generateAudio:bg] 🗑️ Cleaned up placeholder ${placeholderRecord.id}`);
+                } catch { /* ignore cleanup errors */ }
+            }
+        })();
 
     } catch (error) {
-        console.error('[generateAudio] ❌ UNHANDLED ERROR:', error.message || error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        console.error('[generateAudio] ❌ ERROR:', error.message || error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
     }
 };
 
