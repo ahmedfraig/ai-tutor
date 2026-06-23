@@ -40,9 +40,9 @@ const DELIMITERS = [
 function renderLatexText(text) {
   if (!text || typeof text !== 'string') return text;
 
-  // Fast bail — nothing to parse
+  // If no LaTeX delimiters, still process markdown formatting (bold, newlines)
   const hasLatex = DELIMITERS.some(d => text.includes(d.left));
-  if (!hasLatex) return text;
+  if (!hasLatex) return renderFormattedText(text);
 
   // nodes holds alternating strings and {latex, displayMode} objects
   const nodes = [];
@@ -100,13 +100,13 @@ function renderLatexText(text) {
     nodes.push({ latex, display: best.display });
   }
 
-  // Single plain-text segment — return as-is (no wrapping)
-  if (nodes.length === 1 && typeof nodes[0] === 'string') return nodes[0];
+  // Single plain-text segment — process formatting and return
+  if (nodes.length === 1 && typeof nodes[0] === 'string') return renderFormattedText(nodes[0]);
 
   // All siblings share the same index-based key space — no conflicts.
   return nodes.map((n, i) =>
     typeof n === 'string'
-      ? <React.Fragment key={i}>{n}</React.Fragment>
+      ? <React.Fragment key={i}>{renderFormattedText(n)}</React.Fragment>
       : renderKatex(n.latex, n.display, i)
   );
 }
@@ -141,6 +141,63 @@ function renderKatex(latex, displayMode, key) {
     // Malformed LaTeX — show raw text so content isn't lost
     return <span key={key} className="katex-error">{latex}</span>;
   }
+}
+
+/**
+ * Process markdown-style formatting in a plain text string:
+ *   **bold**  → <strong>
+ *   newlines  → <br />
+ *
+ * Returns the original string if no formatting is found, or an array
+ * of React nodes with the appropriate elements.
+ */
+function renderFormattedText(text) {
+  if (!text || typeof text !== 'string') return text;
+
+  const hasBold = text.includes('**');
+  const hasNewline = text.includes('\n');
+  if (!hasBold && !hasNewline) return text;
+
+  // First split on **bold** markers
+  const boldParts = text.split(/(\*\*[^*]+\*\*)/);
+
+  const nodes = [];
+  let key = 0;
+
+  for (const part of boldParts) {
+    if (!part) continue;
+
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // Bold segment — also process newlines inside it
+      const inner = part.slice(2, -2);
+      if (inner.includes('\n')) {
+        const lines = inner.split('\n');
+        nodes.push(
+          <strong key={key++}>
+            {lines.map((line, li) => (
+              <React.Fragment key={li}>
+                {li > 0 && <br />}
+                {line}
+              </React.Fragment>
+            ))}
+          </strong>
+        );
+      } else {
+        nodes.push(<strong key={key++}>{inner}</strong>);
+      }
+    } else if (part.includes('\n')) {
+      // Plain text with newlines
+      const lines = part.split('\n');
+      lines.forEach((line, li) => {
+        if (li > 0) nodes.push(<br key={key++} />);
+        if (line) nodes.push(<React.Fragment key={key++}>{line}</React.Fragment>);
+      });
+    } else {
+      nodes.push(<React.Fragment key={key++}>{part}</React.Fragment>);
+    }
+  }
+
+  return nodes.length === 1 ? nodes[0] : nodes;
 }
 
 export default renderLatexText;

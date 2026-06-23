@@ -25,12 +25,38 @@ const DELIMITERS = [
 ];
 
 /**
+ * Heuristic: detect text that looks like LaTeX but wasn't wrapped in
+ * delimiters by the AI. Auto-wrap such expressions in $...$ so the
+ * main parser can pick them up.
+ *
+ * Detects patterns like: LL_{t+1}(D), x^{2}, \sum_{i=1}, etc.
+ */
+const UNDELIMITED_LATEX_RE = /(?:[A-Za-z_]+(?:_{[^}]+}|\^{[^}]+})+(?:\([^)]*\))?|\\(?:sum|prod|frac|sqrt|log|ln|sin|cos|tan|int|lim|inf|sup|max|min|alpha|beta|gamma|delta|epsilon|lambda|mu|sigma|theta|omega|Delta|Lambda|Sigma|Omega|partial|nabla|forall|exists|in|notin|subset|subseteq|cup|cap|cdot|times|div|pm|mp|leq|geq|neq|approx|equiv|rightarrow|leftarrow|Rightarrow|Leftarrow|infty)(?:[_{^][^}\s]*}?)*)/g;
+
+function autoWrapUndelimitedLatex(text) {
+  if (!text || typeof text !== 'string') return text;
+  // Don't process if it already has delimiters
+  if (DELIMITERS.some(d => text.includes(d.left))) return text;
+  // Check for subscript/superscript patterns or backslash commands
+  if (!text.includes('_{') && !text.includes('^{') && !text.includes('\\')) return text;
+
+  return text.replace(UNDELIMITED_LATEX_RE, (match) => {
+    // Avoid wrapping things that are clearly not math (too short, just letters)
+    if (match.length < 3) return match;
+    return `$${match}$`;
+  });
+}
+
+/**
  * Process a plain text string: find LaTeX delimiters and replace each
  * math segment with KaTeX-rendered HTML. Non-math text is escaped.
  * Returns the processed HTML string, or null if nothing was rendered.
  */
 function processTextSegment(text) {
   if (!text || !text.trim()) return null;
+
+  // Auto-wrap undelimited LaTeX patterns before checking for delimiters
+  text = autoWrapUndelimitedLatex(text);
 
   // Fast bail — no delimiters at all
   const hasLatex = DELIMITERS.some(d => text.includes(d.left));
