@@ -6,10 +6,12 @@ import { BsRobot } from 'react-icons/bs';
 import { motion, AnimatePresence } from "framer-motion";
 import apiClient from "../../api/apiClient";
 import renderLatexText from '../../utils/renderLatexText';
+import useKatexReady from '../../hooks/useKatexReady';
 
 const EASE_OUT_QUART = [0.25, 1, 0.5, 1];
 
 const AITutorPanel = ({ lessonId, lessonTitle }) => {
+  useKatexReady(); // triggers re-render once KaTeX CDN loads
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {

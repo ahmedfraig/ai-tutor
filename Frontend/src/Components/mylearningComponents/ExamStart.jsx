@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Card, Button, Container } from "react-bootstrap";
 import './Examstart.css'
 import "./ExamSection.css";
@@ -7,11 +7,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import FloatingToast from './FloatingToast';
 import renderLatexText from '../../utils/renderLatexText';
+import useKatexReady from '../../hooks/useKatexReady';
 
 const ExamStart = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const lessonId = location.state?.lessonId || null;
+    useKatexReady(); // triggers re-render once KaTeX CDN loads
 
     const [correctanswers, setcorrectanswers] = useState(0);
     const [show, setShow] = useState(false);

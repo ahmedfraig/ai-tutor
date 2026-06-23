@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { motion, easeInOut } from "framer-motion";
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
+import FloatingToast from './FloatingToast';
 import renderLatexText from '../../utils/renderLatexText';
+import useKatexReady from '../../hooks/useKatexReady';
 import './QuizFlashcards.css';
 
 const QuizFlashcards = () => {
@@ -11,17 +13,19 @@ const QuizFlashcards = () => {
   const location = useLocation();
   const lessonId = location.state?.lessonId || null;
 
+  useKatexReady(); // triggers re-render once KaTeX CDN loads
   const [showanswers, setshowanswers] = useState(0);
   const [questionnumber, setquestionnumber] = useState(0);
   const [quiz, setquiz] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [scoreSaved, setScoreSaved] = useState(false);
+  const dismissToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
     const fetchdata = async () => {
       setLoading(true);
-      setError(null);
+      setToast(null);
       try {
         if (lessonId) {
           const res = await apiClient.get(`/ai-generations/lesson/${lessonId}?type=quiz`);
@@ -29,14 +33,14 @@ const QuizFlashcards = () => {
             const flashcards = JSON.parse(res.data[0].content);
             setquiz(Array.isArray(flashcards) ? flashcards : []);
           } else {
-            setError("No quiz has been generated for this lesson yet.");
+            setToast("No quiz has been generated for this lesson yet.");
           }
         } else {
-          setError("No lesson selected.");
+          setToast("No lesson selected.");
         }
       } catch (error) {
         console.error("Failed to fetch quiz:", error);
-        setError("Could not load quiz. Please try again later.");
+        setToast("Could not load quiz. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -46,21 +50,20 @@ const QuizFlashcards = () => {
 
   const getnextquestion = async () => {
     if (questionnumber === quiz.length - 1) {
-      // Last question — save quiz completion score
       if (lessonId && !scoreSaved) {
         try {
           await apiClient.put(`/user-lessons/${lessonId}`, {
-            quiz_score: 100,        // completed all flashcards = 100%
+            quiz_score: 100,
             practice_completed: true,
           });
           setScoreSaved(true);
-          alert("Quiz complete! Score saved. ✅");
+          setToast("Quiz complete! Score saved. ✅");
         } catch (err) {
           console.error("Failed to save quiz score:", err);
-          alert("You finished all questions!");
+          setToast("You finished all questions!");
         }
       } else {
-        alert("You finished all questions!");
+        setToast("You finished all questions!");
       }
     } else {
       setquestionnumber(prev => prev + 1);
@@ -77,29 +80,27 @@ const QuizFlashcards = () => {
     setshowanswers(prev => (prev === 2 ? 0 : prev + 1));
   };
 
-  if (loading) return <div className="qf-root"><p className="qf-section-label">Loading quiz…</p></div>;
-  if (error) return (
+  if (loading) return (
     <div className="qf-root">
-      <div className="alert alert-warning">{error}</div>
-      <button className="qf-return-btn" onClick={() => navigate("/lesson", { state: location.state })}>
-        Return to Session
-      </button>
+      <p className="qf-section-label">Loading quiz…</p>
     </div>
   );
+
   if (quiz.length === 0) return (
     <div className="qf-root">
-      <p>No questions available.</p>
+      <p className="qf-section-label" style={{ opacity: 0.6 }}>No questions available yet.</p>
       <button className="qf-return-btn" onClick={() => navigate("/lesson", { state: location.state })}>
-        Return to Session
+        ← Return to Session
       </button>
+      <FloatingToast message={toast} onClose={dismissToast} />
     </div>
   );
 
   return (
     <>
+      <FloatingToast message={toast} onClose={dismissToast} />
       <div className="qf-root">
         <MotionDiv
-          ref={cardRef}
           className="qf-card"
           animate={showanswers > 0 ? { rotate: [0, 360, 0] } : { rotate: 0 }}
           transition={{ duration: 1, ease: easeInOut }}
@@ -135,30 +136,29 @@ const QuizFlashcards = () => {
                 <span className="qf-section-label">Answer</span>
               </div>
               <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].answer)}</p>
-              {/* Only show "Why Correct" if the pipeline populated it */}
               {quiz[questionnumber].why_correct && (
                 <>
                   <div className="qf-card-header" style={{ marginBottom: '4px' }}>
                     <div className="qf-icon-wrap"><i className="bi bi-check2-all" aria-hidden="true" style={{ color: 'var(--color-success)' }}></i></div>
                     <span className="qf-section-label">Why This Is Correct</span>
                   </div>
-                  <p className="qf-answer-text">{quiz[questionnumber].why_correct}</p>
+                  <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].why_correct)}</p>
                 </>
               )}
             </div>
           )}
 
-          {/* Common mistakes — only show when the pipeline generated this field */}
+          {/* Common mistakes */}
           {showanswers === 2 && (
             <div className="qf-answer-section">
-              <p className="qf-answer-text">{quiz[questionnumber].answer}</p>
+              <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].answer)}</p>
               {quiz[questionnumber].common_mistake ? (
                 <>
                   <div className="qf-card-header" style={{ marginTop: '16px', marginBottom: '4px' }}>
                     <div className="qf-icon-wrap"><i className="bi bi-exclamation-triangle" aria-hidden="true" style={{ color: 'var(--color-error)' }}></i></div>
                     <span className="qf-section-label">Common Mistakes</span>
                   </div>
-                  <p className="qf-mistake-text">{quiz[questionnumber].common_mistake}</p>
+                  <p className="qf-mistake-text">{renderLatexText(quiz[questionnumber].common_mistake)}</p>
                 </>
               ) : (
                 <p className="qf-answer-text" style={{ opacity: 0.5, fontStyle: 'italic' }}>No common mistakes noted for this card.</p>
