@@ -470,6 +470,7 @@ const generateAudio = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { lesson_id, file_record_id, language = 'ar' } = req.body;
+        console.log(`[generateAudio] START — userId=${userId} lesson_id=${lesson_id} language=${language}`);
 
         if (!lesson_id) {
             return res.status(400).json({ message: 'lesson_id is required' });
@@ -481,8 +482,10 @@ const generateAudio = async (req, res) => {
             [lesson_id, userId]
         );
         if (lessonCheck.rows.length === 0) {
+            console.log('[generateAudio] ❌ Lesson not found');
             return res.status(404).json({ message: 'Lesson not found' });
         }
+        console.log(`[generateAudio] ✅ Lesson found: "${lessonCheck.rows[0].title}"`);
 
         // Get the source file to use as document context
         const filesResult = await db.query(
@@ -492,32 +495,40 @@ const generateAudio = async (req, res) => {
             [lesson_id, userId]
         );
         if (filesResult.rows.length === 0) {
+            console.log('[generateAudio] ❌ No uploaded files');
             return res.status(400).json({
                 message: 'No uploaded files found. Upload at least one PDF to generate audio.'
             });
         }
         const documentId = String(filesResult.rows[0].id);
+        console.log(`[generateAudio] ✅ Document ID: ${documentId}`);
 
         // Check pipeline availability
         const aiReady = await aiService.isAvailable();
         if (!aiReady) {
+            console.log('[generateAudio] ❌ Pipeline not available');
             return res.status(503).json({ message: 'AI pipeline is not available. Please try again later.' });
         }
+        console.log('[generateAudio] ✅ Pipeline is available');
 
         // Call pipeline to generate TTS audio (returns a WAV Buffer)
+        console.log('[generateAudio] ⏳ Calling pipeline for TTS audio...');
         const audioBuffer = await aiService.callPipelineAudio(
             String(userId), documentId, String(lesson_id), language
         );
 
         if (!audioBuffer || audioBuffer.length === 0) {
+            console.log('[generateAudio] ❌ Pipeline returned no audio data');
             return res.status(502).json({
                 message: 'AI pipeline failed to generate audio. Please try again later.'
             });
         }
+        console.log(`[generateAudio] ✅ Got audio buffer: ${audioBuffer.length} bytes`);
 
         // Upload the WAV to Google Drive
         const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
         const audioFilename = `audio_lesson_${lesson_id}_${language}_${Date.now()}.wav`;
+        console.log(`[generateAudio] ⏳ Uploading to Drive: ${audioFilename}...`);
 
         let driveFileId = null;
         try {
@@ -534,8 +545,9 @@ const generateAudio = async (req, res) => {
                 fields: 'id',
             });
             driveFileId = driveRes.data.id;
+            console.log(`[generateAudio] ✅ Uploaded to Drive: ${driveFileId}`);
         } catch (driveErr) {
-            console.error('[generateAudio] Google Drive upload failed:', driveErr.message);
+            console.error('[generateAudio] ❌ Google Drive upload failed:', driveErr.message);
             return res.status(502).json({ message: 'Failed to save audio to storage.' });
         }
 
@@ -565,14 +577,16 @@ const generateAudio = async (req, res) => {
             );
             fileRecord = insertResult.rows[0];
         }
+        console.log(`[generateAudio] ✅ DB record saved: id=${fileRecord.id}`);
 
         res.status(200).json({
             message: 'Audio generated successfully',
             file: fileRecord,
         });
+        console.log('[generateAudio] ✅ DONE — response sent');
 
     } catch (error) {
-        console.error('Error in generateAudio:', error);
+        console.error('[generateAudio] ❌ UNHANDLED ERROR:', error.message || error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 };

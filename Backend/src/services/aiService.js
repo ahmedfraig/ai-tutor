@@ -17,6 +17,11 @@ const AI_API_URL = process.env.AI_API_URL || 'http://localhost:8005';
 const ai = axios.create({
     baseURL: AI_API_URL,
     timeout: 300_000, // 5 minutes — OCR on large PDFs can be slow
+    headers: {
+        // Bypass ngrok's free-tier browser interstitial page.
+        // Without this, ngrok returns HTML instead of the API response.
+        'ngrok-skip-browser-warning': 'true',
+    },
 });
 
 /**
