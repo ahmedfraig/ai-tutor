@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import FloatingToast from './FloatingToast';
 import renderLatexText from '../../utils/renderLatexText';
-import useKatexReady from '../../hooks/useKatexReady';
 import './QuizFlashcards.css';
 
 const QuizFlashcards = () => {
@@ -13,7 +12,6 @@ const QuizFlashcards = () => {
   const location = useLocation();
   const lessonId = location.state?.lessonId || null;
 
-  useKatexReady(); // triggers re-render once KaTeX CDN loads
   const [showanswers, setshowanswers] = useState(0);
   const [questionnumber, setquestionnumber] = useState(0);
   const [quiz, setquiz] = useState([]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import UploadedFile from "./UploadedFile";
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
@@ -8,7 +8,7 @@ import Quiz from "./Quiz";
 import "./LessonContent.css";
 import apiClient from "../../api/apiClient";
 import DomPurify from 'dompurify';
-import useLatex from '../../hooks/useLatex';
+import preprocessLatexHtml from '../../utils/preprocessLatexHtml';
 
 const TABS = [
   { key: "overview",   label: "Overview"   },
@@ -24,12 +24,19 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
   const [generating, setGenerating] = useState(null); // which type is being generated
   const [errorToast, setErrorToast] = useState(null);
   const toastTimerRef = useRef(null);
-  const summaryRef = useRef(null);   // ref for KaTeX to render equations inside
 
-  // Render LaTeX equations in the summary after content changes
-  useLatex(summaryRef, [summarize]);
+  // Preprocess LaTeX in the summary HTML synchronously so the very first
+  // paint already has rendered equations — no flash of raw LaTeX.
+  const processedSummary = useMemo(() => {
+    if (!summarize) return '';
+    const sanitized = DomPurify.sanitize(summarize, {
+      ADD_TAGS: ['div'],
+      ADD_ATTR: ['class'],
+    });
+    return preprocessLatexHtml(sanitized);
+  }, [summarize]);
 
-  // Clear timer on unmount to prevent state update on dead component
+  // Clear timer on unmount
   useEffect(() => () => clearTimeout(toastTimerRef.current), []);
 
   useEffect(() => {
@@ -176,15 +183,8 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
             </div>
           ) : summarize ? (
             <div
-              ref={summaryRef}
               className="lc-summary-body"
-              dangerouslySetInnerHTML={{
-                __html: DomPurify.sanitize(summarize, {
-                  // Keep equation wrapper divs the AI generates
-                  ADD_TAGS: ['div'],
-                  ADD_ATTR: ['class'],
-                })
-              }}
+              dangerouslySetInnerHTML={{ __html: processedSummary }}
             />
           ) : (
             <div className="lc-empty-state">

@@ -1,82 +1,145 @@
 /**
  * renderLatexText — splits a plain text string on LaTeX delimiters
- * and returns a React element array with KaTeX-rendered math inline.
+ * and returns an array of React nodes with KaTeX-rendered math.
  *
- * Supports:
- *   \[ ... \]  display block math
- *   \( ... \)  inline math
+ * Supports ALL common delimiters produced by AI models:
+ *   $$  ... $$    display block math  (most common from AI)
+ *   \[  ... \]    display block math
+ *   $   ... $     inline math
+ *   \(  ... \)    inline math
+ *
+ * Key correctness guarantees:
+ *   - $$ is always checked before $ (greedy outer match wins)
+ *   - When $$ and $ both start at the same index, $$ wins
+ *   - Unclosed delimiters are emitted as raw text (no crash)
+ *   - Empty latex strings are skipped
  *
  * Usage:
  *   import renderLatexText from '../../utils/renderLatexText';
  *   <p>{renderLatexText(question)}</p>
  */
 
-const DISPLAY_RE = /\\\[([\s\S]+?)\\\]/g;
-const INLINE_RE  = /\\\(([\s\S]+?)\\\)/g;
+import React from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
-// Unified regex: captures display (\[...\]) and inline (\(...\)) math
-const MATH_RE = /(\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\))/g;
+// Order matters: MUST list $$ before $ so that when both match
+// at the same index, the longer/higher-priority delimiter wins.
+const DELIMITERS = [
+  { left: '$$',  right: '$$',  display: true  },
+  { left: '\\[', right: '\\]', display: true  },
+  { left: '\\(', right: '\\)', display: false },
+  { left: '$',   right: '$',   display: false },
+];
 
+/**
+ * Main export — call with a string, get React nodes back.
+ * Returns the original value unchanged if it's not a string
+ * or contains no recognised LaTeX delimiters.
+ */
 function renderLatexText(text) {
   if (!text || typeof text !== 'string') return text;
 
-  // Quick bail if no LaTeX present
-  if (!text.includes('\\[') && !text.includes('\\(')) return text;
+  // Fast bail — nothing to parse
+  const hasLatex = DELIMITERS.some(d => text.includes(d.left));
+  if (!hasLatex) return text;
 
-  const parts = text.split(MATH_RE);
+  // nodes holds alternating strings and {latex, displayMode} objects
+  const nodes = [];
+  let remaining = text;
 
-  return parts.map((part, i) => {
-    // Display math: \[ ... \]
-    if (part.startsWith('\\[') && part.endsWith('\\]')) {
-      const latex = part.slice(2, -2).trim();
-      return renderKatex(latex, true, i);
+  while (remaining.length > 0) {
+    // ── Find the earliest-starting delimiter ───────────────────────────
+    // When two delimiters start at the same index (e.g. $ and $$ both at 0),
+    // the one listed FIRST in the DELIMITERS array wins because we use
+    // strict-less-than on the index AND check in priority order.
+    let best = null;
+    let bestIdx = Infinity;
+
+    for (const delim of DELIMITERS) {
+      const idx = remaining.indexOf(delim.left);
+      if (idx === -1) continue;
+
+      // Strictly less-than: first delim in array wins ties ($$  beats $)
+      if (idx < bestIdx) {
+        bestIdx = idx;
+        best = delim;
+      }
     }
-    // Inline math: \( ... \)
-    if (part.startsWith('\\(') && part.endsWith('\\)')) {
-      const latex = part.slice(2, -2).trim();
-      return renderKatex(latex, false, i);
+
+    if (best === null) {
+      // No more delimiters — push remaining text and stop
+      nodes.push(remaining);
+      break;
     }
-    // Plain text
-    return part || null;
-  });
+
+    // Push plain text that precedes the opening delimiter
+    if (bestIdx > 0) {
+      nodes.push(remaining.slice(0, bestIdx));
+    }
+
+    // Advance past the opening delimiter
+    const afterLeft = remaining.slice(bestIdx + best.left.length);
+
+    // Find the matching closing delimiter
+    const endIdx = afterLeft.indexOf(best.right);
+
+    if (endIdx === -1) {
+      // Unclosed delimiter — emit raw text and stop
+      nodes.push(remaining.slice(bestIdx));
+      break;
+    }
+
+    const latex = afterLeft.slice(0, endIdx).trim();
+    remaining = afterLeft.slice(endIdx + best.right.length);
+
+    // Skip empty delimiters (e.g. $$$$)
+    if (latex.length === 0) continue;
+
+    // Store as object — key assigned in the final .map() below
+    nodes.push({ latex, display: best.display });
+  }
+
+  // Single plain-text segment — return as-is (no wrapping)
+  if (nodes.length === 1 && typeof nodes[0] === 'string') return nodes[0];
+
+  // All siblings share the same index-based key space — no conflicts.
+  return nodes.map((n, i) =>
+    typeof n === 'string'
+      ? <React.Fragment key={i}>{n}</React.Fragment>
+      : renderKatex(n.latex, n.display, i)
+  );
 }
 
+/**
+ * Render a single LaTeX expression to a React span using KaTeX.
+ * `key` must be supplied by the caller (comes from the outer .map index).
+ */
 function renderKatex(latex, displayMode, key) {
   try {
-    if (typeof window.katex === 'undefined') {
-      // KaTeX not loaded yet — render as code fallback
-      return (
-        <code key={key} style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>
-          {displayMode ? `\\[${latex}\\]` : `\\(${latex}\\)`}
-        </code>
-      );
-    }
-
-    const html = window.katex.renderToString(latex, {
+    const html = katex.renderToString(latex, {
       displayMode,
       throwOnError: false,
       strict: false,
+      trust: false,
     });
-
-    if (displayMode) {
-      return (
-        <span
-          key={key}
-          className="katex-display-inline"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      );
-    }
 
     return (
       <span
         key={key}
-        className="katex-inline"
+        className={displayMode ? 'katex-display-wrap' : 'katex-inline'}
+        style={displayMode ? {
+          display: 'block',
+          textAlign: 'center',
+          margin: '0.75em 0',
+          overflowX: 'auto',
+        } : undefined}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
   } catch {
-    return <span key={key}>{latex}</span>;
+    // Malformed LaTeX — show raw text so content isn't lost
+    return <span key={key} className="katex-error">{latex}</span>;
   }
 }
 
