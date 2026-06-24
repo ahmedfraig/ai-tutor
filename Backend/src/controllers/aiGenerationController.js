@@ -452,10 +452,10 @@ const chatWithAi = async (req, res) => {
 // ── Audio Generation ──────────────────────────────────────────────────────
 // POST /api/ai-generations/audio
 //
-// Generates a TTS audio lesson from the most recently uploaded file.
-// Calls the pipeline's /pipeline/audio/prepare endpoint, which returns a
-// pre-signed S3 URL that the browser can stream directly — no Google Drive
-// upload or proxy streaming needed.
+// Creates a lesson_files record so the sidebar knows audio exists for this
+// lesson. Does NOT call the pipeline or store an audio URL — the frontend
+// calls /api/ai-generations/audio/prepare directly to get a fresh pre-signed
+// S3 URL each time it needs to play audio.
 
 const generateAudio = async (req, res) => {
     try {
@@ -488,7 +488,6 @@ const generateAudio = async (req, res) => {
                 message: 'No uploaded files found. Upload at least one PDF to generate audio.'
             });
         }
-        const documentId = String(filesResult.rows[0].id);
 
         // Check pipeline availability
         const aiReady = await aiService.isAvailable();
@@ -496,7 +495,7 @@ const generateAudio = async (req, res) => {
             return res.status(503).json({ message: 'AI pipeline is not available. Please try again later.' });
         }
 
-        // ── Create a placeholder record IMMEDIATELY so the frontend can show it ──
+        // ── Create a record so the sidebar lists audio for this lesson ──
         const audioCount = await db.query(
             `SELECT COUNT(*) FROM lesson_files
              WHERE lesson_id = $1 AND user_id = $2 AND type = 'audio'`,
@@ -505,58 +504,88 @@ const generateAudio = async (req, res) => {
         const count = parseInt(audioCount.rows[0].count, 10) + 1;
         const insertResult = await db.query(
             `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path)
-             VALUES ($1, $2, 'audio', $3, NULL) RETURNING *`,
+             VALUES ($1, $2, 'audio', $3, 'pending') RETURNING *`,
             [lesson_id, userId, `AI Audio ${count}`]
         );
-        const placeholderRecord = insertResult.rows[0];
-        console.log(`[generateAudio] ✅ Placeholder created: id=${placeholderRecord.id} — responding to client`);
+        const record = insertResult.rows[0];
+        console.log(`[generateAudio] ✅ Audio record created: id=${record.id}`);
 
-        // Respond immediately — the frontend will show a "generating" state
+        // Return immediately — the frontend will call /audio/prepare to get the URL
         res.status(202).json({
-            message: 'Audio generation started. It will appear shortly.',
-            file: placeholderRecord,
+            message: 'Audio record created. Use /audio/prepare to get the playback URL.',
+            file: record,
             generating: true,
         });
-
-        // ── Background processing — pipeline audio/prepare call ─────────────
-        // This runs AFTER the response is sent. Errors are logged, not thrown.
-        (async () => {
-            try {
-                console.log('[generateAudio:bg] ⏳ Calling pipeline /audio/prepare...');
-                const audioData = await aiService.callPipelineAudioPrepare(
-                    String(userId), documentId, String(lesson_id), language
-                );
-
-                if (!audioData || !audioData.audio_url) {
-                    console.error('[generateAudio:bg] ❌ Pipeline returned no audio URL');
-                    // Delete the placeholder so the user can retry
-                    await db.query('DELETE FROM lesson_files WHERE id = $1', [placeholderRecord.id]);
-                    return;
-                }
-                console.log(`[generateAudio:bg] ✅ Got audio URL (source=${audioData.source}, size=${audioData.size_bytes || 'unknown'})`);
-
-                // Store the pre-signed S3 URL directly as file_path
-                await db.query(
-                    `UPDATE lesson_files SET file_path = $1 WHERE id = $2`,
-                    [audioData.audio_url, placeholderRecord.id]
-                );
-                console.log(`[generateAudio:bg] ✅ DONE — record ${placeholderRecord.id} updated with S3 URL`);
-
-            } catch (bgErr) {
-                console.error('[generateAudio:bg] ❌ Background error:', bgErr.message || bgErr);
-                // Clean up placeholder on failure so user can retry
-                try {
-                    await db.query('DELETE FROM lesson_files WHERE id = $1', [placeholderRecord.id]);
-                    console.log(`[generateAudio:bg] 🗑️ Cleaned up placeholder ${placeholderRecord.id}`);
-                } catch { /* ignore cleanup errors */ }
-            }
-        })();
 
     } catch (error) {
         console.error('[generateAudio] ❌ ERROR:', error.message || error);
         if (!res.headersSent) {
             res.status(500).json({ message: 'Internal Server Error' });
         }
+    }
+};
+
+// ── Audio Prepare (Proxy) ─────────────────────────────────────────────────
+// POST /api/ai-generations/audio/prepare
+//
+// Proxies to the pipeline's /pipeline/audio/prepare endpoint.
+// The frontend calls this every time it needs to play audio to get a fresh
+// pre-signed S3 URL. The pipeline returns { status: 'ready', audio_url }
+// or { status: 'processing' } if TTS is still running.
+// We NEVER store the audio_url — it's a short-lived pre-signed URL.
+
+const prepareAudio = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { lesson_id, language = 'ar' } = req.body;
+
+        if (!lesson_id) {
+            return res.status(400).json({ message: 'lesson_id is required' });
+        }
+
+        // Verify lesson ownership
+        const lessonCheck = await db.query(
+            'SELECT id FROM lessons WHERE id = $1 AND user_id = $2',
+            [lesson_id, userId]
+        );
+        if (lessonCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        // Get the source document ID
+        const filesResult = await db.query(
+            `SELECT id FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'upload'
+             ORDER BY created_at DESC LIMIT 1`,
+            [lesson_id, userId]
+        );
+        if (filesResult.rows.length === 0) {
+            return res.status(400).json({
+                message: 'No uploaded files found for this lesson.'
+            });
+        }
+        const documentId = String(filesResult.rows[0].id);
+
+        // Forward to pipeline
+        const audioData = await aiService.callPipelineAudioPrepare(
+            String(userId), documentId, String(lesson_id), language
+        );
+
+        if (!audioData) {
+            return res.status(503).json({
+                status: 'error',
+                message: 'AI pipeline did not respond. Please try again.',
+            });
+        }
+
+        // Pass the pipeline response directly to the frontend
+        // Expected: { status: 'ready', audio_url, expires_in, ... }
+        //       or: { status: 'processing', ... }
+        res.status(200).json(audioData);
+
+    } catch (error) {
+        console.error('[prepareAudio] ❌ ERROR:', error.message || error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -571,4 +600,5 @@ module.exports = {
     getAiGenerationStatus,
     chatWithAi,
     generateAudio,
+    prepareAudio,
 };

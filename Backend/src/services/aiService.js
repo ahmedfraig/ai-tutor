@@ -266,12 +266,9 @@ async function callPipelineAudioPrepare(userId, documentId, lessonId, language =
             timeout: 600_000, // 10 min — TTS on long transcripts is slow
         });
 
-        if (!res.data?.audio_url) {
-            console.error('[aiService] Pipeline audio/prepare returned no audio_url:', res.data);
-            return null;
-        }
-
-        return res.data;
+        // Return the full response — could be { status: 'ready', audio_url }
+        // or { status: 'processing' }. Let the caller decide what to do.
+        return res.data || null;
     } catch (err) {
         console.error('[aiService] Pipeline audio/prepare failed:', err.message);
         return null;

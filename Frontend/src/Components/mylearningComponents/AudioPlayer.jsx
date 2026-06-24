@@ -1,58 +1,106 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./AudioPlayer.css";
 import { BsMusicNoteBeamed } from "react-icons/bs";
 import apiClient from "../../api/apiClient";
 
-const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
-  const [localFilePath, setLocalFilePath] = useState(filePath);
-  const [isChecking, setIsChecking] = useState(false);
+const AudioPlayer = ({ title, fileId, lessonId }) => {
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [status, setStatus] = useState("idle"); // idle | preparing | ready | error
+  const [error, setError] = useState("");
+  const pollRef = useRef(null);
+  const mountedRef = useRef(true);
 
-  // Sync when props change
-  useEffect(() => {
-    setLocalFilePath(filePath);
-  }, [fileId, filePath]);
-
-  // ── Auto-poll when audio is generating (fileId exists, no filePath) ──
-  useEffect(() => {
-    if (!fileId || localFilePath || !lessonId) return;
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await apiClient.get(`/lesson-files/${lessonId}`);
-        const record = data.find((f) => f.id === fileId);
-        if (record && record.file_path) {
-          setLocalFilePath(record.file_path);
-        }
-      } catch { /* ignore polling errors */ }
-    }, 10000); // check every 10 seconds
-    return () => clearInterval(interval);
-  }, [fileId, localFilePath, lessonId]);
-
-  // ── Manual refresh check ────────────────────────────────────
-  const handleRefresh = async () => {
-    if (isChecking || !lessonId) return;
-    setIsChecking(true);
+  // ── Call /audio/prepare and handle response ──────────────────
+  const callPrepare = useCallback(async () => {
+    if (!lessonId) return null;
     try {
-      const { data } = await apiClient.get(`/lesson-files/${lessonId}`);
-      const record = data.find((f) => f.id === fileId);
-      if (record && record.file_path) {
-        setLocalFilePath(record.file_path);
-      }
-    } catch { /* ignore */ }
-    setIsChecking(false);
-  };
+      const { data } = await apiClient.post("/ai-generations/audio/prepare", {
+        lesson_id: lessonId,
+        language: "ar",
+      });
 
-  // ── Generating state (fileId exists but no file yet) ───────
-  if (fileId && !localFilePath) {
+      if (data.status === "ready" && data.audio_url) {
+        return data.audio_url;
+      }
+      // status === "processing" or other — not ready yet
+      return null;
+    } catch (err) {
+      console.error("[AudioPlayer] prepare failed:", err.message);
+      return null;
+    }
+  }, [lessonId]);
+
+  // ── Poll until audio is ready ────────────────────────────────
+  const loadAudio = useCallback(async () => {
+    if (!lessonId || !fileId) return;
+    setStatus("preparing");
+    setError("");
+    setAudioUrl(null);
+
+    // Poll up to 120 times (10 minutes at 5s intervals)
+    for (let i = 0; i < 120; i++) {
+      if (!mountedRef.current) return;
+
+      const url = await callPrepare();
+      if (url) {
+        if (mountedRef.current) {
+          setAudioUrl(url);
+          setStatus("ready");
+        }
+        return;
+      }
+
+      // Wait 5 seconds before retrying
+      await new Promise((resolve) => {
+        pollRef.current = setTimeout(resolve, 5000);
+      });
+    }
+
+    // Exhausted retries
+    if (mountedRef.current) {
+      setStatus("error");
+      setError("Audio is still processing. Please try again later.");
+    }
+  }, [lessonId, fileId, callPrepare]);
+
+  // ── Start loading when component mounts with a fileId ────────
+  useEffect(() => {
+    mountedRef.current = true;
+
+    if (fileId && lessonId) {
+      loadAudio();
+    }
+
+    return () => {
+      mountedRef.current = false;
+      if (pollRef.current) clearTimeout(pollRef.current);
+    };
+  }, [fileId, lessonId, loadAudio]);
+
+  // ── Preparing state ────────────────────────────────────────────
+  if (status === "preparing") {
     return (
       <div className="audio-player-container">
         <div className="icon-wrapper">
           <BsMusicNoteBeamed className="music-icon" style={{ animation: 'spin 2s linear infinite' }} />
         </div>
         <h3 className="track-title">{title || "AI Audio Lesson"}</h3>
-        <p className="track-subtitle">Generating your audio… this may take a few minutes.</p>
+        <p className="track-subtitle">Preparing your audio… this may take a few minutes.</p>
+      </div>
+    );
+  }
+
+  // ── Error state ────────────────────────────────────────────────
+  if (status === "error") {
+    return (
+      <div className="audio-player-container">
+        <div className="icon-wrapper">
+          <BsMusicNoteBeamed className="music-icon" />
+        </div>
+        <h3 className="track-title">{title || "AI Audio Lesson"}</h3>
+        <p className="track-subtitle">{error}</p>
         <button
-          onClick={handleRefresh}
-          disabled={isChecking}
+          onClick={loadAudio}
           style={{
             marginTop: '0.75rem',
             padding: '0.45rem 1.2rem',
@@ -64,14 +112,14 @@ const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
             fontSize: '0.85rem',
           }}
         >
-          {isChecking ? 'Checking…' : '🔄 Refresh to check'}
+          🔄 Try Again
         </button>
       </div>
     );
   }
 
-  // ── Real audio player — stream directly from S3 pre-signed URL ─────
-  if (fileId && localFilePath) {
+  // ── Ready — play audio directly from S3 pre-signed URL ─────────
+  if (status === "ready" && audioUrl) {
     return (
       <div className="audio-player-real">
         <div className="audio-player-real__icon">
@@ -82,9 +130,10 @@ const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
           <p className="audio-player-real__sub">AI Voice Lesson</p>
         </div>
         <audio
+          key={audioUrl}
           controls
           className="audio-player-real__element"
-          src={localFilePath}
+          src={audioUrl}
           preload="metadata"
         >
           Your browser does not support the audio element.
@@ -93,8 +142,7 @@ const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
     );
   }
 
-
-  // ── Placeholder (audio not yet generated) ─────────────────────
+  // ── Idle placeholder (no audio record yet) ─────────────────────
   const waveformBars = [20,40,30,50,40,60,30,50,40,30,20,40,50,60,70,50,40,60,50,40,30,20,40,30,50,40,60,30,50,40];
 
   return (

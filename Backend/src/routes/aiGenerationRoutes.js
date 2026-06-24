@@ -12,6 +12,7 @@ const {
     getAiGenerationStatus,
     chatWithAi,
     generateAudio,
+    prepareAudio,
 } = require('../controllers/aiGenerationController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -30,8 +31,13 @@ router.post('/trigger', triggerAiGeneration);
 router.post('/chat', chatWithAi);
 
 // POST /api/ai-generations/audio
-// Generates TTS audio from lesson content via the pipeline, stores WAV to Drive.
+// Creates an audio record for the lesson sidebar.
 router.post('/audio', generateAudio);
+
+// POST /api/ai-generations/audio/prepare
+// Proxies to the pipeline's /pipeline/audio/prepare endpoint.
+// Returns a fresh pre-signed S3 URL for audio playback.
+router.post('/audio/prepare', prepareAudio);
 
 // ── Status & Retrieval ──────────────────────────────────────────────────
 
