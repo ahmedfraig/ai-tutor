@@ -3,42 +3,14 @@ import "./AudioPlayer.css";
 import { BsMusicNoteBeamed } from "react-icons/bs";
 import apiClient from "../../api/apiClient";
 
-// Extract Drive file ID from stored URL formats
-function getDriveFileId(url) {
-  if (!url) return null;
-  try {
-    const idParam = new URL(url).searchParams.get("id");
-    if (idParam) return idParam;
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : null;
-  } catch {
-    return null;
-  }
-}
-
 const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
-  const driveId = getDriveFileId(filePath);
-
-  // HIGH-1: short-lived stream token — keeps full JWT out of audio src URLs
-  const [streamToken, setStreamToken] = useState(null);
   const [localFilePath, setLocalFilePath] = useState(filePath);
   const [isChecking, setIsChecking] = useState(false);
 
   // Sync when props change
   useEffect(() => {
     setLocalFilePath(filePath);
-    setStreamToken(null);
   }, [fileId, filePath]);
-
-  // Fetch stream token when we have a file with a path
-  useEffect(() => {
-    if (!fileId || !localFilePath) return;
-    let cancelled = false;
-    apiClient.post(`/lesson-files/stream-token/${fileId}`)
-      .then((res) => { if (!cancelled) setStreamToken(res.data.token); })
-      .catch(() => { if (!cancelled) setStreamToken(null); });
-    return () => { cancelled = true; };
-  }, [fileId, localFilePath]);
 
   // ── Auto-poll when audio is generating (fileId exists, no filePath) ──
   useEffect(() => {
@@ -69,8 +41,6 @@ const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
     setIsChecking(false);
   };
 
-  const activeDriveId = getDriveFileId(localFilePath);
-
   // ── Generating state (fileId exists but no file yet) ───────
   if (fileId && !localFilePath) {
     return (
@@ -100,15 +70,8 @@ const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
     );
   }
 
-  // ── Real audio player ──────────────────────────────────────────
-  if (activeDriveId || (fileId && localFilePath)) {
-    let streamSrc = null;
-    if (fileId && streamToken) {
-      streamSrc = `/api/lesson-files/stream/${fileId}?streamToken=${encodeURIComponent(streamToken)}`;
-    } else if (activeDriveId) {
-      streamSrc = `https://drive.google.com/uc?export=download&id=${activeDriveId}`;
-    }
-
+  // ── Real audio player — stream directly from S3 pre-signed URL ─────
+  if (fileId && localFilePath) {
     return (
       <div className="audio-player-real">
         <div className="audio-player-real__icon">
@@ -118,18 +81,14 @@ const AudioPlayer = ({ title, filePath, fileId, lessonId }) => {
           <p className="audio-player-real__title">{title || "AI Audio Lesson"}</p>
           <p className="audio-player-real__sub">AI Voice Lesson</p>
         </div>
-        {streamSrc ? (
-          <audio
-            controls
-            className="audio-player-real__element"
-            src={streamSrc}
-            preload="metadata"
-          >
-            Your browser does not support the audio element.
-          </audio>
-        ) : (
-          <p style={{ fontSize: '0.85rem', opacity: 0.6 }}>Loading audio…</p>
-        )}
+        <audio
+          controls
+          className="audio-player-real__element"
+          src={localFilePath}
+          preload="metadata"
+        >
+          Your browser does not support the audio element.
+        </audio>
       </div>
     );
   }

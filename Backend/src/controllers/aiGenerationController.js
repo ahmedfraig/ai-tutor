@@ -453,18 +453,9 @@ const chatWithAi = async (req, res) => {
 // POST /api/ai-generations/audio
 //
 // Generates a TTS audio lesson from the most recently uploaded file.
-// Calls the pipeline, retrieves the WAV bytes, uploads them to Google Drive,
-// and updates (or creates) the lesson_files record with the Drive URL.
-
-const drive = require('../config/googleDrive');
-const { Readable } = require('stream');
-
-function bufferToStream(buffer) {
-    const readable = new Readable();
-    readable.push(buffer);
-    readable.push(null);
-    return readable;
-}
+// Calls the pipeline's /pipeline/audio/prepare endpoint, which returns a
+// pre-signed S3 URL that the browser can stream directly — no Google Drive
+// upload or proxy streaming needed.
 
 const generateAudio = async (req, res) => {
     try {
@@ -527,50 +518,29 @@ const generateAudio = async (req, res) => {
             generating: true,
         });
 
-        // ── Background processing — pipeline call + Drive upload ─────────────
+        // ── Background processing — pipeline audio/prepare call ─────────────
         // This runs AFTER the response is sent. Errors are logged, not thrown.
         (async () => {
             try {
-                console.log('[generateAudio:bg] ⏳ Calling pipeline for TTS audio...');
-                const audioBuffer = await aiService.callPipelineAudio(
+                console.log('[generateAudio:bg] ⏳ Calling pipeline /audio/prepare...');
+                const audioData = await aiService.callPipelineAudioPrepare(
                     String(userId), documentId, String(lesson_id), language
                 );
 
-                if (!audioBuffer || audioBuffer.length === 0) {
-                    console.error('[generateAudio:bg] ❌ Pipeline returned no audio data');
+                if (!audioData || !audioData.audio_url) {
+                    console.error('[generateAudio:bg] ❌ Pipeline returned no audio URL');
                     // Delete the placeholder so the user can retry
                     await db.query('DELETE FROM lesson_files WHERE id = $1', [placeholderRecord.id]);
                     return;
                 }
-                console.log(`[generateAudio:bg] ✅ Got audio buffer: ${audioBuffer.length} bytes`);
+                console.log(`[generateAudio:bg] ✅ Got audio URL (source=${audioData.source}, size=${audioData.size_bytes || 'unknown'})`);
 
-                // Upload to Google Drive
-                const ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
-                const audioFilename = `audio_lesson_${lesson_id}_${language}_${Date.now()}.wav`;
-                console.log(`[generateAudio:bg] ⏳ Uploading to Drive: ${audioFilename}...`);
-
-                const driveRes = await drive.files.create({
-                    requestBody: {
-                        name: audioFilename,
-                        parents: [ROOT_FOLDER_ID],
-                        mimeType: 'audio/wav',
-                    },
-                    media: {
-                        mimeType: 'audio/wav',
-                        body: bufferToStream(audioBuffer),
-                    },
-                    fields: 'id',
-                });
-                const driveFileId = driveRes.data.id;
-                console.log(`[generateAudio:bg] ✅ Uploaded to Drive: ${driveFileId}`);
-
-                // Update the placeholder with the actual file path
-                const filePath = `https://drive.google.com/uc?export=view&id=${driveFileId}`;
+                // Store the pre-signed S3 URL directly as file_path
                 await db.query(
                     `UPDATE lesson_files SET file_path = $1 WHERE id = $2`,
-                    [filePath, placeholderRecord.id]
+                    [audioData.audio_url, placeholderRecord.id]
                 );
-                console.log(`[generateAudio:bg] ✅ DONE — record ${placeholderRecord.id} updated with Drive URL`);
+                console.log(`[generateAudio:bg] ✅ DONE — record ${placeholderRecord.id} updated with S3 URL`);
 
             } catch (bgErr) {
                 console.error('[generateAudio:bg] ❌ Background error:', bgErr.message || bgErr);
