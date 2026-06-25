@@ -7,9 +7,23 @@ import { PiMedalDuotone } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../../api/apiClient";
 
+const QTY_OPTIONS = [
+  { value: "low", label: "Low" },
+  { value: "standard", label: "Standard" },
+  { value: "high", label: "High" },
+];
+
+const DIFF_OPTIONS = [
+  { value: "easy", label: "Easy" },
+  { value: "standard", label: "Standard" },
+  { value: "hard", label: "Hard" },
+];
+
 const ExamSection = ({ lessonId, lessonTitle, onGenerate, generating }) => {
   const navigate = useNavigate();
   const [hasExam, setHasExam] = useState(null); // null=loading, true/false
+  const [qty, setQty] = useState("standard");
+  const [diff, setDiff] = useState("standard");
 
   useEffect(() => {
     if (!lessonId) { setHasExam(false); return; }
@@ -25,6 +39,30 @@ const ExamSection = ({ lessonId, lessonTitle, onGenerate, generating }) => {
     };
     check();
   }, [lessonId, generating]);
+
+  const handleGenerate = () => {
+    if (onGenerate) onGenerate(qty, diff);
+  };
+
+  // Reusable pill selector renderer
+  const renderPills = (label, options, value, onChange) => (
+    <div className="option-group">
+      <p className="option-group__label">{label}</p>
+      <div className="option-pills">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`option-pill${value === opt.value ? " option-pill--active" : ""}`}
+            onClick={() => onChange(opt.value)}
+            aria-pressed={value === opt.value}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <Container className="py-3 py-md-5 px-0 exam-section-container">
@@ -61,13 +99,20 @@ const ExamSection = ({ lessonId, lessonTitle, onGenerate, generating }) => {
           {hasExam === false && !generating && (
             <>
               <Card.Text className="exam-card-text mb-4 px-md-5">
-                No exam generated yet. Generate one to test your understanding of this lesson.
+                No exam generated yet. Choose your preferences and generate one.
               </Card.Text>
+
+              {/* Qty & Diff selectors */}
+              <div className="options-row">
+                {renderPills("Quantity", QTY_OPTIONS, qty, setQty)}
+                {renderPills("Difficulty", DIFF_OPTIONS, diff, setDiff)}
+              </div>
+
               {onGenerate && (
                 <div className="d-flex justify-content-center">
                   <button
                     className="exam-gen-btn"
-                    onClick={onGenerate}
+                    onClick={handleGenerate}
                     disabled={!!generating}
                     aria-busy={generating === 'exam'}
                     aria-label="Generate an exam for this lesson"
@@ -107,10 +152,17 @@ const ExamSection = ({ lessonId, lessonTitle, onGenerate, generating }) => {
                 >
                   Start Exam
                 </Button>
+
+                {/* Regenerate with options */}
+                <div className="options-row mt-3">
+                  {renderPills("Quantity", QTY_OPTIONS, qty, setQty)}
+                  {renderPills("Difficulty", DIFF_OPTIONS, diff, setDiff)}
+                </div>
+
                 {onGenerate && (
                   <button
                     className="quiz-generate-link"
-                    onClick={onGenerate}
+                    onClick={handleGenerate}
                     disabled={!!generating}
                     aria-busy={generating === 'exam'}
                     aria-label="Regenerate exam"

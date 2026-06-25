@@ -2,11 +2,26 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import './Quiz.css';
+import '../mylearningComponents/ExamSection.css'; // shared pill styles
+
+const QTY_OPTIONS = [
+  { value: "low", label: "Low" },
+  { value: "standard", label: "Standard" },
+  { value: "high", label: "High" },
+];
+
+const DIFF_OPTIONS = [
+  { value: "easy", label: "Easy" },
+  { value: "standard", label: "Standard" },
+  { value: "hard", label: "Hard" },
+];
 
 function Quiz({ lessonId, lessonTitle, onGenerate, generating }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [hasQuiz, setHasQuiz] = useState(null); // null=loading, true/false
+  const [qty, setQty] = useState("standard");
+  const [diff, setDiff] = useState("standard");
 
   useEffect(() => {
     if (!lessonId) { setHasQuiz(false); return; }
@@ -22,6 +37,29 @@ function Quiz({ lessonId, lessonTitle, onGenerate, generating }) {
     };
     check();
   }, [lessonId, generating]);
+
+  const handleGenerate = () => {
+    if (onGenerate) onGenerate(qty, diff);
+  };
+
+  const renderPills = (label, options, value, onChange) => (
+    <div className="option-group">
+      <p className="option-group__label">{label}</p>
+      <div className="option-pills">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`option-pill${value === opt.value ? " option-pill--active" : ""}`}
+            onClick={() => onChange(opt.value)}
+            aria-pressed={value === opt.value}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="quiz-tab-root">
@@ -43,13 +81,20 @@ function Quiz({ lessonId, lessonTitle, onGenerate, generating }) {
         {hasQuiz === false && !generating && (
           <>
             <p className="quiz-cta-desc">
-              No quiz generated yet. Generate one to start practising flashcards.
+              No quiz generated yet. Choose your preferences and generate one.
             </p>
+
+            {/* Qty & Diff selectors */}
+            <div className="options-row">
+              {renderPills("Quantity", QTY_OPTIONS, qty, setQty)}
+              {renderPills("Difficulty", DIFF_OPTIONS, diff, setDiff)}
+            </div>
+
             {onGenerate && (
               <div className="quiz-cta-actions">
                 <button
                   className="quiz-start-btn"
-                  onClick={onGenerate}
+                  onClick={handleGenerate}
                   disabled={!!generating}
                   aria-busy={generating === 'quiz'}
                   aria-label="Generate a quiz for this lesson"
@@ -88,10 +133,17 @@ function Quiz({ lessonId, lessonTitle, onGenerate, generating }) {
                 </svg>
                 Start Quiz
               </button>
+
+              {/* Regenerate with options */}
+              <div className="options-row mt-3" style={{ width: '100%' }}>
+                {renderPills("Quantity", QTY_OPTIONS, qty, setQty)}
+                {renderPills("Difficulty", DIFF_OPTIONS, diff, setDiff)}
+              </div>
+
               {onGenerate && (
                 <button
                   className="quiz-generate-link"
-                  onClick={onGenerate}
+                  onClick={handleGenerate}
                   disabled={!!generating}
                   aria-busy={generating === 'quiz'}
                   aria-label="Regenerate quiz"

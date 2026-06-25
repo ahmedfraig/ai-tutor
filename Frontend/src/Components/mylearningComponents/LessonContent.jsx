@@ -65,13 +65,15 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
   }, [lessonId]);
 
   // ── Trigger AI generation for a specific type ──────────────────
-  const triggerGeneration = useCallback(async (type) => {
+  const triggerGeneration = useCallback(async (type, qty, diff) => {
     if (!lessonId || generating) return;
     setGenerating(type);
     try {
       await apiClient.post('/ai-generations/trigger', {
         lesson_id: lessonId,
         types: [type],
+        qty: qty || 'standard',
+        diff: diff || 'standard',
       });
       // Refresh summary if that's what was generated
       if (type === 'summary') {
@@ -217,7 +219,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           aria-labelledby="lc-tab-quiz"
           hidden={activeTab !== "quiz" ? true : undefined}
         >
-          <Quiz lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={() => triggerGeneration('quiz')} generating={generating} />
+          <Quiz lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={(qty, diff) => triggerGeneration('quiz', qty, diff)} generating={generating} />
         </div>
 
         <div
@@ -227,7 +229,7 @@ function LessonContent({ mode, selectedName, selectedFilePath, selectedFileId, c
           aria-labelledby="lc-tab-exam"
           hidden={activeTab !== "exam" ? true : undefined}
         >
-          <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={() => triggerGeneration('exam')} generating={generating} />
+          <ExamSection lessonId={lessonId} lessonTitle={lessonTitle} onGenerate={(qty, diff) => triggerGeneration('exam', qty, diff)} generating={generating} />
         </div>
 
         <div

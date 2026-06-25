@@ -215,7 +215,7 @@ const deleteAiGeneration = async (req, res) => {
 const triggerAiGeneration = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { lesson_id, types } = req.body;
+        const { lesson_id, types, qty = 'standard', diff = 'standard' } = req.body;
 
         // Validation
         if (!lesson_id) {
@@ -275,13 +275,13 @@ const triggerAiGeneration = async (req, res) => {
                 content = summaryText; // stored as plain text/HTML
             } else if (type === 'quiz') {
                 const flashcards = await aiService.callPipelineFlashcards(
-                    String(userId), documentId, String(lesson_id)
+                    String(userId), documentId, String(lesson_id), qty, diff
                 );
                 // Store as JSON string — QuizFlashcards.jsx does JSON.parse(content)
                 content = flashcards ? JSON.stringify(flashcards) : null;
             } else if (type === 'exam') {
                 const questions = await aiService.callPipelineQuestions(
-                    String(userId), documentId, String(lesson_id)
+                    String(userId), documentId, String(lesson_id), qty, diff
                 );
                 // Store as JSON string — ExamStart.jsx does JSON.parse(content)
                 content = questions ? JSON.stringify(questions) : null;

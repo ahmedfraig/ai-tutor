@@ -4,6 +4,7 @@ import { BsX, BsPencil, BsTrash, BsCheck, BsXCircle } from "react-icons/bs";
 import { motion, AnimatePresence } from "framer-motion";
 import apiClient from "../../api/apiClient";
 import "./Sidebar.css";
+import "./ExamSection.css"; // shared .option-pills styles
 
 function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) {
   const [files, setFiles] = useState([]);
@@ -33,6 +34,9 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
 
   // Generate-with-PDF-selection modal
   const [generateModal, setGenerateModal] = useState({ show: false, type: null, selectedPdfIds: [] });
+
+  // Audio language preference
+  const [audioLanguage, setAudioLanguage] = useState('ar');
 
   // ── In-app toast notification ────────────────────────────────
   const [notify, setNotify] = useState(null); // { type: 'error'|'success'|'info', message }
@@ -133,7 +137,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
       try {
         const { data } = await apiClient.post('/ai-generations/audio', {
           lesson_id: lessonId,
-          language: 'ar',
+          language: audioLanguage,
         });
         // Add the placeholder to the sidebar (file_path will be null initially)
         setFiles((prev) => [...prev, data.file]);
@@ -359,8 +363,35 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
             {generateModal.type === "video" ? "🎬 Generate Video" : "🎙️ Generate Audio"}
           </h5>
           <p className="text-muted mb-3" style={{ fontSize: "0.85rem" }}>
-            Select which uploaded PDFs the AI should use as source material.
+            {generateModal.type === "audio"
+              ? "Choose the language for your AI-narrated audio lesson."
+              : "Select which uploaded PDFs the AI should use as source material."}
           </p>
+
+          {/* Language selector for audio */}
+          {generateModal.type === "audio" && (
+            <div className="option-group" style={{ marginBottom: '16px' }}>
+              <p className="option-group__label">Language</p>
+              <div className="option-pills">
+                <button
+                  type="button"
+                  className={`option-pill${audioLanguage === 'ar' ? ' option-pill--active' : ''}`}
+                  onClick={() => setAudioLanguage('ar')}
+                  aria-pressed={audioLanguage === 'ar'}
+                >
+                  Arabic
+                </button>
+                <button
+                  type="button"
+                  className={`option-pill${audioLanguage === 'en' ? ' option-pill--active' : ''}`}
+                  onClick={() => setAudioLanguage('en')}
+                  aria-pressed={audioLanguage === 'en'}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+          )}
 
           {uploadedFiles.length === 0 ? (
             <p className="text-muted text-center py-3" style={{ fontSize: "0.9rem" }}>
