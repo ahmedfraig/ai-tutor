@@ -452,10 +452,9 @@ const chatWithAi = async (req, res) => {
 // ── Audio Generation ──────────────────────────────────────────────────────
 // POST /api/ai-generations/audio
 //
-// Creates a lesson_files record so the sidebar knows audio exists for this
-// lesson. Does NOT call the pipeline or store an audio URL — the frontend
-// calls /api/ai-generations/audio/prepare directly to get a fresh pre-signed
-// S3 URL each time it needs to play audio.
+// Creates a lesson_files record (file_path='pending', s3_key=NULL).
+// The frontend then calls /audio/prepare which handles the pipeline call,
+// stores the s3_key on first success, and returns a fresh pre-signed URL.
 
 const generateAudio = async (req, res) => {
     try {
@@ -503,14 +502,13 @@ const generateAudio = async (req, res) => {
         );
         const count = parseInt(audioCount.rows[0].count, 10) + 1;
         const insertResult = await db.query(
-            `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path)
-             VALUES ($1, $2, 'audio', $3, 'pending') RETURNING *`,
+            `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path, s3_key)
+             VALUES ($1, $2, 'audio', $3, 'pending', NULL) RETURNING *`,
             [lesson_id, userId, `AI Audio ${count}`]
         );
         const record = insertResult.rows[0];
         console.log(`[generateAudio] ✅ Audio record created: id=${record.id}`);
 
-        // Return immediately — the frontend will call /audio/prepare to get the URL
         res.status(202).json({
             message: 'Audio record created. Use /audio/prepare to get the playback URL.',
             file: record,
@@ -525,14 +523,19 @@ const generateAudio = async (req, res) => {
     }
 };
 
-// ── Audio Prepare (Proxy) ─────────────────────────────────────────────────
+// ── Audio Prepare (Hybrid Proxy) ──────────────────────────────────────────
 // POST /api/ai-generations/audio/prepare
 //
-// Proxies to the pipeline's /pipeline/audio/prepare endpoint.
-// The frontend calls this every time it needs to play audio to get a fresh
-// pre-signed S3 URL. The pipeline returns { status: 'ready', audio_url }
-// or { status: 'processing' } if TTS is still running.
-// We NEVER store the audio_url — it's a short-lived pre-signed URL.
+// Hybrid approach:
+//   1. First call: pipeline generates audio → returns { audio_url, s3_key }
+//      We store s3_key in the DB and update file_path to 'ready'.
+//   2. Subsequent calls: s3_key already in DB, pipeline returns cached
+//      presigned URL instantly (no generation needed).
+//   3. Pipeline down + s3_key exists: return { status: 'unavailable' }
+//      so frontend shows "temporarily unavailable" instead of "no audio".
+//   4. Pipeline down + no s3_key: return error — audio was never generated.
+//
+// We NEVER store the audio_url (it expires). We store s3_key (permanent).
 
 const prepareAudio = async (req, res) => {
     try {
@@ -566,22 +569,57 @@ const prepareAudio = async (req, res) => {
         }
         const documentId = String(filesResult.rows[0].id);
 
+        // Check if we already have an s3_key stored for this lesson's audio
+        const audioRecord = await db.query(
+            `SELECT id, s3_key, file_path FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'audio'
+             ORDER BY created_at DESC LIMIT 1`,
+            [lesson_id, userId]
+        );
+        const existingS3Key = audioRecord.rows[0]?.s3_key || null;
+        const audioFileId = audioRecord.rows[0]?.id || null;
+
         // Forward to pipeline
         const audioData = await aiService.callPipelineAudioPrepare(
             String(userId), documentId, String(lesson_id), language
         );
 
-        if (!audioData) {
-            return res.status(503).json({
-                status: 'error',
-                message: 'AI pipeline did not respond. Please try again.',
+        // ── Pipeline responded ──────────────────────────────────
+        if (audioData && audioData.status === 'ready' && audioData.audio_url) {
+            // Store s3_key if we got one and don't have it yet
+            if (audioData.s3_key && audioFileId && !existingS3Key) {
+                await db.query(
+                    `UPDATE lesson_files SET s3_key = $1, file_path = 'ready' WHERE id = $2`,
+                    [audioData.s3_key, audioFileId]
+                );
+                console.log(`[prepareAudio] ✅ Stored s3_key for record ${audioFileId}`);
+            }
+
+            return res.status(200).json(audioData);
+        }
+
+        // Pipeline returned processing status
+        if (audioData && audioData.status === 'processing') {
+            return res.status(200).json(audioData);
+        }
+
+        // ── Pipeline failed or returned nothing ─────────────────
+        if (existingS3Key) {
+            // We know audio was generated before (s3_key exists),
+            // but pipeline is temporarily unavailable
+            return res.status(200).json({
+                status: 'unavailable',
+                message: 'Audio exists but the streaming service is temporarily unavailable. Please try again in a moment.',
+                has_audio: true,
             });
         }
 
-        // Pass the pipeline response directly to the frontend
-        // Expected: { status: 'ready', audio_url, expires_in, ... }
-        //       or: { status: 'processing', ... }
-        res.status(200).json(audioData);
+        // No s3_key and pipeline failed — audio was never generated
+        return res.status(503).json({
+            status: 'error',
+            message: 'AI pipeline did not respond. Please try again.',
+            has_audio: false,
+        });
 
     } catch (error) {
         console.error('[prepareAudio] ❌ ERROR:', error.message || error);

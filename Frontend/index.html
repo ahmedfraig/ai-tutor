@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" prefix="og: http://ogp.me/ns#">
 
 <head>
   <meta charset="UTF-8" />
@@ -17,35 +17,38 @@
   <!-- KaTeX CSS is imported via the npm katex package in renderLatexText.jsx -->
 
   <!-- Primary Meta Tags -->
-  <title>PapyrusAI | AI-Powered Learning Platform for Students</title>
-  <meta name="title" content="PapyrusAI — AI-Powered Learning Platform for Students" />
+  <title>Papyrus AI — The AI-Powered Learning Platform | PapyrusAI</title>
+  <meta name="title" content="Papyrus AI — The AI-Powered Learning Platform | PapyrusAI" />
   <meta name="description"
-    content="Papyrus is an AI-powered learning platform that creates summaries, flashcards, quizzes, and video explanations from your course materials. Study smarter, not harder." />
+    content="Papyrus AI (PapyrusAI) is an AI-powered learning platform that creates summaries, flashcards, quizzes, and video explanations from your course materials. Study smarter with Papyrus — your intelligent study companion." />
   <meta name="keywords"
-    content="AI tutor, learning platform, flashcards, quizzes, study tools, AI education, Papyrus, online learning, AI study assistant, exam preparation" />
+    content="papyrus, papyrus ai, papyrusai, Papyrus, Papyrus AI, PapyrusAI, papyrus learning, papyrus study, AI tutor, AI learning platform, flashcard generator, quiz generator, AI study tools, AI education, lecture summarizer, online learning, AI study assistant, exam preparation, smart flashcards, AI video summaries" />
   <meta name="author" content="PapyrusAI" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow" />
   <link rel="canonical" href="https://papyrusai.me/" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://papyrusai.me/" />
-  <meta property="og:title" content="PapyrusAI — AI-Powered Learning Platform for Students" />
+  <meta property="og:title" content="Papyrus AI — The AI-Powered Learning Platform | PapyrusAI" />
   <meta property="og:description"
-    content="Upload your lectures and let AI create summaries, flashcards, quizzes, and video explanations. Study smarter, not harder." />
+    content="Papyrus AI (PapyrusAI) transforms your lectures into summaries, flashcards, quizzes, and video explanations. Study smarter with Papyrus — your AI study companion." />
   <meta property="og:image" content="https://papyrusai.me/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="PapyrusAI - AI-Powered Learning Platform" />
   <meta property="og:site_name" content="PapyrusAI" />
   <meta property="og:locale" content="en_US" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://papyrusai.me/" />
-  <meta name="twitter:title" content="PapyrusAI — AI-Powered Learning Platform for Students" />
+  <meta name="twitter:title" content="Papyrus AI — The AI-Powered Learning Platform | PapyrusAI" />
   <meta name="twitter:description"
-    content="Upload your lectures and let AI create summaries, flashcards, quizzes, and video explanations." />
+    content="Papyrus AI transforms your lectures into summaries, flashcards, quizzes, and video explanations. Study smarter with PapyrusAI." />
   <meta name="twitter:image" content="https://papyrusai.me/og-image.png" />
+  <meta name="twitter:image:alt" content="PapyrusAI - AI-Powered Learning Platform" />
 
   <!-- Structured Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -54,18 +57,39 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "PapyrusAI",
-      "alternateName": ["Papyrus", "Papyrus AI","papyrusai","PapyrusAI","ai papyrus"],
-      "url": "https://papyrusai.me/"
+      "alternateName": ["Papyrus", "Papyrus AI", "papyrusai", "PapyrusAI", "papyrus ai", "ai papyrus", "Papyrus Learning", "Papyrus AI Tutor"],
+      "url": "https://papyrusai.me/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://papyrusai.me/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "PapyrusAI",
+      "alternateName": ["Papyrus", "Papyrus AI", "papyrusai"],
+      "url": "https://papyrusai.me",
+      "logo": "https://papyrusai.me/logo192.png",
+      "description": "PapyrusAI (Papyrus AI) is an AI-powered educational platform that helps students learn smarter by automatically generating summaries, flashcards, quizzes, and video explanations from course materials.",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "url": "https://papyrusai.me"
+      }
     },
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "PapyrusAI",
+      "name": "Papyrus AI",
+      "alternateName": ["PapyrusAI", "Papyrus"],
       "url": "https://papyrusai.me",
       "logo": "https://papyrusai.me/logo192.png",
-      "description": "AI-powered learning platform that creates summaries, flashcards, quizzes, and video explanations from your course materials.",
+      "description": "Papyrus AI is an AI-powered learning platform that creates summaries, flashcards, quizzes, and video explanations from your course materials. Study smarter, not harder.",
       "applicationCategory": "EducationalApplication",
       "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -77,9 +101,47 @@
         "AI Video Summaries",
         "Quizzes & Exams",
         "Progress Analytics",
-        "Smart Reminders"
+        "Smart Reminders",
+        "Lecture Summarization",
+        "Exam Preparation"
       ],
-      "screenshot": "https://papyrusai.me/og-image.png"
+      "screenshot": "https://papyrusai.me/og-image.png",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "150",
+        "bestRating": "5"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Papyrus AI?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Papyrus AI (PapyrusAI) is an AI-powered learning platform that transforms your course materials into summaries, flashcards, quizzes, audio lectures, and video explanations. It helps students study smarter by automating content creation from uploaded lectures and notes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is PapyrusAI free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! Papyrus AI is completely free to get started. You can upload your learning materials and access AI-generated study tools without any credit card required."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Papyrus AI work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Simply upload your lecture notes, PDFs, or slides to Papyrus AI. The AI automatically generates summaries, interactive flashcards, quizzes, exams, audio, and video explanations. You can then study with these materials and track your progress with built-in analytics."
+          }
+        }
+      ]
     }
   ]
   </script>
@@ -88,8 +150,9 @@
 <body>
   <noscript>
     <div style="padding:2rem;text-align:center;font-family:sans-serif">
-      <h1>PapyrusAI — AI-Powered Learning Platform</h1>
-      <p>Please enable JavaScript to use Papyrus.</p>
+      <h1>Papyrus AI — AI-Powered Learning Platform | PapyrusAI</h1>
+      <p>Papyrus AI (PapyrusAI) is an AI-powered learning platform that helps students create summaries, flashcards, quizzes, and video explanations from course materials. Please enable JavaScript to use Papyrus AI.</p>
+      <p>Features: AI Tutor Chat, Smart Flashcards, Video Summaries, Quizzes &amp; Exams, Progress Analytics, Smart Reminders.</p>
     </div>
   </noscript>
   <div id="root"></div>

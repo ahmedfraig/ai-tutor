@@ -3,34 +3,39 @@ import "./AudioPlayer.css";
 import { BsMusicNoteBeamed } from "react-icons/bs";
 import apiClient from "../../api/apiClient";
 
+/**
+ * Hybrid AudioPlayer — production-ready approach:
+ *
+ * 1. On mount, calls /audio/prepare to get a fresh pre-signed S3 URL.
+ * 2. If "processing", polls every 5s until "ready".
+ * 3. If "ready", plays immediately (backend stores s3_key for future lookups).
+ * 4. If "unavailable" (pipeline down but audio exists), shows a retry message.
+ * 5. On subsequent page visits, /audio/prepare returns cached URL instantly.
+ */
 const AudioPlayer = ({ title, fileId, lessonId }) => {
+  // idle | preparing | ready | unavailable | error
+  const [status, setStatus] = useState("idle");
   const [audioUrl, setAudioUrl] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle | preparing | ready | error
   const [error, setError] = useState("");
   const pollRef = useRef(null);
   const mountedRef = useRef(true);
 
-  // ── Call /audio/prepare and handle response ──────────────────
+  // ── Call /audio/prepare and return parsed result ──────────────
   const callPrepare = useCallback(async () => {
-    if (!lessonId) return null;
+    if (!lessonId) return { status: "error" };
     try {
       const { data } = await apiClient.post("/ai-generations/audio/prepare", {
         lesson_id: lessonId,
         language: "ar",
       });
-
-      if (data.status === "ready" && data.audio_url) {
-        return data.audio_url;
-      }
-      // status === "processing" or other — not ready yet
-      return null;
+      return data; // { status, audio_url?, message?, has_audio? }
     } catch (err) {
       console.error("[AudioPlayer] prepare failed:", err.message);
-      return null;
+      return { status: "error", message: err.response?.data?.message || err.message };
     }
   }, [lessonId]);
 
-  // ── Poll until audio is ready ────────────────────────────────
+  // ── Main load function — polls if needed ──────────────────────
   const loadAudio = useCallback(async () => {
     if (!lessonId || !fileId) return;
     setStatus("preparing");
@@ -41,16 +46,35 @@ const AudioPlayer = ({ title, fileId, lessonId }) => {
     for (let i = 0; i < 120; i++) {
       if (!mountedRef.current) return;
 
-      const url = await callPrepare();
-      if (url) {
+      const result = await callPrepare();
+
+      if (result.status === "ready" && result.audio_url) {
         if (mountedRef.current) {
-          setAudioUrl(url);
+          setAudioUrl(result.audio_url);
           setStatus("ready");
         }
         return;
       }
 
-      // Wait 5 seconds before retrying
+      if (result.status === "unavailable") {
+        // Audio exists on S3 but pipeline is temporarily down
+        if (mountedRef.current) {
+          setStatus("unavailable");
+          setError(result.message || "Audio streaming is temporarily unavailable.");
+        }
+        return;
+      }
+
+      if (result.status === "error") {
+        // Pipeline failed and audio was never generated
+        if (mountedRef.current) {
+          setStatus("error");
+          setError(result.message || "Failed to prepare audio.");
+        }
+        return;
+      }
+
+      // status === "processing" — wait and try again
       await new Promise((resolve) => {
         pollRef.current = setTimeout(resolve, 5000);
       });
@@ -77,7 +101,7 @@ const AudioPlayer = ({ title, fileId, lessonId }) => {
     };
   }, [fileId, lessonId, loadAudio]);
 
-  // ── Preparing state ────────────────────────────────────────────
+  // ── Preparing / polling state ──────────────────────────────────
   if (status === "preparing") {
     return (
       <div className="audio-player-container">
@@ -90,7 +114,35 @@ const AudioPlayer = ({ title, fileId, lessonId }) => {
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────
+  // ── Unavailable state (audio exists but pipeline is down) ──────
+  if (status === "unavailable") {
+    return (
+      <div className="audio-player-container">
+        <div className="icon-wrapper">
+          <BsMusicNoteBeamed className="music-icon" />
+        </div>
+        <h3 className="track-title">{title || "AI Audio Lesson"}</h3>
+        <p className="track-subtitle">{error}</p>
+        <button
+          onClick={loadAudio}
+          style={{
+            marginTop: '0.75rem',
+            padding: '0.45rem 1.2rem',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+          }}
+        >
+          🔄 Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // ── Error state (audio never generated, pipeline failed) ───────
   if (status === "error") {
     return (
       <div className="audio-player-container">
@@ -118,7 +170,7 @@ const AudioPlayer = ({ title, fileId, lessonId }) => {
     );
   }
 
-  // ── Ready — play audio directly from S3 pre-signed URL ─────────
+  // ── Ready — play audio from fresh pre-signed S3 URL ────────────
   if (status === "ready" && audioUrl) {
     return (
       <div className="audio-player-real">
