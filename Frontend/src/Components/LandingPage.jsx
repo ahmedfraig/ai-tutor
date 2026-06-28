@@ -127,7 +127,7 @@ const LandingPage = () => {
           property="og:description"
           content="Transform your course materials into interactive lessons with AI. Summaries, flashcards, and quizzes in seconds."
         />
-        <meta property="og:image" content="https://papyrusai.me/og-image.png" />
+        <meta property="og:image" content="https://papyrusai.me/logo.jpeg" />
         <meta property="og:site_name" content="PapyrusAI" />
 
         {/* Twitter */}
@@ -140,7 +140,7 @@ const LandingPage = () => {
         />
         <meta
           name="twitter:image"
-          content="https://papyrusai.me/og-image.png"
+          content="https://papyrusai.me/logo.jpeg"
         />
       </Helmet>
 
@@ -151,9 +151,12 @@ const LandingPage = () => {
       >
         <div className="landing-nav-inner">
           <Link to="/" className="landing-brand" aria-label="Papyrus home">
-            <div className="landing-brand-logo" aria-hidden="true">
-              P
-            </div>
+            <img 
+              src="/logo.jpeg" 
+              alt="Papyrus Logo" 
+              className="landing-brand-logo shadow-sm" 
+              style={{ objectFit: "cover", padding: 0 }} 
+            />
             <span className="landing-brand-name">Papyrus</span>
           </Link>
 
@@ -397,9 +400,12 @@ const LandingPage = () => {
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
-            <div className="landing-footer-logo" aria-hidden="true">
-              P
-            </div>
+            <img 
+              src="/logo.jpeg" 
+              alt="Papyrus Logo" 
+              className="landing-footer-logo shadow-sm" 
+              style={{ objectFit: "cover", padding: 0 }} 
+            />
             <span className="landing-footer-name">Papyrus</span>
           </div>
           <p className="landing-footer-copy">

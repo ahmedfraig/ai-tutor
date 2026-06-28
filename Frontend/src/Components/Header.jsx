@@ -77,9 +77,12 @@ const Header = () => {
           
           {/* Brand */}
           <div className="d-flex align-items-center gap-2">
-            <div className="bg-dark text-white rounded d-flex align-items-center justify-content-center fw-bold" style={{ width: "32px", height: "32px", fontSize: "18px" }}>
-              P
-            </div>
+            <img 
+              src="/logo.jpeg" 
+              alt="Papyrus Logo" 
+              className="rounded shadow-sm" 
+              style={{ width: "32px", height: "32px", objectFit: "cover" }} 
+            />
             <a 
               className="navbar-brand fw-bold mb-0" 
               href="#" 
