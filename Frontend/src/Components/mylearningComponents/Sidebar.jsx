@@ -125,9 +125,11 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
   };
 
   // ── Generate — step 2: confirm and send to backend ───────────
-  const handleGenerate = async () => {
-    const { type, selectedPdfIds } = generateModal;
+  const handleGenerate = async (directType = null) => {
+    const type = directType || generateModal.type;
+    const selectedPdfIds = generateModal.selectedPdfIds || [];
     setGenerateModal({ show: false, type: null, selectedPdfIds: [] });
+    
     if (!lessonId) return;
 
     if (type === 'audio') {
@@ -149,33 +151,23 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
         console.error('Audio generation failed:', err);
         showNotify('error', `Audio generation failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
       }
-    } else {
-      // For video: create a placeholder record; the AI team uploads the
-      // video to Drive and updates file_path separately.
-      const label = 'AI Video';
-      const count = videos.length + 1;
-      const name = `${label} ${count}`;
-      const sourcePdfs = uploadedFiles
-        .filter((f) => selectedPdfIds.includes(f.id))
-        .map((f) => ({ id: f.id, name: f.name, file_path: f.file_path }));
-
+    } else if (type === 'video') {
+      // Video generation is async — backend returns a placeholder immediately,
+      // then the video player handles polling and playing from S3.
+      showNotify('info', '🎬 Video generation started — it will appear when ready.');
       try {
-        const { data } = await apiClient.post('/lesson-files', {
+        const { data } = await apiClient.post('/ai-generations/video', {
           lesson_id: lessonId,
-          type,
-          name,
-          source_file_ids: selectedPdfIds,   // AI team uses these to locate PDFs
-          source_files: sourcePdfs,           // convenience: full paths included
         });
-        setFiles((prev) => [...prev, data]);
-        setActiveId(data.id);
-        onSelectContent(type, data.name, data.file_path, data.id);
+        setFiles((prev) => [...prev, data.file]);
+        setActiveId(data.file.id);
+        onSelectContent(type, data.file.name, data.file.file_path, data.file.id);
         setOpenAccordion('1');
         if (onFilesChanged) onFilesChanged();
         if (onCloseSidebar) onCloseSidebar();
       } catch (err) {
-        console.error('Video placeholder creation failed:', err);
-        showNotify('error', `Generation failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
+        console.error('Video generation failed:', err);
+        showNotify('error', `Video generation failed: ${err.response?.data?.message || err.message || 'Unknown error'}`);
       }
     }
   };
@@ -472,7 +464,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
       <Button variant="outline-dark" className="w-100 mb-3 sideButtons upload-button" onClick={handleUploadClick}>
         <i className="bi bi-upload me-2"></i> Upload File
       </Button>
-      <Button variant="outline-dark" className="w-100 mb-2 sideButtons generate-button" onClick={() => openGenerateModal("video")}>
+      <Button variant="outline-dark" className="w-100 mb-2 sideButtons generate-button" onClick={() => handleGenerate("video")}>
         <i className="bi bi-camera-video me-2"></i> Generate Video
       </Button>
       <Button variant="outline-dark" className="w-100 mb-3 sideButtons generate-button" onClick={() => openGenerateModal("audio")}>

@@ -276,6 +276,35 @@ async function callPipelineAudioPrepare(userId, documentId, lessonId, language =
 }
 
 /**
+ * Prepare (or retrieve cached) video for a document.
+ * The pipeline generates the video, stores it on S3, and returns a
+ * pre-signed URL the browser can stream directly.
+ *
+ * @param {string} userId
+ * @param {string} documentId
+ * @param {string} lessonId
+ * @returns {Promise<object|null>} { status, source, video_url, expires_in, content_type, size_bytes, s3_key } or null
+ */
+async function callPipelineVideoPrepare(userId, documentId, lessonId) {
+    try {
+        const res = await ai.post('/pipeline/video/prepare', {
+            user_id: String(userId),
+            document_id: String(documentId),
+            lesson_id: String(lessonId),
+        }, {
+            timeout: 600_000, // 10 min — video generation can take a long time
+        });
+
+        // Return the full response — could be { status: 'ready', video_url }
+        // or { status: 'processing' }.
+        return res.data || null;
+    } catch (err) {
+        console.error('[aiService] Pipeline video/prepare failed:', err.message);
+        return null;
+    }
+}
+
+/**
  * @deprecated Use callPipelineAudioPrepare instead — old method downloaded raw WAV bytes.
  */
 async function callPipelineAudio(userId, documentId, lessonId, language = 'ar') {
@@ -330,6 +359,7 @@ module.exports = {
     callPipelineTranscript,
     callPipelineAudioPrepare,
     callPipelineAudio,
+    callPipelineVideoPrepare,
     // Legacy (deprecated)
     callSummarize,
     callFlipCards,

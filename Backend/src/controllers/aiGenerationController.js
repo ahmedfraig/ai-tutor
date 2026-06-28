@@ -627,6 +627,168 @@ const prepareAudio = async (req, res) => {
     }
 };
 
+// ── Video Generation ──────────────────────────────────────────────────────────────
+// POST /api/ai-generations/video
+// Creates a lesson_files record (file_path='pending', s3_key=NULL).
+// The frontend then calls /video/prepare which handles the pipeline call.
+
+const generateVideo = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { lesson_id } = req.body;
+        console.log(`[generateVideo] START — userId=${userId} lesson_id=${lesson_id}`);
+
+        if (!lesson_id) {
+            return res.status(400).json({ message: 'lesson_id is required' });
+        }
+
+        // Verify lesson ownership
+        const lessonCheck = await db.query(
+            'SELECT id, title FROM lessons WHERE id = $1 AND user_id = $2',
+            [lesson_id, userId]
+        );
+        if (lessonCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        // Get the source file to use as document context
+        const filesResult = await db.query(
+            `SELECT id FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'upload'
+             ORDER BY created_at DESC LIMIT 1`,
+            [lesson_id, userId]
+        );
+        if (filesResult.rows.length === 0) {
+            return res.status(400).json({
+                message: 'No uploaded files found. Upload at least one PDF to generate video.'
+            });
+        }
+
+        // Check pipeline availability
+        const aiReady = await aiService.isAvailable();
+        if (!aiReady) {
+            return res.status(503).json({ message: 'AI pipeline is not available. Please try again later.' });
+        }
+
+        // ── Create a record so the sidebar lists video for this lesson ──
+        const videoCount = await db.query(
+            `SELECT COUNT(*) FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'video'`,
+            [lesson_id, userId]
+        );
+        const count = parseInt(videoCount.rows[0].count, 10) + 1;
+        const insertResult = await db.query(
+            `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path, s3_key)
+             VALUES ($1, $2, 'video', $3, 'pending', NULL) RETURNING *`,
+            [lesson_id, userId, `AI Video ${count}`]
+        );
+        const record = insertResult.rows[0];
+        console.log(`[generateVideo] ✅ Video record created: id=${record.id}`);
+
+        res.status(202).json({
+            message: 'Video record created. Use /video/prepare to get the playback URL.',
+            file: record,
+            generating: true,
+        });
+
+    } catch (error) {
+        console.error('[generateVideo] ❌ ERROR:', error.message || error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    }
+};
+
+// ── Video Prepare (Hybrid Proxy) ──────────────────────────────────────────
+// POST /api/ai-generations/video/prepare
+const prepareVideo = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { lesson_id } = req.body;
+
+        if (!lesson_id) {
+            return res.status(400).json({ message: 'lesson_id is required' });
+        }
+
+        // Verify lesson ownership
+        const lessonCheck = await db.query(
+            'SELECT id FROM lessons WHERE id = $1 AND user_id = $2',
+            [lesson_id, userId]
+        );
+        if (lessonCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        // Get the source document ID
+        const filesResult = await db.query(
+            `SELECT id FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'upload'
+             ORDER BY created_at DESC LIMIT 1`,
+            [lesson_id, userId]
+        );
+        if (filesResult.rows.length === 0) {
+            return res.status(400).json({
+                message: 'No uploaded files found for this lesson.'
+            });
+        }
+        const documentId = String(filesResult.rows[0].id);
+
+        // Check if we already have an s3_key stored for this lesson's video
+        const videoRecord = await db.query(
+            `SELECT id, s3_key, file_path FROM lesson_files
+             WHERE lesson_id = $1 AND user_id = $2 AND type = 'video'
+             ORDER BY created_at DESC LIMIT 1`,
+            [lesson_id, userId]
+        );
+        const existingS3Key = videoRecord.rows[0]?.s3_key || null;
+        const videoFileId = videoRecord.rows[0]?.id || null;
+
+        // Forward to pipeline
+        const videoData = await aiService.callPipelineVideoPrepare(
+            String(userId), documentId, String(lesson_id)
+        );
+
+        // ── Pipeline responded ──────────────────────────────────
+        if (videoData && videoData.status === 'ready' && videoData.video_url) {
+            // Store s3_key if we got one and don't have it yet
+            if (videoData.s3_key && videoFileId && !existingS3Key) {
+                await db.query(
+                    `UPDATE lesson_files SET s3_key = $1, file_path = 'ready' WHERE id = $2`,
+                    [videoData.s3_key, videoFileId]
+                );
+                console.log(`[prepareVideo] ✅ Stored s3_key for record ${videoFileId}`);
+            }
+
+            return res.status(200).json(videoData);
+        }
+
+        // Pipeline returned processing status
+        if (videoData && videoData.status === 'processing') {
+            return res.status(200).json(videoData);
+        }
+
+        // ── Pipeline failed or returned nothing ─────────────────
+        if (existingS3Key) {
+            return res.status(200).json({
+                status: 'unavailable',
+                message: 'Video exists but the streaming service is temporarily unavailable. Please try again in a moment.',
+                has_video: true,
+            });
+        }
+
+        // No s3_key and pipeline failed — video was never generated
+        return res.status(503).json({
+            status: 'error',
+            message: 'AI pipeline did not respond. Please try again.',
+            has_video: false,
+        });
+
+    } catch (error) {
+        console.error('[prepareVideo] ❌ ERROR:', error.message || error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     getAiGenerations,
     getAiGenerationsByLesson,
@@ -639,4 +801,6 @@ module.exports = {
     chatWithAi,
     generateAudio,
     prepareAudio,
+    generateVideo,
+    prepareVideo,
 };

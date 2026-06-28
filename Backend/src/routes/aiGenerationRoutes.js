@@ -13,6 +13,8 @@ const {
     chatWithAi,
     generateAudio,
     prepareAudio,
+    generateVideo,
+    prepareVideo,
 } = require('../controllers/aiGenerationController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -38,6 +40,15 @@ router.post('/audio', generateAudio);
 // Proxies to the pipeline's /pipeline/audio/prepare endpoint.
 // Returns a fresh pre-signed S3 URL for audio playback.
 router.post('/audio/prepare', prepareAudio);
+
+// POST /api/ai-generations/video
+// Creates a video record for the lesson sidebar.
+router.post('/video', generateVideo);
+
+// POST /api/ai-generations/video/prepare
+// Proxies to the pipeline's /pipeline/video/prepare endpoint.
+// Returns a fresh pre-signed S3 URL for video playback.
+router.post('/video/prepare', prepareVideo);
 
 // ── Status & Retrieval ──────────────────────────────────────────────────
 

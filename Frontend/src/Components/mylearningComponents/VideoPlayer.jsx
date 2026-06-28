@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import apiClient from "../../api/apiClient";
 import "./VideoPlayer.css";
 
@@ -91,12 +91,17 @@ const ErrorIcon = () => (
 function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeError, setIframeError] = useState(false);
-  // Local override: if refresh finds the file is ready, store it here
   const [localFilePath, setLocalFilePath] = useState(filePath);
-  const [isChecking, setIsChecking] = useState(false);
-  const [checkMsg, setCheckMsg]     = useState("");
 
-  // HIGH-1: short-lived stream token (replaces passing full JWT in URL)
+  // New pipeline polling state
+  const [pipelineStatus, setPipelineStatus] = useState("idle"); // idle | preparing | ready | unavailable | error
+  const [pipelineVideoUrl, setPipelineVideoUrl] = useState(null);
+  const [pipelineError, setPipelineError] = useState("");
+  
+  const pollRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  // Legacy Stream Token
   const [streamToken, setStreamToken] = useState(null);
   const streamTokenRef = useRef(null);
 
@@ -122,8 +127,10 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
     setLocalFilePath(filePath);
     setIframeLoaded(false);
     setIframeError(false);
-    setCheckMsg("");
-    setStreamToken(null); // reset token when file changes
+    setStreamToken(null);
+    setPipelineStatus("idle");
+    setPipelineVideoUrl(null);
+    setPipelineError("");
   }, [fileId, filePath]);
 
   // Fetch a short-lived stream token whenever fileId is set
@@ -146,57 +153,91 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
     return () => { cancelled = true; };
   }, [fileId]);
 
-  // ── Soft refresh: re-fetch only this file record from the API ─────
-  const handleRefreshCheck = async () => {
-    if (isChecking) return;
-    setIsChecking(true);
-    setCheckMsg("");
-    try {
-      const res = await apiClient.get(`/lesson-files/${lessonId}`);
-      const record = res.data.find((f) => f.id === fileId);
-      if (record && record.file_path) {
-        // Video is ready — update local state, no page reload needed
-        setLocalFilePath(record.file_path);
-      } else {
-        setCheckMsg("Still processing… try again in a moment.");
-      }
-    } catch {
-      setCheckMsg("Could not check status. Please try again.");
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  // Use localFilePath for all URL detection so refresh works without prop change
   const activeFilePath = localFilePath;
 
   // ── Detect URL type ───────────────────────────────────────────────
   const youtubeId = getYouTubeId(activeFilePath);
   const driveId   = getDriveFileId(activeFilePath);
+  
+  // Determine if it should use the new pipeline wrapper (i.e. it's not a legacy URL)
+  const isPipelineVideo = fileId && !youtubeId && !driveId && (activeFilePath === "pending" || activeFilePath === "ready");
 
-  /* ── Case 1: DB record exists but file not ready yet (AI still generating) */
-  if (fileId && !activeFilePath) {
-    return (
-      <StateBox
-        variant="generating"
-        icon={<SpinnerIcon />}
-        label="Generating your video…"
-        sub={checkMsg || "The AI is still processing your content. Check back in a few minutes."}
-        actions={
-          <button
-            className="vp-retry-btn vp-retry-btn--accent"
-            type="button"
-            onClick={handleRefreshCheck}
-            disabled={isChecking}
-          >
-            {isChecking ? "Checking…" : "Refresh to check"}
-          </button>
+  // ── Call /video/prepare ─────────────────────────────────────────
+  const callPrepare = useCallback(async () => {
+    if (!lessonId) return { status: "error" };
+    try {
+      const { data } = await apiClient.post("/ai-generations/video/prepare", {
+        lesson_id: lessonId,
+      });
+      return data; 
+    } catch (err) {
+      console.error("[VideoPlayer] prepare failed:", err.message);
+      return { status: "error", message: err.response?.data?.message || err.message };
+    }
+  }, [lessonId]);
+
+  // ── Poll for video ──────────────────────────────────────────────
+  const loadVideo = useCallback(async () => {
+    if (!lessonId || !fileId) return;
+    setPipelineStatus("preparing");
+    setPipelineError("");
+    setPipelineVideoUrl(null);
+
+    // Poll up to 120 times (10 minutes at 5s intervals)
+    for (let i = 0; i < 120; i++) {
+      if (!mountedRef.current) return;
+
+      const result = await callPrepare();
+
+      if (result.status === "ready" && result.video_url) {
+        if (mountedRef.current) {
+          setPipelineVideoUrl(result.video_url);
+          setPipelineStatus("ready");
         }
-      />
-    );
-  }
+        return;
+      }
 
-  /* ── Case 2: No file selected at all */
+      if (result.status === "unavailable") {
+        if (mountedRef.current) {
+          setPipelineStatus("unavailable");
+          setPipelineError(result.message || "Video streaming is temporarily unavailable.");
+        }
+        return;
+      }
+
+      if (result.status === "error") {
+        if (mountedRef.current) {
+          setPipelineStatus("error");
+          setPipelineError(result.message || "Failed to prepare video.");
+        }
+        return;
+      }
+
+      // processing — wait and try again
+      await new Promise((resolve) => {
+        pollRef.current = setTimeout(resolve, 5000);
+      });
+    }
+
+    if (mountedRef.current) {
+      setPipelineStatus("error");
+      setPipelineError("Video is still processing. Please try again later.");
+    }
+  }, [lessonId, fileId, callPrepare]);
+
+  // ── Lifecycle for pipeline polling ──────────────────────────────
+  useEffect(() => {
+    mountedRef.current = true;
+    if (isPipelineVideo) {
+      loadVideo();
+    }
+    return () => {
+      mountedRef.current = false;
+      if (pollRef.current) clearTimeout(pollRef.current);
+    };
+  }, [isPipelineVideo, loadVideo]);
+
+  /* ── Case 0: No file selected at all */
   if (!fileId && !activeFilePath) {
     return (
       <StateBox
@@ -206,6 +247,61 @@ function VideoPlayer({ title, filePath, fileId, lessonId, onVideoCompleted }) {
         sub="Video will appear here once generated by AI"
       />
     );
+  }
+
+  /* ── Case 1: Pipeline Video Polling */
+  if (isPipelineVideo) {
+    if (pipelineStatus === "preparing") {
+      return (
+        <StateBox
+          variant="generating"
+          icon={<SpinnerIcon />}
+          label="Generating your video…"
+          sub="The AI is still processing your content. This may take a few minutes."
+        />
+      );
+    }
+    
+    if (pipelineStatus === "unavailable" || pipelineStatus === "error") {
+      return (
+        <StateBox
+          variant="error"
+          icon={<ErrorIcon />}
+          label="Failed to load video"
+          sub={pipelineError}
+          actions={
+            <button
+              className="vp-retry-btn vp-retry-btn--accent"
+              type="button"
+              onClick={loadVideo}
+            >
+              🔄 Try Again
+            </button>
+          }
+        />
+      );
+    }
+    
+    if (pipelineStatus === "ready" && pipelineVideoUrl) {
+      return (
+        <div className="vp-wrap">
+          <video
+            key={pipelineVideoUrl}
+            className="vp-video"
+            controls
+            preload="metadata"
+            playsInline
+            aria-label={label}
+            onEnded={handleEnded}
+            src={pipelineVideoUrl}
+          >
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+    }
+    
+    return null;
   }
 
   /* ── Case 3: YouTube URL — embed with YouTube iframe player */
