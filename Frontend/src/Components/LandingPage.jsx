@@ -102,16 +102,16 @@ const LandingPage = () => {
     <div className="landing-page">
       <Helmet>
         {/* The Pipe symbol | looks cleaner in Google than a dash — */}
-        <title>PapyrusAI | Your AI-Powered Study Companion</title>
+        <title>Papyrus AI — The AI-Powered Learning Platform | PapyrusAI</title>
 
         <meta
           name="description"
-          content="Master any subject with Papyrus AI. Automatically generate smart flashcards, summaries, and interactive quizzes from your lectures. Study smarter, not harder."
+          content="Papyrus AI (PapyrusAI) is an AI-powered learning platform that creates summaries, flashcards, quizzes, and video explanations from your course materials. Study smarter with Papyrus — your intelligent study companion."
         />
 
         <meta
           name="keywords"
-          content="AI tutor, AI study tools, flashcard generator, lecture summarizer, Papyrus AI, exam preparation, online learning"
+          content="papyrus, papyrus ai, papyrusai, Papyrus, Papyrus AI, PapyrusAI, papyrus learning, papyrus study, AI tutor, AI learning platform, flashcard generator, quiz generator, AI study tools, AI education, lecture summarizer, online learning, AI study assistant, exam preparation"
         />
 
         <link rel="canonical" href="https://papyrusai.me/" />
@@ -121,11 +121,11 @@ const LandingPage = () => {
         <meta property="og:url" content="https://papyrusai.me/" />
         <meta
           property="og:title"
-          content="PapyrusAI | Your AI-Powered Study Companion"
+          content="Papyrus AI — The AI-Powered Learning Platform | PapyrusAI"
         />
         <meta
           property="og:description"
-          content="Transform your course materials into interactive lessons with AI. Summaries, flashcards, and quizzes in seconds."
+          content="Papyrus AI (PapyrusAI) transforms your lectures into summaries, flashcards, quizzes, and video explanations. Study smarter with Papyrus — your AI study companion."
         />
         <meta property="og:image" content="https://papyrusai.me/logo.jpeg" />
         <meta property="og:site_name" content="PapyrusAI" />
@@ -133,10 +133,10 @@ const LandingPage = () => {
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@PapyrusAI" />
-        <meta name="twitter:title" content="PapyrusAI | AI-Powered Learning" />
+        <meta name="twitter:title" content="Papyrus AI — The AI-Powered Learning Platform | PapyrusAI" />
         <meta
           name="twitter:description"
-          content="The ultimate AI tool for students. Generate study materials from your notes automatically."
+          content="Papyrus AI transforms your lectures into summaries, flashcards, quizzes, and video explanations. Study smarter with PapyrusAI."
         />
         <meta
           name="twitter:image"
