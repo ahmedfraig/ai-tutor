@@ -287,7 +287,7 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
           />
           {recognitionRef.current && (
             <motion.button
-              className={`btn btn-link p-2 m-0 ${isListening ? 'text-danger pulse-anim' : 'text-secondary'}`}
+              className={`btn btn-link ai-record-btn p-2 m-0 ${isListening ? 'text-danger pulse-anim' : 'text-secondary'}`}
               onClick={toggleListening}
               aria-label={isListening ? "Stop listening" : "Start listening"}
               whileHover={{ scale: 1.1 }}
