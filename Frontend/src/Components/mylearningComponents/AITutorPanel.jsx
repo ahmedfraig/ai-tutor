@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./AITutor.css";
 import { LuSend } from 'react-icons/lu';
-import { BsX } from "react-icons/bs";
-import { BsRobot } from 'react-icons/bs';
+import { BsX, BsRobot, BsMic, BsMicFill } from "react-icons/bs";
 import { motion, AnimatePresence } from "framer-motion";
 import apiClient from "../../api/apiClient";
 import renderLatexText from '../../utils/renderLatexText';
@@ -22,8 +21,10 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [hasFetchedHistory, setHasFetchedHistory] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const bodyRef = useRef(null);
   const abortRef = useRef(null); // AbortController for pending request
+  const recognitionRef = useRef(null);
 
   // Fetch chat history when opened
   useEffect(() => {
@@ -74,6 +75,49 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = document.documentElement.lang || 'ar-EG';
+
+      recognitionRef.current.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInputValue(transcript);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error("Microphone start error:", error);
+      }
+    }
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -229,7 +273,7 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
         </div>
 
         {/* Footer */}
-        <div className="ai-footer d-flex align-items-center">
+        <div className="ai-footer d-flex align-items-center gap-2">
           <input
             id="ai-tutor-input"
             type="text"
@@ -242,6 +286,18 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
             maxLength={500}
             disabled={isSending}
           />
+          {recognitionRef.current && (
+            <motion.button
+              className={`btn btn-link p-2 m-0 ${isListening ? 'text-danger pulse-anim' : 'text-secondary'}`}
+              onClick={toggleListening}
+              aria-label={isListening ? "Stop listening" : "Start listening"}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              title={isListening ? "Stop listening" : "Use microphone"}
+            >
+              {isListening ? <BsMicFill size={22} /> : <BsMic size={22} />}
+            </motion.button>
+          )}
           <motion.button
             className="btn ai-send-btn"
             onClick={handleSend}
