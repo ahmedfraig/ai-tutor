@@ -11,6 +11,7 @@ const {
     triggerAiGeneration,
     getAiGenerationStatus,
     chatWithAi,
+    getChatHistory,
     generateAudio,
     prepareAudio,
     generateVideo,
@@ -31,6 +32,10 @@ router.post('/trigger', triggerAiGeneration);
 // POST /api/ai-generations/chat
 // RAG-based AI Tutor chat — answers questions grounded in lesson documents.
 router.post('/chat', chatWithAi);
+
+// GET /api/ai-generations/chat/history/:lessonId
+// Retrieves the chat history for a lesson from the database.
+router.get('/chat/history/:lessonId', getChatHistory);
 
 // POST /api/ai-generations/audio
 // Creates an audio record for the lesson sidebar.

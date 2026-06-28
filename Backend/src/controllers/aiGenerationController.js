@@ -423,28 +423,82 @@ const chatWithAi = async (req, res) => {
 
         const documentId = String(filesResult.rows[0].id);
 
+        // Save user message to database BEFORE checking pipeline availability
+        await db.query(
+            `INSERT INTO chat_messages (user_id, lesson_id, role, content)
+             VALUES ($1, $2, 'user', $3)`,
+            [userId, lesson_id, message.trim()]
+        );
+
         // Check AI pipeline availability
         const aiReady = await aiService.isAvailable();
+        let replyText;
+
         if (!aiReady) {
-            return res.status(503).json({
-                message: 'AI service is not available right now. Please try again later.',
-            });
+            replyText = 'The AI service is currently offline. Please try again later.';
+        } else {
+            // Call the pipeline RAG endpoint
+            const answer = await aiService.callPipelineAsk(
+                String(userId),
+                documentId,
+                String(lesson_id),
+                message.trim()
+            );
+            replyText = answer || 'I could not generate a response for that question. Please try rephrasing.';
         }
 
-        // Call the pipeline RAG endpoint
-        const answer = await aiService.callPipelineAsk(
-            String(userId),
-            documentId,
-            String(lesson_id),
-            message.trim()
+        // Save AI reply to database
+        await db.query(
+            `INSERT INTO chat_messages (user_id, lesson_id, role, content)
+             VALUES ($1, $2, 'ai', $3)`,
+            [userId, lesson_id, replyText]
         );
 
         res.status(200).json({
-            reply: answer || 'I could not generate a response for that question. Please try rephrasing.',
+            reply: replyText,
         });
 
     } catch (error) {
         console.error('Error in chatWithAi:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// GET /api/ai-generations/chat/history/:lessonId
+// Retrieves the chat history for a given lesson from the database
+const getChatHistory = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { lessonId } = req.params;
+
+        if (!lessonId) {
+            return res.status(400).json({ message: 'lessonId is required' });
+        }
+
+        // Verify lesson ownership
+        const lessonCheck = await db.query(
+            'SELECT id FROM lessons WHERE id = $1 AND user_id = $2',
+            [lessonId, userId]
+        );
+        if (lessonCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        // Fetch chat messages from the database for this lesson and user
+        const historyResult = await db.query(
+            `SELECT role, content, created_at 
+             FROM chat_messages 
+             WHERE lesson_id = $1 AND user_id = $2
+             ORDER BY created_at ASC`,
+            [lessonId, userId]
+        );
+
+        res.status(200).json({
+            messages: historyResult.rows || []
+        });
+
+    } catch (error) {
+        console.error('Error in getChatHistory:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 };
@@ -799,6 +853,7 @@ module.exports = {
     triggerAiGeneration,
     getAiGenerationStatus,
     chatWithAi,
+    getChatHistory,
     generateAudio,
     prepareAudio,
     generateVideo,
