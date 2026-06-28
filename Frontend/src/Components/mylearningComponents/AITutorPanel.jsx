@@ -263,9 +263,8 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`ai-bubble mb-2 ${
-                msg.sender === "user" ? "user-bubble ms-auto" : "ai-bubble-msg me-auto"
-              } ${msg.isTyping ? "typing-indicator" : ""}`}
+              className={`ai-bubble mb-2 ${msg.sender === "user" ? "user-bubble ms-auto" : "ai-bubble-msg me-auto"
+                } ${msg.isTyping ? "typing-indicator" : ""}`}
             >
               {msg.isTyping ? msg.text : renderLatexText(msg.text)}
             </div>
