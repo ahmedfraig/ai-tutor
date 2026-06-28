@@ -21,8 +21,52 @@ const AITutorPanel = ({ lessonId, lessonTitle }) => {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [hasFetchedHistory, setHasFetchedHistory] = useState(false);
   const bodyRef = useRef(null);
   const abortRef = useRef(null); // AbortController for pending request
+
+  // Fetch chat history when opened
+  useEffect(() => {
+    if (isOpen && !hasFetchedHistory && lessonId) {
+      const fetchHistory = async () => {
+        try {
+          const res = await apiClient.get(`/ai-generations/chat/history/${lessonId}`);
+          if (res.data && res.data.messages && res.data.messages.length > 0) {
+            const historyMessages = res.data.messages.map((m, index) => ({
+              id: Date.now() + index,
+              text: m.content,
+              sender: m.role === 'user' ? 'user' : 'tutor',
+            }));
+            setMessages([
+              {
+                id: 1,
+                text: "Hi! I'm your AI Tutor. Ask me anything about this lesson!",
+                sender: "tutor",
+              },
+              ...historyMessages
+            ]);
+          }
+        } catch (error) {
+          console.error("Failed to fetch chat history:", error);
+        } finally {
+          setHasFetchedHistory(true);
+        }
+      };
+      fetchHistory();
+    }
+  }, [isOpen, hasFetchedHistory, lessonId]);
+
+  // Reset history if lessonId changes
+  useEffect(() => {
+    setMessages([
+      {
+        id: 1,
+        text: "Hi! I'm your AI Tutor. Ask me anything about this lesson!",
+        sender: "tutor",
+      },
+    ]);
+    setHasFetchedHistory(false);
+  }, [lessonId]);
 
   // Auto-scroll to latest message
   useEffect(() => {
