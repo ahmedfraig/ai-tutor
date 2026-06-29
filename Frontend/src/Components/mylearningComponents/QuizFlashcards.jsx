@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { motion, easeInOut } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import FloatingToast from './FloatingToast';
@@ -7,12 +7,11 @@ import renderLatexText from '../../utils/renderLatexText';
 import './QuizFlashcards.css';
 
 const QuizFlashcards = () => {
-  const MotionDiv = motion.div;
   const navigate = useNavigate();
   const location = useLocation();
   const lessonId = location.state?.lessonId || null;
 
-  const [showanswers, setshowanswers] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [questionnumber, setquestionnumber] = useState(0);
   const [quiz, setquiz] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,17 +64,18 @@ const QuizFlashcards = () => {
       }
     } else {
       setquestionnumber(prev => prev + 1);
-      setshowanswers(0);
+      setIsFlipped(false);
     }
   };
 
   const getprevquestion = () => {
     if (questionnumber === 0) return;
+    setIsFlipped(false);
     setquestionnumber(prev => prev - 1);
   };
 
-  const rotation = () => {
-    setshowanswers(prev => (prev === 2 ? 0 : prev + 1));
+  const toggleFlip = () => {
+    setIsFlipped(prev => !prev);
   };
 
   if (loading) return (
@@ -97,60 +97,72 @@ const QuizFlashcards = () => {
   return (
     <>
       <FloatingToast message={toast} onClose={dismissToast} />
-      <div className="qf-root">
-        <MotionDiv
-          className="qf-card"
-          animate={showanswers > 0 ? { rotate: [0, 360, 0] } : { rotate: 0 }}
-          transition={{ duration: 1, ease: easeInOut }}
-          onClick={rotation}
-          key={showanswers}
-          role="button"
-          aria-label="Click to flip card and reveal answer"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && rotation()}
-        >
-          {/* Question header */}
-          <div className="qf-card-header">
-            <div className="qf-icon-wrap"><i className="bi bi-lightbulb" aria-hidden="true"></i></div>
-            <span className="qf-section-label">Question {questionnumber + 1} of {quiz.length}</span>
-          </div>
+      <div className="qf-root" style={{ perspective: "1000px" }}>
+        <AnimatePresence mode="wait">
+          {!isFlipped ? (
+            <motion.div
+              key="front"
+              className="qf-card"
+              initial={{ rotateY: -90, opacity: 0 }}
+              animate={{ rotateY: 0, opacity: 1 }}
+              exit={{ rotateY: 90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={toggleFlip}
+              role="button"
+              aria-label="Click to flip card and reveal answer"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && toggleFlip()}
+            >
+              {/* Question header */}
+              <div className="qf-card-header">
+                <div className="qf-icon-wrap"><i className="bi bi-lightbulb" aria-hidden="true"></i></div>
+                <span className="qf-section-label">Question {questionnumber + 1} of {quiz.length}</span>
+              </div>
 
-          <h3 className="qf-question">{renderLatexText(quiz[questionnumber].question)}</h3>
+              <h3 className="qf-question">{renderLatexText(quiz[questionnumber].question)}</h3>
 
-          <div className="qf-btn-row">
-            <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getprevquestion(); }}>
-              ← Previous
-            </button>
-            <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getnextquestion(); }}>
-              Next →
-            </button>
-          </div>
-
-          {/* Answer */}
-          {showanswers === 1 && (
-            <div className="qf-answer-section">
-              <div className="qf-card-header" style={{ marginTop: '16px', marginBottom: '4px' }}>
+              <div className="qf-btn-row">
+                <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getprevquestion(); }}>
+                  ← Previous
+                </button>
+                <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getnextquestion(); }}>
+                  Next →
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="back"
+              className="qf-card"
+              initial={{ rotateY: -90, opacity: 0 }}
+              animate={{ rotateY: 0, opacity: 1 }}
+              exit={{ rotateY: 90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={toggleFlip}
+              role="button"
+              aria-label="Click to flip card back"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && toggleFlip()}
+            >
+              {/* Answer Header */}
+              <div className="qf-card-header">
                 <div className="qf-icon-wrap"><i className="bi bi-check-circle" aria-hidden="true" style={{ color: 'var(--color-success)' }}></i></div>
                 <span className="qf-section-label">Answer</span>
               </div>
+              
               <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].answer)}</p>
+              
               {quiz[questionnumber].why_correct && (
                 <>
-                  <div className="qf-card-header" style={{ marginBottom: '4px' }}>
+                  <div className="qf-card-header" style={{ marginTop: '16px', marginBottom: '4px' }}>
                     <div className="qf-icon-wrap"><i className="bi bi-check2-all" aria-hidden="true" style={{ color: 'var(--color-success)' }}></i></div>
                     <span className="qf-section-label">Why This Is Correct</span>
                   </div>
                   <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].why_correct)}</p>
                 </>
               )}
-            </div>
-          )}
 
-          {/* Common mistakes */}
-          {showanswers === 2 && (
-            <div className="qf-answer-section">
-              <p className="qf-answer-text">{renderLatexText(quiz[questionnumber].answer)}</p>
-              {quiz[questionnumber].common_mistake ? (
+              {quiz[questionnumber].common_mistake && (
                 <>
                   <div className="qf-card-header" style={{ marginTop: '16px', marginBottom: '4px' }}>
                     <div className="qf-icon-wrap"><i className="bi bi-exclamation-triangle" aria-hidden="true" style={{ color: 'var(--color-error)' }}></i></div>
@@ -158,12 +170,19 @@ const QuizFlashcards = () => {
                   </div>
                   <p className="qf-mistake-text">{renderLatexText(quiz[questionnumber].common_mistake)}</p>
                 </>
-              ) : (
-                <p className="qf-answer-text" style={{ opacity: 0.5, fontStyle: 'italic' }}>No common mistakes noted for this card.</p>
               )}
-            </div>
+
+              <div className="qf-btn-row" style={{ marginTop: '24px' }}>
+                <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getprevquestion(); }}>
+                  ← Previous
+                </button>
+                <button className="qf-nav-btn" onClick={(e) => { e.stopPropagation(); getnextquestion(); }}>
+                  Next →
+                </button>
+              </div>
+            </motion.div>
           )}
-        </MotionDiv>
+        </AnimatePresence>
 
         <button
           className="qf-return-btn"
