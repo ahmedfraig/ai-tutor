@@ -24,16 +24,17 @@ const AudioPlayer = ({ title, fileId, lessonId }) => {
   const callPrepare = useCallback(async () => {
     if (!lessonId) return { status: "error" };
     try {
+      const audioLanguage = title?.toLowerCase().includes("english") ? "en" : "ar";
       const { data } = await apiClient.post("/ai-generations/audio/prepare", {
         lesson_id: lessonId,
-        language: "ar",
+        language: audioLanguage,
       });
       return data; // { status, audio_url?, message?, has_audio? }
     } catch (err) {
       console.error("[AudioPlayer] prepare failed:", err.message);
       return { status: "error", message: err.response?.data?.message || err.message };
     }
-  }, [lessonId]);
+  }, [lessonId, title]);
 
   // ── Main load function — polls if needed ──────────────────────
   const loadAudio = useCallback(async () => {

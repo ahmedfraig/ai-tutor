@@ -555,10 +555,11 @@ const generateAudio = async (req, res) => {
             [lesson_id, userId]
         );
         const count = parseInt(audioCount.rows[0].count, 10) + 1;
+        const langLabel = language === 'en' ? 'English' : 'Arabic';
         const insertResult = await db.query(
             `INSERT INTO lesson_files (lesson_id, user_id, type, name, file_path, s3_key)
              VALUES ($1, $2, 'audio', $3, 'pending', NULL) RETURNING *`,
-            [lesson_id, userId, `AI Audio ${count}`]
+            [lesson_id, userId, `AI Audio ${count} (${langLabel})`]
         );
         const record = insertResult.rows[0];
         console.log(`[generateAudio] ✅ Audio record created: id=${record.id}`);

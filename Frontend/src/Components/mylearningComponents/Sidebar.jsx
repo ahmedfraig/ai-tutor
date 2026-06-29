@@ -126,7 +126,7 @@ function Sidebar({ onCloseSidebar, onSelectContent, onFilesChanged, lessonId }) 
 
   // ── Generate — step 2: confirm and send to backend ───────────
   const handleGenerate = async (directType = null) => {
-    const type = directType || generateModal.type;
+    const type = typeof directType === 'string' ? directType : generateModal.type;
     const selectedPdfIds = generateModal.selectedPdfIds || [];
     setGenerateModal({ show: false, type: null, selectedPdfIds: [] });
     
